@@ -315,6 +315,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/users/today-joinings", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const userTimezone = req.query.timezone as string || 'UTC';
+      console.log(`[${new Date().toISOString()}] Today's joinings API called with timezone: ${userTimezone}`);
+      const todayJoinings = await storage.getTodayJoinings(userTimezone);
+      console.log(`[${new Date().toISOString()}] Returning ${todayJoinings.length} users for timezone: ${userTimezone}`);
+      res.json(todayJoinings);
+    } catch (error) {
+      console.error("Error fetching today's joinings:", error);
+      res.status(500).json({ message: "Failed to fetch today's joinings" });
+    }
+  });
+
+  app.get("/api/users/paid-members", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      console.log(`[${new Date().toISOString()}] Paid members API called`);
+      const paidMembers = await storage.getPaidMembers();
+      console.log(`[${new Date().toISOString()}] Returning ${paidMembers.length} paid members`);
+      res.json(paidMembers);
+    } catch (error) {
+      console.error("Error fetching paid members:", error);
+      res.status(500).json({ message: "Failed to fetch paid members" });
+    }
+  });
+
+  app.get("/api/users/free-users", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      console.log(`[${new Date().toISOString()}] Free users API called`);
+      const freeUsers = await storage.getFreeUsers();
+      console.log(`[${new Date().toISOString()}] Returning ${freeUsers.length} free users`);
+      res.json(freeUsers);
+    } catch (error) {
+      console.error("Error fetching free users:", error);
+      res.status(500).json({ message: "Failed to fetch free users" });
+    }
+  });
+
+  // Debug endpoint to check date filtering
+  app.get("/api/debug/today-joinings", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const userTimezone = req.query.timezone as string || 'UTC';
+      const { db } = await import("./db");
+      const { users } = await import("@shared/schema");
+      const { sql } = await import("drizzle-orm");
+      
+      // Get current date info
+      const now = new Date();
+      const currentDate = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+      
+      // Get all users with their activation dates
+      const allUsers = await db.select({
+        id: users.id,
+        userId: users.userId,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        createdAt: users.createdAt,
+        activationDate: users.activationDate
+      }).from(users).orderBy(sql`${users.activationDate} DESC`).limit(10);
+      
+      // Get users from today using CURRENT_DATE (activation_date)
+      const todayUsersCurrentDate = await db.select({
+        id: users.id,
+        userId: users.userId,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        createdAt: users.createdAt,
+        activationDate: users.activationDate
+      }).from(users)
+      .where(sql`DATE(${users.activationDate} AT TIME ZONE 'UTC' AT TIME ZONE ${userTimezone}) = DATE(NOW() AT TIME ZONE ${userTimezone})`)
+      .orderBy(sql`${users.activationDate} DESC`);
+      
+      // Get users from today using explicit date string (activation_date)
+      const todayUsersExplicit = await db.select({
+        id: users.id,
+        userId: users.userId,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        createdAt: users.createdAt,
+        activationDate: users.activationDate
+      }).from(users)
+      .where(sql`DATE(${users.activationDate} AT TIME ZONE 'UTC' AT TIME ZONE ${userTimezone}) = DATE(NOW() AT TIME ZONE ${userTimezone})`)
+      .orderBy(sql`${users.activationDate} DESC`);
+      
+      res.json({
+        currentDate,
+        currentTime: now.toISOString(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        allUsers: allUsers.map(u => ({
+          ...u,
+          createdAt: u.createdAt?.toISOString(),
+          activationDate: u.activationDate?.toISOString(),
+          activationDateOnly: u.activationDate?.toISOString().split('T')[0]
+        })),
+        todayUsersCurrentDate: todayUsersCurrentDate.map(u => ({
+          ...u,
+          createdAt: u.createdAt?.toISOString(),
+          activationDate: u.activationDate?.toISOString(),
+          activationDateOnly: u.activationDate?.toISOString().split('T')[0]
+        })),
+        todayUsersExplicit: todayUsersExplicit.map(u => ({
+          ...u,
+          createdAt: u.createdAt?.toISOString(),
+          activationDate: u.activationDate?.toISOString(),
+          activationDateOnly: u.activationDate?.toISOString().split('T')[0]
+        })),
+        todayCountCurrentDate: todayUsersCurrentDate.length,
+        todayCountExplicit: todayUsersExplicit.length
+      });
+    } catch (error: any) {
+      console.error("Error in debug endpoint:", error);
+      res.status(500).json({ message: "Debug endpoint error", error: error.message });
+    }
+  });
+
   app.post("/api/users", isAuthenticated, isAdmin, async (req, res) => {
     try {
       // Remove password from validation schema for admin creation

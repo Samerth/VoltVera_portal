@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, UserCheck, Crown, Clock, Plus, Menu, X, Settings, Lock, BarChart3, FileText, Shield, DollarSign, Award, Search, Filter, ChevronDown, ChevronRight, Wallet, TrendingUp, Activity, Mail, RefreshCw, CheckCircle, XCircle, Link2, Copy } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -16,6 +17,7 @@ import { User, CreateUser } from "@shared/schema";
 import VoltverashopLogo from "@/components/VoltverashopLogo";
 import DataTable from "@/components/ui/data-table";
 import UserManagementTable from "@/components/UserManagementTable";
+import FreeUsersTable from "@/components/FreeUsersTable";
 import { AdminPendingRecruits } from "@/components/AdminPendingRecruits";
 import AdminPendingUsers from "@/components/AdminPendingUsers";
 import UserManagement from "@/components/UserManagement";
@@ -73,6 +75,40 @@ export default function AdminDashboard() {
     }
   }, [isAuthenticated, isLoading, user, toast]);
 
+  // Keyboard shortcut for refresh when on today-joinings, paid-members, or free-users section
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((activeSection === 'today-joinings' || activeSection === 'paid-members' || activeSection === 'free-users') && (event.key === 'F5' || (event.ctrlKey && event.key === 'r'))) {
+        event.preventDefault();
+        if (activeSection === 'today-joinings') {
+          // Invalidate and refetch today's joinings
+          queryClient.invalidateQueries({ queryKey: ["/api/users/today-joinings"] });
+          toast({
+            title: "Refreshed",
+            description: "Today's activations data has been updated.",
+          });
+        } else if (activeSection === 'paid-members') {
+          // Invalidate and refetch paid members
+          queryClient.invalidateQueries({ queryKey: ["/api/users/paid-members"] });
+          toast({
+            title: "Refreshed",
+            description: "Paid members data has been updated.",
+          });
+        } else if (activeSection === 'free-users') {
+          // Invalidate and refetch free users
+          queryClient.invalidateQueries({ queryKey: ["/api/users/free-users"] });
+          toast({
+            title: "Refreshed",
+            description: "Free users data has been updated.",
+          });
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeSection, queryClient, toast]);
+
   const toggleMenu = (menuId: string) => {
     setExpandedMenus(prev => 
       prev.includes(menuId) 
@@ -110,6 +146,107 @@ export default function AdminDashboard() {
     queryFn: () => apiRequest('GET', '/api/admin/wallet-balances'),
     enabled: isAuthenticated && user?.role === 'admin',
   });
+
+  // Fetch today's joinings with timezone detection
+  const { data: todayJoinings = [], isLoading: todayJoiningsLoading, refetch: refetchTodayJoinings } = useQuery<User[]>({
+    queryKey: ["/api/users/today-joinings", new Date().toDateString()], // Add date to force cache refresh
+    queryFn: async () => {
+      // Detect user's timezone
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+      const timestamp = Date.now();
+      const response = await fetch(`/api/users/today-joinings?timezone=${encodeURIComponent(userTimezone)}&t=${timestamp}`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch today\'s joinings');
+      return response.json();
+    },
+    enabled: isAuthenticated && user?.role === 'admin',
+    staleTime: 0, // Force fresh data
+    gcTime: 0, // Don't cache (gcTime is the new name for cacheTime in newer versions)
+  });
+
+  // Fetch paid members
+  const { data: paidMembers = [], isLoading: paidMembersLoading, refetch: refetchPaidMembers } = useQuery<User[]>({
+    queryKey: ["/api/users/paid-members"],
+    queryFn: async () => {
+      const response = await fetch('/api/users/paid-members', {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch paid members');
+      return response.json();
+    },
+    enabled: isAuthenticated && user?.role === 'admin',
+  });
+
+  // Fetch free users
+  const { data: freeUsers = [], isLoading: freeUsersLoading, refetch: refetchFreeUsers } = useQuery<User[]>({
+    queryKey: ["/api/users/free-users"],
+    queryFn: async () => {
+      const response = await fetch('/api/users/free-users', {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch free users');
+      return response.json();
+    },
+    enabled: isAuthenticated && user?.role === 'admin',
+  });
+
+  // Handle refresh for today's joinings
+  const handleRefreshTodayJoinings = async () => {
+    try {
+      await queryClient.invalidateQueries({ queryKey: ["/api/users/today-joinings"] });
+      await refetchTodayJoinings();
+      toast({
+        title: "Refreshed",
+        description: "Today's activations data has been updated.",
+      });
+    } catch (error) {
+      console.error('Refresh error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle refresh for paid members
+  const handleRefreshPaidMembers = async () => {
+    try {
+      await queryClient.invalidateQueries({ queryKey: ["/api/users/paid-members"] });
+      await refetchPaidMembers();
+      toast({
+        title: "Refreshed",
+        description: "Paid members data has been updated.",
+      });
+    } catch (error) {
+      console.error('Refresh error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle refresh for free users
+  const handleRefreshFreeUsers = async () => {
+    try {
+      await queryClient.invalidateQueries({ queryKey: ["/api/users/free-users"] });
+      await refetchFreeUsers();
+      toast({
+        title: "Refreshed",
+        description: "Free users data has been updated.",
+      });
+    } catch (error) {
+      console.error('Refresh error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Fetch withdrawal data for all users
   const { data: withdrawalRequests = [] } = useQuery({
@@ -1207,11 +1344,262 @@ export default function AdminDashboard() {
             </Card>
           )}
 
+          {/* Today's Joinings Section */}
+          {activeSection === 'today-joinings' && (
+            <div className="space-y-6">
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                <CardTitle className="text-lg font-medium text-gray-800 flex items-center">
+                  <Users className="mr-2 h-5 w-5 text-volt-light" />
+                  Today's Activations
+                </CardTitle>
+                <p className="text-sm text-gray-600">
+                  Users who were activated today ({new Date().toLocaleDateString()})
+                </p>
+                </CardHeader>
+                <CardContent>
+                  {todayJoiningsLoading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-volt-light mx-auto mb-4"></div>
+                      <p className="text-gray-600">Loading today's activations...</p>
+                    </div>
+                  ) : (todayJoinings as User[]).length === 0 ? (
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                        <Users className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-800 mb-2">No Activations Today</h3>
+                      <p className="text-gray-600 mb-4">
+                        No users have been activated today. Check back later or review previous days.
+                      </p>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={todayJoiningsLoading}
+                              onClick={handleRefreshTodayJoinings}
+                            >
+                              <RefreshCw className={`mr-2 h-4 w-4 ${todayJoiningsLoading ? 'animate-spin' : ''}`} />
+                              {todayJoiningsLoading ? 'Refreshing...' : 'Refresh'}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Refresh data (F5 or Ctrl+R)</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-gray-600">
+                          Found {(todayJoinings as User[]).length} user{(todayJoinings as User[]).length !== 1 ? 's' : ''} who were activated today
+                        </p>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={todayJoiningsLoading}
+                                onClick={handleRefreshTodayJoinings}
+                              >
+                                <RefreshCw className={`mr-2 h-4 w-4 ${todayJoiningsLoading ? 'animate-spin' : ''}`} />
+                                {todayJoiningsLoading ? 'Refreshing...' : 'Refresh'}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Refresh data (F5 or Ctrl+R)</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      
+                      {/* User Management Table for Today's Joinings */}
+                      <UserManagementTable 
+                        users={todayJoinings as any}
+                        walletData={walletDataMap}
+                        withdrawalData={withdrawalDataMap}
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Paid Members Section */}
+          {activeSection === 'paid-members' && (
+            <div className="space-y-6">
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <CardTitle className="text-lg font-medium text-gray-800 flex items-center">
+                    <Users className="mr-2 h-5 w-5 text-volt-light" />
+                    Paid Members
+                  </CardTitle>
+                  <p className="text-sm text-gray-600">
+                    Users with approved KYC, complete bank details, and active package
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {paidMembersLoading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-volt-light mx-auto mb-4"></div>
+                      <p className="text-gray-600">Loading paid members...</p>
+                    </div>
+                  ) : (paidMembers as User[]).length === 0 ? (
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                        <Users className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-800 mb-2">No Paid Members</h3>
+                      <p className="text-gray-600 mb-4">
+                        No users meet the paid member criteria. Users need approved KYC, complete bank details, and an active package.
+                      </p>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={paidMembersLoading}
+                              onClick={handleRefreshPaidMembers}
+                            >
+                              <RefreshCw className={`mr-2 h-4 w-4 ${paidMembersLoading ? 'animate-spin' : ''}`} />
+                              {paidMembersLoading ? 'Refreshing...' : 'Refresh'}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Refresh data (F5 or Ctrl+R)</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-gray-600">
+                          Found {(paidMembers as User[]).length} paid member{(paidMembers as User[]).length !== 1 ? 's' : ''}
+                        </p>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={paidMembersLoading}
+                                onClick={handleRefreshPaidMembers}
+                              >
+                                <RefreshCw className={`mr-2 h-4 w-4 ${paidMembersLoading ? 'animate-spin' : ''}`} />
+                                {paidMembersLoading ? 'Refreshing...' : 'Refresh'}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Refresh data (F5 or Ctrl+R)</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <UserManagementTable 
+                        users={paidMembers as any}
+                        walletData={walletDataMap}
+                        withdrawalData={withdrawalDataMap}
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Free Users Section */}
+          {activeSection === 'free-users' && (
+            <div className="space-y-6">
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <CardTitle className="text-lg font-medium text-gray-800 flex items-center">
+                    <Users className="mr-2 h-5 w-5 text-volt-light" />
+                    Free Users
+                  </CardTitle>
+                  <p className="text-sm text-gray-600">
+                    Users with no package amount (package amount = 0 or null)
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {freeUsersLoading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-volt-light mx-auto mb-4"></div>
+                      <p className="text-gray-600">Loading free users...</p>
+                    </div>
+                  ) : (freeUsers as User[]).length === 0 ? (
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                        <Users className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-800 mb-2">No Free Users</h3>
+                      <p className="text-gray-600 mb-4">
+                        No users found with zero package amount. All users have active packages.
+                      </p>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={freeUsersLoading}
+                              onClick={handleRefreshFreeUsers}
+                            >
+                              <RefreshCw className={`mr-2 h-4 w-4 ${freeUsersLoading ? 'animate-spin' : ''}`} />
+                              {freeUsersLoading ? 'Refreshing...' : 'Refresh'}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Refresh data (F5 or Ctrl+R)</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-gray-600">
+                          Found {(freeUsers as User[]).length} free user{(freeUsers as User[]).length !== 1 ? 's' : ''}
+                        </p>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={freeUsersLoading}
+                                onClick={handleRefreshFreeUsers}
+                              >
+                                <RefreshCw className={`mr-2 h-4 w-4 ${freeUsersLoading ? 'animate-spin' : ''}`} />
+                                {freeUsersLoading ? 'Refreshing...' : 'Refresh'}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Refresh data (F5 or Ctrl+R)</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <FreeUsersTable 
+                        users={freeUsers as any}
+                        walletData={walletDataMap}
+                        withdrawalData={withdrawalDataMap}
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {/* Enhanced Section Content for other sections */}
-          {(activeSection === 'paid-members' || 
-            activeSection === 'today-joinings' || 
-            activeSection === 'free-users' || 
-            activeSection === 'user-activities' ||
+          {(activeSection === 'user-activities' ||
             activeSection === 'direct-income' ||
             activeSection === 'roi-income' ||
             activeSection === 'salary-income' ||

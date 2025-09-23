@@ -66,6 +66,9 @@ export interface IStorage {
   
   // User management operations
   getAllUsers(search?: string): Promise<(User & { sponsorUserId: string | null })[]>;
+  getTodayJoinings(userTimezone?: string): Promise<(User & { sponsorUserId: string | null })[]>;
+  getPaidMembers(): Promise<(User & { sponsorUserId: string | null })[]>;
+  getFreeUsers(): Promise<(User & { sponsorUserId: string | null })[]>;
   searchUsers(query: string, filters: {
     searchType?: 'id' | 'name' | 'bv' | 'rank';
     status?: string;
@@ -353,6 +356,264 @@ export class DatabaseStorage implements IStorage {
     }
     
     const result = await query;
+    
+    // Add sponsor user IDs by fetching sponsor information
+    const usersWithSponsorIds = await Promise.all(result.map(async (user) => {
+      let sponsorUserId = null;
+      if (user.sponsorId) {
+        const sponsor = await db.select({ userId: users.userId })
+          .from(users)
+          .where(eq(users.id, user.sponsorId))
+          .limit(1);
+        sponsorUserId = sponsor[0]?.userId || null;
+      }
+      
+      return {
+        ...user,
+        sponsorUserId
+      };
+    }));
+    
+    return usersWithSponsorIds as (User & { sponsorUserId: string | null })[];
+  }
+
+  // Get users who were activated today
+  async getTodayJoinings(userTimezone: string = 'UTC'): Promise<(User & { sponsorUserId: string | null })[]> {
+    // Get current date in YYYY-MM-DD format to avoid timezone issues
+    const today = new Date();
+    const todayString = today.toISOString().split('T')[0]; // Gets YYYY-MM-DD format
+    
+    console.log(`Looking for users who were activated today in timezone: ${userTimezone}`);
+    console.log(`Current time: ${today.toISOString()}`);
+    
+    // Check what the database thinks "today" is
+    const dbToday = await db.execute(sql`SELECT CURRENT_DATE, NOW(), DATE(NOW() AT TIME ZONE 'UTC') as utc_date`);
+    console.log('Database date info:', dbToday);
+    
+    // First, let's get all users to debug what activation dates we have
+    const allUsersDebug = await db.select({
+      id: users.id,
+      userId: users.userId,
+      email: users.email,
+      createdAt: users.createdAt,
+      activationDate: users.activationDate
+    }).from(users).orderBy(desc(users.activationDate)).limit(20);
+    
+    console.log('Recent users with activation dates:', allUsersDebug.map(u => ({
+      id: u.id,
+      userId: u.userId,
+      email: u.email,
+      createdAt: u.createdAt?.toISOString(),
+      activationDate: u.activationDate?.toISOString(),
+      activationDateOnly: u.activationDate?.toISOString().split('T')[0]
+    })));
+    
+    // Use activation_date instead of created_at for today's joinings
+    const query = db.select({
+      id: users.id,
+      userId: users.userId,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      email: users.email,
+      mobile: users.mobile,
+      sponsorId: users.sponsorId,
+      packageAmount: users.packageAmount,
+      cryptoWalletAddress: users.cryptoWalletAddress,
+      txnPin: users.txnPin,
+      password: users.password,
+      status: users.status,
+      registrationDate: users.createdAt,
+      kycStatus: users.kycStatus,
+      kycApprovedAt: users.kycApprovedAt,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      activationDate: users.activationDate
+    }).from(users)
+    .where(
+      sql`DATE(${users.activationDate} AT TIME ZONE 'UTC' AT TIME ZONE ${userTimezone}) = DATE(NOW() AT TIME ZONE ${userTimezone})`
+    )
+    .orderBy(desc(users.activationDate));
+    
+    const result = await query;
+ 
+    console.log('Result:', result);
+    
+    console.log(`Found ${result.length} users who were activated today (${todayString}):`, 
+      result.map(u => ({ id: u.id, userId: u.userId, email: u.email, activationDate: u.activationDate }))
+    );
+    
+    // Add sponsor user IDs by fetching sponsor information
+    const usersWithSponsorIds = await Promise.all(result.map(async (user) => {
+      let sponsorUserId = null;
+      if (user.sponsorId) {
+        const sponsor = await db.select({ userId: users.userId })
+          .from(users)
+          .where(eq(users.id, user.sponsorId))
+          .limit(1);
+        sponsorUserId = sponsor[0]?.userId || null;
+      }
+      
+      return {
+        ...user,
+        sponsorUserId
+      };
+    }));
+    
+    return usersWithSponsorIds as (User & { sponsorUserId: string | null })[];
+  }
+
+  // Get paid members (users with approved KYC, bank details, and package amount > 0)
+  async getPaidMembers(): Promise<(User & { sponsorUserId: string | null })[]> {
+    console.log('Looking for paid members...');
+    
+    // Query for paid members with all required conditions
+    const query = db.select({
+      id: users.id,
+      userId: users.userId,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      email: users.email,
+      mobile: users.mobile,
+      sponsorId: users.sponsorId,
+      packageAmount: users.packageAmount,
+      cryptoWalletAddress: users.cryptoWalletAddress,
+      txnPin: users.txnPin,
+      password: users.password,
+      status: users.status,
+      registrationDate: users.createdAt,
+      kycStatus: users.kycStatus,
+      kycApprovedAt: users.kycApprovedAt,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      activationDate: users.activationDate,
+      // KYC fields
+      panNumber: users.panNumber,
+      aadhaarNumber: users.aadhaarNumber,
+      // Bank fields
+      bankAccountNumber: users.bankAccountNumber,
+      bankIFSC: users.bankIFSC,
+      bankName: users.bankName,
+      bankAccountHolderName: users.bankAccountHolderName
+    }).from(users)
+    .where(
+      and(
+        // Condition 1: Status should be 'active'
+        eq(users.status, 'active'),
+        
+        // Condition 2: KYC should be approved
+        eq(users.kycStatus, 'approved'),
+        
+        // Condition 3: PAN and Aadhaar should not be empty
+        sql`${users.panNumber} IS NOT NULL AND ${users.panNumber} != ''`,
+        sql`${users.aadhaarNumber} IS NOT NULL AND ${users.aadhaarNumber} != ''`,
+        
+        // Condition 4: Bank details should not be empty
+        sql`${users.bankAccountNumber} IS NOT NULL AND ${users.bankAccountNumber} != ''`,
+        sql`${users.bankIFSC} IS NOT NULL AND ${users.bankIFSC} != ''`,
+        sql`${users.bankName} IS NOT NULL AND ${users.bankName} != ''`,
+        sql`${users.bankAccountHolderName} IS NOT NULL AND ${users.bankAccountHolderName} != ''`,
+        
+        // Condition 5: Package amount should not be null and greater than 0
+        sql`${users.packageAmount} IS NOT NULL AND CAST(${users.packageAmount} AS DECIMAL) > 0`
+      )
+    )
+    .orderBy(desc(users.activationDate));
+    
+    const result = await query;
+    
+    console.log(`Found ${result.length} paid members:`, 
+      result.map(u => ({ 
+        id: u.id, 
+        userId: u.userId, 
+        email: u.email, 
+        packageAmount: u.packageAmount,
+        kycStatus: u.kycStatus,
+        hasBankDetails: !!(u.bankAccountNumber && u.bankIFSC && u.bankName && u.bankAccountHolderName)
+      }))
+    );
+    
+    // Add sponsor user IDs by fetching sponsor information
+    const usersWithSponsorIds = await Promise.all(result.map(async (user) => {
+      let sponsorUserId = null;
+      if (user.sponsorId) {
+        const sponsor = await db.select({ userId: users.userId })
+          .from(users)
+          .where(eq(users.id, user.sponsorId))
+          .limit(1);
+        sponsorUserId = sponsor[0]?.userId || null;
+      }
+      
+      return {
+        ...user,
+        sponsorUserId
+      };
+    }));
+    
+    return usersWithSponsorIds as (User & { sponsorUserId: string | null })[];
+  }
+
+  // Get free users (all users minus users with package amount > 0)
+  async getFreeUsers(): Promise<(User & { sponsorUserId: string | null })[]> {
+    console.log('Looking for free users...');
+    
+    // First, let's see all package amounts in the database
+    const allUsers = await db.select({ 
+      id: users.id, 
+      userId: users.userId, 
+      packageAmount: users.packageAmount 
+    }).from(users);
+    console.log('All users with package amounts:', allUsers.map(u => ({ 
+      userId: u.userId, 
+      packageAmount: u.packageAmount 
+    })));
+    
+    // Query for free users - all users except those with package amount > 0
+    const query = db.select({
+      id: users.id,
+      userId: users.userId,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      email: users.email,
+      mobile: users.mobile,
+      sponsorId: users.sponsorId,
+      packageAmount: users.packageAmount,
+      cryptoWalletAddress: users.cryptoWalletAddress,
+      txnPin: users.txnPin,
+      password: users.password,
+      status: users.status,
+      registrationDate: users.createdAt,
+      kycStatus: users.kycStatus,
+      kycApprovedAt: users.kycApprovedAt,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      activationDate: users.activationDate
+    }).from(users)
+    .where(
+      or(
+        // Users with package amount = null
+        sql`${users.packageAmount} IS NULL`,
+        // Users with empty package amount
+        sql`${users.packageAmount} = ''`,
+        // Users with package amount = 0 (any format: '0', '0.0', '0.00', etc.)
+        sql`CAST(${users.packageAmount} AS DECIMAL) = 0`,
+        // Users with package amount = '0.00' (exact match)
+        eq(users.packageAmount, '0.00')
+      )
+    )
+    .orderBy(desc(users.createdAt));
+    
+    const result = await query;
+
+    console.log('Result:', result);
+    
+    console.log(`Found ${result.length} free users:`, 
+      result.map(u => ({ 
+        id: u.id, 
+        userId: u.userId, 
+        email: u.email, 
+        packageAmount: u.packageAmount
+      }))
+    );
     
     // Add sponsor user IDs by fetching sponsor information
     const usersWithSponsorIds = await Promise.all(result.map(async (user) => {

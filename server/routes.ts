@@ -174,13 +174,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const adminRole = (req.session as any)?.user?.role;
       if (adminId && adminRole === 'admin') {
         // Revoke tokens
-        for (const [tok, meta] of impersonationTokens.entries()) {
+        for (const [tok, meta] of Array.from(impersonationTokens.entries())) {
           if (meta.issuedByAdminId === adminId) {
             impersonationTokens.delete(tok);
           }
         }
         // Revoke outstanding one-time codes
-        for (const [codeKey, meta] of impersonationCodes.entries()) {
+        for (const [codeKey, meta] of Array.from(impersonationCodes.entries())) {
           if (meta.issuedByAdminId === adminId) {
             impersonationCodes.delete(codeKey);
           }
@@ -1845,10 +1845,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         firstName,
         lastName,
         password: tempPassword, // Store password in plaintext
-        role: 'user',
-        status: 'active',
-        isHiddenId: true,
-        emailVerified: new Date()
+        role: 'user'
       });
       
       res.json({
@@ -1900,6 +1897,172 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching withdrawal requests:', error);
       res.status(500).json({ message: 'Failed to fetch withdrawal requests' });
+    }
+  });
+
+  // Admin create withdrawal request on behalf of user
+  app.post('/api/admin/withdraw-personally', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { userId, withdrawalType, amount, remarks } = req.body;
+
+      console.log('=== ADMIN WITHDRAWAL CREATION ===');
+      console.log('User ID:', userId);
+      console.log('Withdrawal Type:', withdrawalType);
+      console.log('Amount:', amount);
+      console.log('Remarks:', remarks);
+
+      // Validate required fields
+      if (!userId || !withdrawalType || !amount || !remarks) {
+        return res.status(400).json({ 
+          message: 'Missing required fields: userId, withdrawalType, amount, remarks' 
+        });
+      }
+
+      // Validate withdrawal type
+      if (!['INR', 'USD'].includes(withdrawalType)) {
+        return res.status(400).json({ 
+          message: 'Withdrawal type must be either "INR" or "USD"' 
+        });
+      }
+
+      // Validate amount
+      const amountNum = parseFloat(amount);
+      if (isNaN(amountNum) || amountNum <= 0) {
+        return res.status(400).json({ 
+          message: 'Amount must be a positive number' 
+        });
+      }
+
+      // Create withdrawal request using storage method
+      const withdrawalRequest = await storage.createAdminWithdrawalRequest({
+        userId,
+        withdrawalType,
+        amount: amountNum.toString(),
+        remarks
+      });
+
+      res.status(201).json({
+        message: 'Withdrawal request created successfully',
+        withdrawalRequest
+      });
+
+    } catch (error) {
+      console.error('Error creating admin withdrawal request:', error);
+      
+      // Determine appropriate status code based on error type
+      let statusCode = 500;
+      let errorMessage = 'Failed to create withdrawal request';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Set appropriate status codes for different error types
+        if (errorMessage.includes('User not found')) {
+          statusCode = 404;
+        } else if (errorMessage.includes('KYC is not approved') || 
+                   errorMessage.includes('Insufficient balance') ||
+                   errorMessage.includes('does not have a wallet')) {
+          statusCode = 400; // Bad Request
+        }
+      }
+      
+      res.status(statusCode).json({
+        message: errorMessage
+      });
+    }
+  });
+
+// Get pending withdrawal requests with user details
+app.get('/api/admin/pending-withdrawals', isAuthenticated, isAdmin, async (req, res) => {
+  try {
+    const pendingWithdrawals = await storage.getPendingWithdrawalsWithUserDetails();
+    res.json(pendingWithdrawals);
+  } catch (error) {
+    console.error('Error fetching pending withdrawals:', error);
+    res.status(500).json({ message: 'Failed to fetch pending withdrawals' });
+  }
+});
+
+// Get approved withdrawal requests with user details
+app.get('/api/admin/approved-withdrawals', isAuthenticated, isAdmin, async (req, res) => {
+  try {
+    const approvedWithdrawals = await storage.getApprovedWithdrawalsWithUserDetails();
+    res.json(approvedWithdrawals);
+  } catch (error) {
+    console.error('Error fetching approved withdrawals:', error);
+    res.status(500).json({ message: 'Failed to fetch approved withdrawals' });
+  }
+});
+
+// Get rejected withdrawal requests with user details
+app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req, res) => {
+  try {
+    const rejectedWithdrawals = await storage.getRejectedWithdrawalsWithUserDetails();
+    res.json(rejectedWithdrawals);
+  } catch (error) {
+    console.error('Error fetching rejected withdrawals:', error);
+    res.status(500).json({ message: 'Failed to fetch rejected withdrawals' });
+  }
+});
+
+  // Approve withdrawal request
+  app.post('/api/admin/approve-withdrawal/:id', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { adminNotes } = req.body;
+
+      const success = await storage.updateWithdrawalStatus(id, 'approved', adminNotes);
+      
+      if (success) {
+        res.json({ message: 'Withdrawal request approved successfully' });
+      } else {
+        res.status(404).json({ message: 'Withdrawal request not found' });
+      }
+    } catch (error) {
+      console.error('Error approving withdrawal request:', error);
+      res.status(500).json({ message: 'Failed to approve withdrawal request' });
+    }
+  });
+
+  // Reject withdrawal request
+  app.post('/api/admin/reject-withdrawal/:id', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+
+      if (!reason || reason.trim() === '') {
+        return res.status(400).json({ message: 'Rejection reason is required' });
+      }
+
+      const success = await storage.updateWithdrawalStatus(id, 'rejected', reason);
+      
+      if (success) {
+        res.json({ message: 'Withdrawal request rejected successfully' });
+      } else {
+        res.status(404).json({ message: 'Withdrawal request not found' });
+      }
+    } catch (error) {
+      console.error('Error rejecting withdrawal request:', error);
+      res.status(500).json({ message: 'Failed to reject withdrawal request' });
+    }
+  });
+
+  // Reactivate rejected withdrawal request (change status to pending)
+  app.post('/api/admin/reactivate-withdrawal/:id', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const success = await storage.updateWithdrawalStatus(id, 'pending', 'Reactivated by admin');
+      if (success) {
+        res.json({ message: 'Withdrawal request reactivated successfully' });
+      } else {
+        res.status(404).json({ message: 'Withdrawal request not found' });
+      }
+    } catch (error) {
+      console.error('Error reactivating withdrawal:', error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : 'Failed to reactivate withdrawal request'
+      });
     }
   });
 
@@ -2067,8 +2230,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: 'User updated successfully', user: safeUser });
     } catch (error) {
       console.error('Error updating user:', error);
-      console.error('Error details:', error.message);
-      console.error('Error stack:', error.stack);
+      console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Validation error", errors: error.errors });
@@ -2319,10 +2482,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const objectStorageService = new ObjectStorageService();
         
         // Try to find in object storage public directories first
-        let documentFile = await objectStorageService.searchPublicObject(documentPath);
-        
-        if (documentFile) {
+        try {
+          let documentFile = await objectStorageService.getObjectEntityFile(documentPath);
           return objectStorageService.downloadObject(documentFile, res);
+        } catch (storageError) {
+          console.log('Document not found in object storage, trying legacy storage...');
         }
         
         // Try legacy storage as fallback
@@ -2343,7 +2507,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
               res.set('Content-Length', contentLength);
             }
             
-            return response.body?.pipe(res);
+            // Handle the response body properly
+            if (response.body) {
+              const reader = response.body.getReader();
+              const pump = async () => {
+                try {
+                  while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    res.write(value);
+                  }
+                  res.end();
+                } catch (error) {
+                  console.error('Error streaming response:', error);
+                  res.end();
+                }
+              };
+              return pump();
+            }
           }
         } catch (fetchError) {
           console.log('Legacy document not accessible');
@@ -2734,8 +2915,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Activate the user
       const updatedUser = await storage.updateUser(userId, { 
-        status: 'active',
-        activationDate: new Date()
+        status: 'active'
       });
 
       res.json({ 

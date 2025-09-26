@@ -1972,6 +1972,162 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin send fund (credit/debit) to/from user wallet
+  app.post('/api/admin/send-fund', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { userId, option, amount, remarks } = req.body;
+
+      console.log('=== ADMIN SEND FUND ===');
+      console.log('User ID:', userId);
+      console.log('Option:', option);
+      console.log('Amount:', amount);
+      console.log('Remarks:', remarks);
+
+      // Validate required fields
+      if (!userId || !option || !amount || !remarks) {
+        return res.status(400).json({ 
+          message: 'Missing required fields: userId, option, amount, remarks' 
+        });
+      }
+
+      // Validate option
+      if (!['Credit', 'Debit'].includes(option)) {
+        return res.status(400).json({ 
+          message: 'Option must be either "Credit" or "Debit"' 
+        });
+      }
+
+      // Validate amount
+      const amountNum = parseFloat(amount);
+      if (isNaN(amountNum) || amountNum <= 0) {
+        return res.status(400).json({ 
+          message: 'Amount must be a positive number' 
+        });
+      }
+
+      // Find user by userId (display ID like VV0001)
+      const user = await db.select().from(users).where(eq(users.userId, userId)).limit(1);
+      if (!user.length) {
+        return res.status(404).json({ 
+          message: `User not found with ID: ${userId}` 
+        });
+      }
+
+      const userData = user[0];
+      console.log('Found user:', userData.email, userData.firstName, userData.lastName);
+
+      // Get or create wallet balance
+      let wallet = await storage.getWalletBalance(userData.userId || '');
+      if (!wallet) {
+        wallet = await storage.createWalletBalance(userData.userId || '');
+        console.log('Created new wallet for user:', userData.userId);
+      }
+
+      const currentBalance = parseFloat(wallet.balance || '0');
+      const transactionAmount = option === 'Credit' ? amountNum : -amountNum;
+      const newBalance = currentBalance + transactionAmount;
+
+      // For debit, check if user has sufficient balance
+      if (option === 'Debit' && currentBalance < amountNum) {
+        return res.status(400).json({ 
+          message: `Insufficient balance. User has ${currentBalance} but requested to debit ${amountNum}` 
+        });
+      }
+
+      console.log('Wallet transaction:', {
+        currentBalance,
+        transactionAmount,
+        newBalance,
+        option
+      });
+
+      // Update wallet balance and create transaction
+      const transactionType = option === 'Credit' ? 'admin_credit' : 'admin_debit';
+      const description = `${option} by Admin: ${remarks}`;
+      
+      await storage.updateWalletBalance(
+        userData.userId || '',
+        transactionAmount.toString(),
+        description,
+        transactionType
+      );
+
+      console.log('Fund transaction completed successfully');
+
+      res.status(200).json({
+        message: `Fund ${option.toLowerCase()}ed successfully`,
+        data: {
+          userId: userData.userId,
+          option,
+          amount: amountNum,
+          previousBalance: currentBalance,
+          newBalance: newBalance,
+          remarks
+        }
+      });
+
+    } catch (error) {
+      console.error('Error processing send fund:', error);
+      
+      let statusCode = 500;
+      let errorMessage = 'Failed to process fund transaction';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        if (errorMessage.includes('User not found')) {
+          statusCode = 404;
+        } else if (errorMessage.includes('Insufficient balance')) {
+          statusCode = 400;
+        }
+      }
+      
+      res.status(statusCode).json({
+        message: errorMessage
+      });
+    }
+  });
+
+  // Get fund history (all transactions with user details)
+  app.get('/api/admin/fund-history', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      console.log('=== FETCHING FUND HISTORY ===');
+      
+      const { db } = await import("./db");
+      const { transactions, users } = await import("@shared/schema");
+      const { desc, eq } = await import("drizzle-orm");
+
+      // Fetch all transactions with user details, sorted by created_at descending
+      const fundHistory = await db
+        .select({
+          id: transactions.id,
+          userId: transactions.userId,
+          type: transactions.type,
+          amount: transactions.amount,
+          description: transactions.description,
+          referenceId: transactions.referenceId,
+          balanceBefore: transactions.balanceBefore,
+          balanceAfter: transactions.balanceAfter,
+          metadata: transactions.metadata,
+          createdAt: transactions.createdAt,
+          // User details
+          userName: users.firstName,
+          userEmail: users.email,
+          userDisplayId: users.userId,
+        })
+        .from(transactions)
+        .leftJoin(users, eq(transactions.userId, users.userId))
+        .orderBy(desc(transactions.createdAt));
+
+      console.log(`Found ${fundHistory.length} transactions`);
+
+      res.json(fundHistory);
+    } catch (error) {
+      console.error('Error fetching fund history:', error);
+      res.status(500).json({ message: 'Failed to fetch fund history' });
+    }
+  });
+
 // Get pending withdrawal requests with user details
 app.get('/api/admin/pending-withdrawals', isAuthenticated, isAdmin, async (req, res) => {
   try {

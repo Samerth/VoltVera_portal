@@ -26,6 +26,8 @@ import { NotificationCenter } from "@/components/NotificationCenter";
 import { AdminReferralLinkGeneration } from "@/components/AdminStrategicUserCreation";
 import { PendingKYCSection, ApprovedKYCSection, RejectedKYCSection } from "@/components/AdminKYCSections";
 import WithdrawPersonallyForm from "@/components/WithdrawPersonallyForm";
+import SendFundForm from "@/components/SendFundForm";
+import FundHistoryTable from "@/components/FundHistoryTable";
 
 interface UserStats {
   totalUsers: number;
@@ -87,7 +89,7 @@ export default function AdminDashboard() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((activeSection === 'today-joinings' || activeSection === 'paid-members' || activeSection === 'free-users' || 
            activeSection === 'pending-withdraw' || activeSection === 'approved-withdraw' || activeSection === 'rejected-withdraw' || 
-           activeSection === 'withdraw-personally') && 
+           activeSection === 'withdraw-personally' || activeSection === 'send-fund' || activeSection === 'fund-history') && 
           (event.key === 'F5' || (event.ctrlKey && event.key === 'r'))) {
         event.preventDefault();
         if (activeSection === 'today-joinings') {
@@ -137,6 +139,19 @@ export default function AdminDashboard() {
           toast({
             title: "Refreshed",
             description: "Withdraw personally form refreshed.",
+          });
+        } else if (activeSection === 'send-fund') {
+          // Refresh send fund form (no specific data to refresh, just show toast)
+          toast({
+            title: "Refreshed",
+            description: "Send fund form refreshed.",
+          });
+        } else if (activeSection === 'fund-history') {
+          // Invalidate and refetch fund history
+          queryClient.invalidateQueries({ queryKey: ["/api/admin/fund-history"] });
+          toast({
+            title: "Refreshed",
+            description: "Fund history data has been updated.",
           });
         }
       }
@@ -1636,6 +1651,29 @@ export default function AdminDashboard() {
             </Card>
           )}
 
+          {/* Send Fund Section */}
+          {activeSection === 'send-fund' && (
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="text-lg font-medium text-gray-800 flex items-center">
+                  <DollarSign className="mr-2 h-5 w-5 text-volt-light" />
+                  Send Fund
+                </CardTitle>
+                <p className="text-sm text-gray-600">
+                  Credit or debit funds to/from user wallets
+                </p>
+              </CardHeader>
+              <CardContent>
+                <SendFundForm />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Fund History Section */}
+          {activeSection === 'fund-history' && (
+            <FundHistoryTable />
+          )}
+
           {/* KYC Management Sections */}
           {activeSection === 'pending-kyc' && (
             <Card className="hover:shadow-lg transition-shadow">
@@ -1940,8 +1978,6 @@ export default function AdminDashboard() {
             activeSection === 'salary-income' ||
             activeSection === 'payout-summary' ||
             activeSection === 'holiday-reward' ||
-            activeSection === 'send-fund' ||
-            activeSection === 'fund-history' ||
             activeSection === 'manage-fund' ||
             activeSection === 'pending-fund') && (
             <Card className="hover:shadow-lg transition-shadow">

@@ -1477,7 +1477,7 @@ export class DatabaseStorage implements IStorage {
   }
 
 
-  async approvePendingRecruit(id: string, adminData: { packageAmount: string; position?: string; kycDecision?: { status: 'approved' | 'rejected'; reason?: string } }): Promise<User> {
+  async approvePendingRecruit(id: string, adminData: { packageAmount: string; position?: string; kycDecision?: { status: 'approved' | 'rejected' | 'pending'; reason?: string } }): Promise<User> {
     console.log('=== APPROVING PENDING RECRUIT ===');
     console.log('Recruit ID:', id);
     console.log('Package Amount:', adminData.packageAmount);
@@ -1659,6 +1659,25 @@ export class DatabaseStorage implements IStorage {
       }
       
       console.log(`KYC documents transferred for user ${newUser.email}`);
+    }
+
+    // Transfer KYC documents from temp user ID to real user ID (for binary documents)
+    try {
+      console.log('🔄 Transferring binary KYC documents from temp user to real user...');
+      const tempUserId = `pending_${pendingRecruit.id}`;
+      
+      // Update all KYC documents from temp user ID to real user ID
+      await db.update(kycDocuments)
+        .set({ 
+          userId: newUser.id,
+          status: adminData.kycDecision?.status || 'pending'
+        })
+        .where(eq(kycDocuments.userId, tempUserId));
+      
+      console.log('✅ Binary KYC documents transferred successfully');
+    } catch (transferError) {
+      console.error('❌ Error transferring binary KYC documents:', transferError);
+      // Continue with user creation even if document transfer fails
     }
 
     // Create KYC profile record for the user

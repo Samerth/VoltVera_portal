@@ -2766,6 +2766,10 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
   // Complete registration endpoint - Creates pending recruit for admin approval
   app.post('/api/referral/complete-registration', async (req, res) => {
     try {
+      // Check if auto-approval is enabled
+      const AUTO_APPROVE_REGISTRATIONS = process.env.AUTO_APPROVE_REGISTRATIONS === 'true';
+      console.log('🚀 Auto-approval enabled:', AUTO_APPROVE_REGISTRATIONS);
+      
       // Debug: Log what's being received
       console.log('Received registration data:', req.body);
       console.log('Document fields:', {
@@ -2981,12 +2985,49 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
       // Mark referral link as used
       await storage.markReferralLinkAsUsed(data.referralToken, pendingRecruit.id);
 
-      res.status(201).json({
-        message: 'Registration submitted successfully! Your application has been sent for upline approval first, then admin approval. You will receive login credentials via email once both approvals are complete.',
-        status: 'awaiting_upline',
-        recruitId: pendingRecruit.id,
-        documentsUploaded: documentUploads.length
-      });
+      // AUTO-APPROVAL LOGIC
+      if (AUTO_APPROVE_REGISTRATIONS) {
+        console.log('🚀 AUTO-APPROVING RECRUIT:', pendingRecruit.id);
+        
+        try {
+          // Call the existing approval function with auto-approval settings
+          const newUser = await storage.approvePendingRecruit(pendingRecruit.id, {
+            packageAmount: "0.00",  // Set package to 0 as requested
+            kycDecision: { 
+              status: 'pending' as 'pending'      // Set KYC as pending as requested
+            }
+          });
+          
+          console.log('✅ AUTO-APPROVAL SUCCESSFUL:', newUser.userId);
+          
+          res.status(201).json({
+            message: 'Registration completed successfully! Your account has been created and you can now log in.',
+            status: 'approved',  // User is fully approved and can login
+            userId: newUser.userId,
+            userEmail: newUser.email,
+            documentsUploaded: documentUploads.length
+          });
+          
+        } catch (autoApprovalError) {
+          console.error('❌ AUTO-APPROVAL FAILED:', autoApprovalError);
+          
+          // Fallback to manual approval if auto-approval fails
+          res.status(201).json({
+            message: 'Registration submitted successfully! Your application has been sent for admin approval. You will receive login credentials via email once approved.',
+            status: 'awaiting_admin',
+            recruitId: pendingRecruit.id,
+            documentsUploaded: documentUploads.length
+          });
+        }
+      } else {
+        // MANUAL APPROVAL FLOW (existing logic)
+        res.status(201).json({
+          message: 'Registration submitted successfully! Your application has been sent for upline approval first, then admin approval. You will receive login credentials via email once both approvals are complete.',
+          status: 'awaiting_upline',
+          recruitId: pendingRecruit.id,
+          documentsUploaded: documentUploads.length
+        });
+      }
     } catch (error: any) {
       console.error('Error completing registration:', error);
       

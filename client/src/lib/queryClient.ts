@@ -25,8 +25,8 @@ export async function apiRequest(
     credentials: "include",
   });
 
-  // Only throw for server errors (5xx) - let mutations handle client errors (4xx) and redirects (3xx)
-  if (res.status >= 500) {
+  // Throw for both server errors (5xx) and client errors (4xx) - let redirects (3xx) pass through
+  if (res.status >= 400) {
     await throwIfResNotOk(res);
   }
   

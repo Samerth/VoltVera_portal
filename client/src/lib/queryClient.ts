@@ -25,7 +25,11 @@ export async function apiRequest(
     credentials: "include",
   });
 
-  await throwIfResNotOk(res);
+  // Throw for both server errors (5xx) and client errors (4xx) - let redirects (3xx) pass through
+  if (res.status >= 500) {
+    await throwIfResNotOk(res);
+  }
+  
   return res;
 }
 

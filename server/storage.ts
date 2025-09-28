@@ -66,6 +66,9 @@ export interface IStorage {
   
   // User management operations
   getAllUsers(search?: string): Promise<(User & { sponsorUserId: string | null })[]>;
+  getTodayJoinings(userTimezone?: string): Promise<(User & { sponsorUserId: string | null })[]>;
+  getPaidMembers(): Promise<(User & { sponsorUserId: string | null })[]>;
+  getFreeUsers(): Promise<(User & { sponsorUserId: string | null })[]>;
   searchUsers(query: string, filters: {
     searchType?: 'id' | 'name' | 'bv' | 'rank';
     status?: string;
@@ -147,8 +150,12 @@ export interface IStorage {
   
   // Withdrawal operations
   createWithdrawalRequest(userId: string, data: CreateWithdrawal): Promise<WithdrawalRequest>;
+  createAdminWithdrawalRequest(data: { userId: string; withdrawalType: 'INR' | 'USD'; amount: string; remarks: string }): Promise<WithdrawalRequest>;
   getUserWithdrawals(userId: string): Promise<WithdrawalRequest[]>;
   getAllWithdrawals(): Promise<WithdrawalRequest[]>;
+  getPendingWithdrawalsWithUserDetails(): Promise<any[]>;
+  getApprovedWithdrawalsWithUserDetails(): Promise<any[]>;
+  getRejectedWithdrawalsWithUserDetails(): Promise<any[]>;
   updateWithdrawalStatus(id: string, status: string, adminNotes?: string): Promise<boolean>;
   
   // KYC operations
@@ -353,6 +360,264 @@ export class DatabaseStorage implements IStorage {
     }
     
     const result = await query;
+    
+    // Add sponsor user IDs by fetching sponsor information
+    const usersWithSponsorIds = await Promise.all(result.map(async (user) => {
+      let sponsorUserId = null;
+      if (user.sponsorId) {
+        const sponsor = await db.select({ userId: users.userId })
+          .from(users)
+          .where(eq(users.id, user.sponsorId))
+          .limit(1);
+        sponsorUserId = sponsor[0]?.userId || null;
+      }
+      
+      return {
+        ...user,
+        sponsorUserId
+      };
+    }));
+    
+    return usersWithSponsorIds as (User & { sponsorUserId: string | null })[];
+  }
+
+  // Get users who were activated today
+  async getTodayJoinings(userTimezone: string = 'UTC'): Promise<(User & { sponsorUserId: string | null })[]> {
+    // Get current date in YYYY-MM-DD format to avoid timezone issues
+    const today = new Date();
+    const todayString = today.toISOString().split('T')[0]; // Gets YYYY-MM-DD format
+    
+    console.log(`Looking for users who were activated today in timezone: ${userTimezone}`);
+    console.log(`Current time: ${today.toISOString()}`);
+    
+    // Check what the database thinks "today" is
+    const dbToday = await db.execute(sql`SELECT CURRENT_DATE, NOW(), DATE(NOW() AT TIME ZONE 'UTC') as utc_date`);
+    console.log('Database date info:', dbToday);
+    
+    // First, let's get all users to debug what activation dates we have
+    const allUsersDebug = await db.select({
+      id: users.id,
+      userId: users.userId,
+      email: users.email,
+      createdAt: users.createdAt,
+      activationDate: users.activationDate
+    }).from(users).orderBy(desc(users.activationDate)).limit(20);
+    
+    console.log('Recent users with activation dates:', allUsersDebug.map(u => ({
+      id: u.id,
+      userId: u.userId,
+      email: u.email,
+      createdAt: u.createdAt?.toISOString(),
+      activationDate: u.activationDate?.toISOString(),
+      activationDateOnly: u.activationDate?.toISOString().split('T')[0]
+    })));
+    
+    // Use activation_date instead of created_at for today's joinings
+    const query = db.select({
+      id: users.id,
+      userId: users.userId,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      email: users.email,
+      mobile: users.mobile,
+      sponsorId: users.sponsorId,
+      packageAmount: users.packageAmount,
+      cryptoWalletAddress: users.cryptoWalletAddress,
+      txnPin: users.txnPin,
+      password: users.password,
+      status: users.status,
+      registrationDate: users.createdAt,
+      kycStatus: users.kycStatus,
+      kycApprovedAt: users.kycApprovedAt,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      activationDate: users.activationDate
+    }).from(users)
+    .where(
+      sql`DATE(${users.activationDate} AT TIME ZONE 'UTC' AT TIME ZONE ${userTimezone}) = DATE(NOW() AT TIME ZONE ${userTimezone})`
+    )
+    .orderBy(desc(users.activationDate));
+    
+    const result = await query;
+ 
+    console.log('Result:', result);
+    
+    console.log(`Found ${result.length} users who were activated today (${todayString}):`, 
+      result.map(u => ({ id: u.id, userId: u.userId, email: u.email, activationDate: u.activationDate }))
+    );
+    
+    // Add sponsor user IDs by fetching sponsor information
+    const usersWithSponsorIds = await Promise.all(result.map(async (user) => {
+      let sponsorUserId = null;
+      if (user.sponsorId) {
+        const sponsor = await db.select({ userId: users.userId })
+          .from(users)
+          .where(eq(users.id, user.sponsorId))
+          .limit(1);
+        sponsorUserId = sponsor[0]?.userId || null;
+      }
+      
+      return {
+        ...user,
+        sponsorUserId
+      };
+    }));
+    
+    return usersWithSponsorIds as (User & { sponsorUserId: string | null })[];
+  }
+
+  // Get paid members (users with approved KYC, bank details, and package amount > 0)
+  async getPaidMembers(): Promise<(User & { sponsorUserId: string | null })[]> {
+    console.log('Looking for paid members...');
+    
+    // Query for paid members with all required conditions
+    const query = db.select({
+      id: users.id,
+      userId: users.userId,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      email: users.email,
+      mobile: users.mobile,
+      sponsorId: users.sponsorId,
+      packageAmount: users.packageAmount,
+      cryptoWalletAddress: users.cryptoWalletAddress,
+      txnPin: users.txnPin,
+      password: users.password,
+      status: users.status,
+      registrationDate: users.createdAt,
+      kycStatus: users.kycStatus,
+      kycApprovedAt: users.kycApprovedAt,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      activationDate: users.activationDate,
+      // KYC fields
+      panNumber: users.panNumber,
+      aadhaarNumber: users.aadhaarNumber,
+      // Bank fields
+      bankAccountNumber: users.bankAccountNumber,
+      bankIFSC: users.bankIFSC,
+      bankName: users.bankName,
+      bankAccountHolderName: users.bankAccountHolderName
+    }).from(users)
+    .where(
+      and(
+        // Condition 1: Status should be 'active'
+        eq(users.status, 'active'),
+        
+        // Condition 2: KYC should be approved
+        eq(users.kycStatus, 'approved'),
+        
+        // Condition 3: PAN and Aadhaar should not be empty
+        sql`${users.panNumber} IS NOT NULL AND ${users.panNumber} != ''`,
+        sql`${users.aadhaarNumber} IS NOT NULL AND ${users.aadhaarNumber} != ''`,
+        
+        // Condition 4: Bank details should not be empty
+        sql`${users.bankAccountNumber} IS NOT NULL AND ${users.bankAccountNumber} != ''`,
+        sql`${users.bankIFSC} IS NOT NULL AND ${users.bankIFSC} != ''`,
+        sql`${users.bankName} IS NOT NULL AND ${users.bankName} != ''`,
+        sql`${users.bankAccountHolderName} IS NOT NULL AND ${users.bankAccountHolderName} != ''`,
+        
+        // Condition 5: Package amount should not be null and greater than 0
+        sql`${users.packageAmount} IS NOT NULL AND CAST(${users.packageAmount} AS DECIMAL) > 0`
+      )
+    )
+    .orderBy(desc(users.activationDate));
+    
+    const result = await query;
+    
+    console.log(`Found ${result.length} paid members:`, 
+      result.map(u => ({ 
+        id: u.id, 
+        userId: u.userId, 
+        email: u.email, 
+        packageAmount: u.packageAmount,
+        kycStatus: u.kycStatus,
+        hasBankDetails: !!(u.bankAccountNumber && u.bankIFSC && u.bankName && u.bankAccountHolderName)
+      }))
+    );
+    
+    // Add sponsor user IDs by fetching sponsor information
+    const usersWithSponsorIds = await Promise.all(result.map(async (user) => {
+      let sponsorUserId = null;
+      if (user.sponsorId) {
+        const sponsor = await db.select({ userId: users.userId })
+          .from(users)
+          .where(eq(users.id, user.sponsorId))
+          .limit(1);
+        sponsorUserId = sponsor[0]?.userId || null;
+      }
+      
+      return {
+        ...user,
+        sponsorUserId
+      };
+    }));
+    
+    return usersWithSponsorIds as (User & { sponsorUserId: string | null })[];
+  }
+
+  // Get free users (all users minus users with package amount > 0)
+  async getFreeUsers(): Promise<(User & { sponsorUserId: string | null })[]> {
+    console.log('Looking for free users...');
+    
+    // First, let's see all package amounts in the database
+    const allUsers = await db.select({ 
+      id: users.id, 
+      userId: users.userId, 
+      packageAmount: users.packageAmount 
+    }).from(users);
+    console.log('All users with package amounts:', allUsers.map(u => ({ 
+      userId: u.userId, 
+      packageAmount: u.packageAmount 
+    })));
+    
+    // Query for free users - all users except those with package amount > 0
+    const query = db.select({
+      id: users.id,
+      userId: users.userId,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      email: users.email,
+      mobile: users.mobile,
+      sponsorId: users.sponsorId,
+      packageAmount: users.packageAmount,
+      cryptoWalletAddress: users.cryptoWalletAddress,
+      txnPin: users.txnPin,
+      password: users.password,
+      status: users.status,
+      registrationDate: users.createdAt,
+      kycStatus: users.kycStatus,
+      kycApprovedAt: users.kycApprovedAt,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      activationDate: users.activationDate
+    }).from(users)
+    .where(
+      or(
+        // Users with package amount = null
+        sql`${users.packageAmount} IS NULL`,
+        // Users with empty package amount
+        sql`${users.packageAmount} = ''`,
+        // Users with package amount = 0 (any format: '0', '0.0', '0.00', etc.)
+        sql`CAST(${users.packageAmount} AS DECIMAL) = 0`,
+        // Users with package amount = '0.00' (exact match)
+        eq(users.packageAmount, '0.00')
+      )
+    )
+    .orderBy(desc(users.createdAt));
+    
+    const result = await query;
+
+    console.log('Result:', result);
+    
+    console.log(`Found ${result.length} free users:`, 
+      result.map(u => ({ 
+        id: u.id, 
+        userId: u.userId, 
+        email: u.email, 
+        packageAmount: u.packageAmount
+      }))
+    );
     
     // Add sponsor user IDs by fetching sponsor information
     const usersWithSponsorIds = await Promise.all(result.map(async (user) => {
@@ -1212,7 +1477,7 @@ export class DatabaseStorage implements IStorage {
   }
 
 
-  async approvePendingRecruit(id: string, adminData: { packageAmount: string; position?: string; kycDecision?: { status: 'approved' | 'rejected'; reason?: string } }): Promise<User> {
+  async approvePendingRecruit(id: string, adminData: { packageAmount: string; position?: string; kycDecision?: { status: 'approved' | 'rejected' | 'pending'; reason?: string } }): Promise<User> {
     console.log('=== APPROVING PENDING RECRUIT ===');
     console.log('Recruit ID:', id);
     console.log('Package Amount:', adminData.packageAmount);
@@ -1336,8 +1601,8 @@ export class DatabaseStorage implements IStorage {
     await this.placeUserInBinaryTreeAtSpecificPosition(newUser.id, pendingRecruit.uplineId, finalPosition as 'left' | 'right', pendingRecruit.recruiterId);
 
     // Transfer KYC documents if available from comprehensive registration
-    if (pendingRecruit.panCardUrl || pendingRecruit.aadhaarCardUrl || 
-        pendingRecruit.bankStatementUrl || pendingRecruit.profileImageUrl) {
+    if (pendingRecruit.panCardUrl || pendingRecruit.aadhaarFrontUrl || 
+        pendingRecruit.bankCancelledChequeUrl || pendingRecruit.profileImageUrl) {
       const { kycDocuments } = await import('@shared/schema');
       
       // Transfer PAN card
@@ -1351,23 +1616,34 @@ export class DatabaseStorage implements IStorage {
         });
       }
       
-      // Transfer Aadhaar card  
-      if (pendingRecruit.aadhaarCardUrl) {
+      // Transfer Aadhaar front card  
+      if (pendingRecruit.aadhaarFrontUrl) {
         await db.insert(kycDocuments).values({
           userId: newUser.id,
-          documentType: 'aadhaar',
-          documentUrl: pendingRecruit.aadhaarCardUrl,
+          documentType: 'aadhaar_front',
+          documentUrl: pendingRecruit.aadhaarFrontUrl,
           documentNumber: pendingRecruit.aadhaarNumber,
           status: 'pending'
         });
       }
       
-      // Transfer bank statement
-      if (pendingRecruit.bankStatementUrl) {
+      // Transfer Aadhaar back card  
+      if (pendingRecruit.aadhaarBackUrl) {
         await db.insert(kycDocuments).values({
           userId: newUser.id,
-          documentType: 'bank_statement',
-          documentUrl: pendingRecruit.bankStatementUrl,
+          documentType: 'aadhaar_back',
+          documentUrl: pendingRecruit.aadhaarBackUrl,
+          documentNumber: pendingRecruit.aadhaarNumber,
+          status: 'pending'
+        });
+      }
+      
+      // Transfer bank cancelled cheque
+      if (pendingRecruit.bankCancelledChequeUrl) {
+        await db.insert(kycDocuments).values({
+          userId: newUser.id,
+          documentType: 'bank_cancelled_cheque',
+          documentUrl: pendingRecruit.bankCancelledChequeUrl,
           status: 'pending'
         });
       }
@@ -1383,6 +1659,25 @@ export class DatabaseStorage implements IStorage {
       }
       
       console.log(`KYC documents transferred for user ${newUser.email}`);
+    }
+
+    // Transfer KYC documents from temp user ID to real user ID (for binary documents)
+    try {
+      console.log('🔄 Transferring binary KYC documents from temp user to real user...');
+      const tempUserId = `pending_${pendingRecruit.id}`;
+      
+      // Update all KYC documents from temp user ID to real user ID
+      await db.update(kycDocuments)
+        .set({ 
+          userId: newUser.id,
+          status: adminData.kycDecision?.status || 'pending'
+        })
+        .where(eq(kycDocuments.userId, tempUserId));
+      
+      console.log('✅ Binary KYC documents transferred successfully');
+    } catch (transferError) {
+      console.error('❌ Error transferring binary KYC documents:', transferError);
+      // Continue with user creation even if document transfer fails
     }
 
     // Create KYC profile record for the user
@@ -1626,7 +1921,7 @@ export class DatabaseStorage implements IStorage {
     // Convert BinaryTreeUser to User format
     return binaryUsers.map(bu => ({
       id: bu.id,
-      userId: bu.userId || null,
+      userId: bu.id, // BinaryTreeUser uses id as the display ID
       email: bu.email || null,
       password: '', // Not exposed
       originalPassword: null,
@@ -1656,19 +1951,30 @@ export class DatabaseStorage implements IStorage {
       bankAccountNumber: null,
       bankIFSC: null,
       bankName: null,
+      bankAccountHolderName: null,
       dateOfBirth: null,
       address: null,
       city: null,
       state: null,
       pincode: null,
+      nominee: null,
       currentRank: null,
       totalBV: null,
       leftBV: null,
       rightBV: null,
+      totalDirects: 0,
+      leftDirects: 0,
+      rightDirects: 0,
       kycStatus: null,
       kycSubmittedAt: null,
       kycApprovedAt: null,
+      txnPin: null,
+      cryptoWalletAddress: null,
+      firstLogin: true,
+      passwordChangedAt: null,
       isHiddenId: false,
+      kycDeadline: null,
+      kycLocked: false,
       lastLoginAt: null,
     }));
   }
@@ -1807,7 +2113,7 @@ export class DatabaseStorage implements IStorage {
       wallet = await this.createWalletBalance(userId);
     }
 
-    const currentBalance = parseFloat(wallet.balance);
+    const currentBalance = parseFloat(wallet.balance || '0');
     const changeAmount = parseFloat(amount);
     const newBalance = currentBalance + changeAmount;
 
@@ -1815,8 +2121,8 @@ export class DatabaseStorage implements IStorage {
     await db.update(walletBalances)
       .set({ 
         balance: newBalance.toString(),
-        totalEarnings: type === 'withdrawal' ? wallet.totalEarnings : (parseFloat(wallet.totalEarnings) + Math.max(0, changeAmount)).toString(),
-        totalWithdrawals: type === 'withdrawal' ? (parseFloat(wallet.totalWithdrawals) + Math.abs(changeAmount)).toString() : wallet.totalWithdrawals,
+        totalEarnings: type === 'withdrawal' ? wallet.totalEarnings : (parseFloat(wallet.totalEarnings || '0') + Math.max(0, changeAmount)).toString(),
+        totalWithdrawals: type === 'withdrawal' ? (parseFloat(wallet.totalWithdrawals || '0') + Math.abs(changeAmount)).toString() : wallet.totalWithdrawals,
         updatedAt: new Date()
       })
       .where(eq(walletBalances.userId, userId));
@@ -1843,7 +2149,7 @@ export class DatabaseStorage implements IStorage {
   // ===== WITHDRAWAL OPERATIONS =====
   async createWithdrawalRequest(userId: string, data: CreateWithdrawal): Promise<WithdrawalRequest> {
     const wallet = await this.getWalletBalance(userId);
-    if (!wallet || parseFloat(wallet.balance) < parseFloat(data.amount)) {
+    if (!wallet || parseFloat(wallet.balance || '0') < parseFloat(data.amount)) {
       throw new Error('Insufficient balance');
     }
 
@@ -1864,6 +2170,104 @@ export class DatabaseStorage implements IStorage {
     return withdrawal;
   }
 
+  async createAdminWithdrawalRequest(data: { userId: string; withdrawalType: 'INR' | 'USD'; amount: string; remarks: string }): Promise<WithdrawalRequest> {
+    console.log('=== CREATING ADMIN WITHDRAWAL REQUEST ===');
+    console.log('Data received:', data);
+
+    // Find user by userId (display ID like VV0001)
+    const user = await db.select().from(users).where(eq(users.userId, data.userId)).limit(1);
+    if (!user.length) {
+      throw new Error(`User not found with ID: ${data.userId}`);
+    }
+
+    const userData = user[0];
+    console.log('Found user:', userData.email, userData.firstName, userData.lastName);
+    console.log('User internal ID:', userData.id);
+    console.log('User display ID:', userData.userId);
+
+    // Check if user has approved KYC
+    if (userData.kycStatus !== 'approved') {
+      throw new Error(`User KYC is not approved. Current status: ${userData.kycStatus}. User must have approved KYC to create withdrawal requests.`);
+    }
+    console.log('User KYC status:', userData.kycStatus);
+
+    // Check if user has sufficient balance
+    // Note: getWalletBalance expects display user_id (VV0002), not internal UUID
+    console.log('Looking up wallet for display user ID:', userData.userId);
+    
+    // Debug: Let's check what's actually in the wallet_balances table
+    const allWallets = await db.select().from(walletBalances);
+    console.log('All wallets in database:', allWallets);
+    
+    const wallet = await this.getWalletBalance(userData.userId || '');
+    console.log('Wallet lookup result:', wallet);
+    console.log('Wallet is undefined?', wallet === undefined);
+    console.log('Wallet is null?', wallet === null);
+    
+    if (!wallet) {
+      throw new Error(`User does not have a wallet. Please create a wallet balance record first.`);
+    }
+    console.log('Found wallet:', wallet);
+    
+    const currentBalance = parseFloat(wallet.balance || '0');
+    const requestedAmount = parseFloat(data.amount);
+    
+    if (currentBalance < requestedAmount) {
+      throw new Error(`Insufficient balance. User has ${currentBalance} but requested ${requestedAmount}`);
+    }
+    console.log('User wallet balance:', currentBalance, 'Requested amount:', requestedAmount);
+
+    // Prepare withdrawal data
+    const withdrawalData: any = {
+      userId: data.userId, // Use the display user ID from form (VV0002), not from database lookup
+      amount: data.amount,
+      withdrawalType: data.withdrawalType, // Store 'INR' or 'USD' directly, not 'bank' or 'usdt'
+      status: 'pending',
+      adminNotes: data.remarks,
+      processedBy: null, // Will be set when admin processes the request
+      processedAt: null, // Will be set when admin processes the request
+      transactionId: null, // Will be set when admin processes the request
+      // createdAt and updatedAt are handled automatically by schema defaultNow()
+      // id is handled automatically by schema gen_random_uuid()
+    };
+
+    // Handle bank details for INR withdrawals
+    if (data.withdrawalType === 'INR') {
+      // Fetch bank details from users table
+      const bankDetails = {
+        bankAccountNumber: userData.bankAccountNumber || '',
+        bankIFSC: userData.bankIFSC || '',
+        bankName: userData.bankName || '',
+        bankAccountHolderName: userData.bankAccountHolderName || ''
+      };
+
+      // Validate that all required bank details are present
+      if (!bankDetails.bankAccountNumber || !bankDetails.bankIFSC || 
+          !bankDetails.bankName || !bankDetails.bankAccountHolderName) {
+        throw new Error('User does not have complete bank details. Please ensure the user has filled all bank information.');
+      }
+
+      withdrawalData.bankDetails = bankDetails;
+      console.log('Bank details set for INR withdrawal:', bankDetails);
+    } else if (data.withdrawalType === 'USD') {
+      // For USD withdrawals, we'll leave space for future logic
+      // For now, we can use crypto wallet address if available
+      if (userData.cryptoWalletAddress) {
+        withdrawalData.usdtWalletAddress = userData.cryptoWalletAddress;
+        withdrawalData.networkType = 'TRC20'; // Default network
+        console.log('USD withdrawal - using crypto wallet:', userData.cryptoWalletAddress);
+      } else {
+        throw new Error('User does not have a crypto wallet address configured for USD withdrawals.');
+      }
+    }
+
+    // Create the withdrawal request
+    const [withdrawal] = await db.insert(withdrawalRequests).values(withdrawalData).returning();
+    
+    console.log('Withdrawal request created successfully:', withdrawal.id);
+    return withdrawal;
+  }
+
   async getUserWithdrawals(userId: string): Promise<WithdrawalRequest[]> {
     return await db.select().from(withdrawalRequests)
       .where(eq(withdrawalRequests.userId, userId))
@@ -1875,16 +2279,358 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(withdrawalRequests.createdAt));
   }
 
-  async updateWithdrawalStatus(id: string, status: string, adminNotes?: string): Promise<boolean> {
-    const updateData: any = { status, updatedAt: new Date() };
-    if (adminNotes) updateData.adminNotes = adminNotes;
-    if (status === 'processed') updateData.processedAt = new Date();
+  async getPendingWithdrawalsWithUserDetails(): Promise<any[]> {
+    try {
+      console.log('Fetching pending withdrawals with user details...');
+      
+      // Get pending withdrawal requests with user details
+      const result = await db
+        .select({
+          // Withdrawal request fields
+          withdrawalId: withdrawalRequests.id,
+          withdrawalUserId: withdrawalRequests.userId,
+          withdrawalType: withdrawalRequests.withdrawalType,
+          amount: withdrawalRequests.amount,
+          status: withdrawalRequests.status,
+          bankDetails: withdrawalRequests.bankDetails,
+          usdtWalletAddress: withdrawalRequests.usdtWalletAddress,
+          networkType: withdrawalRequests.networkType,
+          adminNotes: withdrawalRequests.adminNotes,
+          createdAt: withdrawalRequests.createdAt,
+          updatedAt: withdrawalRequests.updatedAt,
+          // User details
+          userFirstName: users.firstName,
+          userLastName: users.lastName,
+          userEmail: users.email,
+          userMobile: users.mobile,
+          userDisplayId: users.userId
+        })
+        .from(withdrawalRequests)
+        .innerJoin(users, eq(withdrawalRequests.userId, users.userId))
+        .where(eq(withdrawalRequests.status, 'pending'))
+        .orderBy(desc(withdrawalRequests.createdAt));
 
-    const result = await db
-      .update(withdrawalRequests)
-      .set(updateData)
-      .where(eq(withdrawalRequests.id, id));
-    return (result.rowCount ?? 0) > 0;
+      console.log(`Found ${result.length} pending withdrawal requests`);
+
+      // Transform the data to match the expected format
+      const transformedData = result.map(row => {
+        // Mask bank account number (show only last 4 digits)
+        let maskedAccountNumber = '';
+        if (row.bankDetails && typeof row.bankDetails === 'object') {
+          const bankDetails = row.bankDetails as any;
+          if (bankDetails.bankAccountNumber) {
+            const accountNumber = bankDetails.bankAccountNumber.toString();
+            maskedAccountNumber = '****' + accountNumber.slice(-4);
+          }
+        }
+
+        return {
+          id: row.withdrawalId,
+          userId: row.withdrawalUserId,
+          userName: `${row.userFirstName} ${row.userLastName}`.trim(),
+          userEmail: row.userEmail,
+          userMobile: row.userMobile,
+          userDisplayId: row.userDisplayId,
+          type: row.withdrawalType === 'INR' ? 'Bank Transfer' : 'USDT',
+          amount: parseFloat(row.amount || '0'),
+          details: row.withdrawalType === 'INR' ? 
+            `Account: ${maskedAccountNumber}` : 
+            `Wallet: ${row.usdtWalletAddress || 'N/A'}`,
+          date: row.createdAt,
+          status: row.status,
+          adminNotes: row.adminNotes,
+          bankDetails: row.bankDetails,
+          usdtWalletAddress: row.usdtWalletAddress,
+          networkType: row.networkType
+        };
+      });
+
+      console.log('Transformed data:', transformedData);
+      return transformedData;
+
+    } catch (error) {
+      console.error('Error fetching pending withdrawals with user details:', error);
+      return [];
+    }
+  }
+
+  async getApprovedWithdrawalsWithUserDetails(): Promise<any[]> {
+    try {
+      console.log('Fetching approved withdrawals with user details...');
+      
+      // Get approved withdrawal requests with user details
+      const result = await db
+        .select({
+          // Withdrawal request fields
+          withdrawalId: withdrawalRequests.id,
+          withdrawalUserId: withdrawalRequests.userId,
+          withdrawalType: withdrawalRequests.withdrawalType,
+          amount: withdrawalRequests.amount,
+          status: withdrawalRequests.status,
+          bankDetails: withdrawalRequests.bankDetails,
+          usdtWalletAddress: withdrawalRequests.usdtWalletAddress,
+          networkType: withdrawalRequests.networkType,
+          adminNotes: withdrawalRequests.adminNotes,
+          processedBy: withdrawalRequests.processedBy,
+          processedAt: withdrawalRequests.processedAt,
+          transactionId: withdrawalRequests.transactionId,
+          createdAt: withdrawalRequests.createdAt,
+          updatedAt: withdrawalRequests.updatedAt,
+          // User details
+          userFirstName: users.firstName,
+          userLastName: users.lastName,
+          userEmail: users.email,
+          userMobile: users.mobile,
+          userDisplayId: users.userId
+        })
+        .from(withdrawalRequests)
+        .innerJoin(users, eq(withdrawalRequests.userId, users.userId))
+        .where(eq(withdrawalRequests.status, 'approved'))
+        .orderBy(desc(withdrawalRequests.updatedAt)); // Order by approval date (updatedAt when status changed to approved)
+
+      console.log(`Found ${result.length} approved withdrawal requests`);
+
+      // Transform the data to match the expected format
+      const transformedData = result.map(row => {
+        // Mask bank account number (show only last 4 digits)
+        let maskedAccountNumber = '';
+        if (row.bankDetails && typeof row.bankDetails === 'object') {
+          const bankDetails = row.bankDetails as any;
+          if (bankDetails.bankAccountNumber) {
+            const accountNumber = bankDetails.bankAccountNumber.toString();
+            maskedAccountNumber = '****' + accountNumber.slice(-4);
+          }
+        }
+
+        return {
+          id: row.withdrawalId,
+          userId: row.withdrawalUserId,
+          userName: `${row.userFirstName} ${row.userLastName}`.trim(),
+          userEmail: row.userEmail,
+          userMobile: row.userMobile,
+          userDisplayId: row.userDisplayId,
+          type: row.withdrawalType === 'INR' ? 'Bank Transfer' : 'USDT',
+          amount: parseFloat(row.amount || '0'),
+          details: row.withdrawalType === 'INR' ? 
+            `Account: ${maskedAccountNumber}` : 
+            `Wallet: ${row.usdtWalletAddress || 'N/A'}`,
+          date: row.updatedAt, // Use updatedAt as the approval date
+          status: row.status,
+          adminNotes: row.adminNotes,
+          processedBy: row.processedBy,
+          processedAt: row.processedAt,
+          transactionId: row.transactionId,
+          bankDetails: row.bankDetails,
+          usdtWalletAddress: row.usdtWalletAddress,
+          networkType: row.networkType
+        };
+      });
+
+      console.log('Transformed approved withdrawals data:', transformedData);
+      return transformedData;
+
+    } catch (error) {
+      console.error('Error fetching approved withdrawals with user details:', error);
+      return [];
+    }
+  }
+
+  async getRejectedWithdrawalsWithUserDetails(): Promise<any[]> {
+    try {
+      console.log('Fetching rejected withdrawals with user details...');
+      
+      // Get rejected withdrawal requests with user details
+      const result = await db
+        .select({
+          // Withdrawal request fields
+          withdrawalId: withdrawalRequests.id,
+          withdrawalUserId: withdrawalRequests.userId,
+          withdrawalType: withdrawalRequests.withdrawalType,
+          amount: withdrawalRequests.amount,
+          status: withdrawalRequests.status,
+          bankDetails: withdrawalRequests.bankDetails,
+          usdtWalletAddress: withdrawalRequests.usdtWalletAddress,
+          networkType: withdrawalRequests.networkType,
+          adminNotes: withdrawalRequests.adminNotes,
+          processedBy: withdrawalRequests.processedBy,
+          processedAt: withdrawalRequests.processedAt,
+          transactionId: withdrawalRequests.transactionId,
+          createdAt: withdrawalRequests.createdAt,
+          updatedAt: withdrawalRequests.updatedAt,
+          // User details
+          userFirstName: users.firstName,
+          userLastName: users.lastName,
+          userEmail: users.email,
+          userMobile: users.mobile,
+          userDisplayId: users.userId
+        })
+        .from(withdrawalRequests)
+        .innerJoin(users, eq(withdrawalRequests.userId, users.userId))
+        .where(eq(withdrawalRequests.status, 'rejected'))
+        .orderBy(desc(withdrawalRequests.updatedAt)); // Order by rejection date (updatedAt when status changed to rejected)
+
+      console.log(`Found ${result.length} rejected withdrawal requests`);
+
+      // Transform the data to match the expected format
+      const transformedData = result.map(row => {
+        // Mask bank account number (show only last 4 digits)
+        let maskedAccountNumber = '';
+        if (row.bankDetails && typeof row.bankDetails === 'object') {
+          const bankDetails = row.bankDetails as any;
+          if (bankDetails.bankAccountNumber) {
+            const accountNumber = bankDetails.bankAccountNumber.toString();
+            maskedAccountNumber = '****' + accountNumber.slice(-4);
+          }
+        }
+
+        return {
+          id: row.withdrawalId,
+          userId: row.withdrawalUserId,
+          userName: `${row.userFirstName} ${row.userLastName}`.trim(),
+          userEmail: row.userEmail,
+          userMobile: row.userMobile,
+          userDisplayId: row.userDisplayId,
+          type: row.withdrawalType === 'INR' ? 'Bank Transfer' : 'USDT',
+          amount: parseFloat(row.amount || '0'),
+          details: row.withdrawalType === 'INR' ? 
+            `Account: ${maskedAccountNumber}` : 
+            `Wallet: ${row.usdtWalletAddress || 'N/A'}`,
+          date: row.updatedAt, // Use updatedAt as the rejection date
+          status: row.status,
+          reason: row.adminNotes, // Show admin notes as rejection reason
+          processedBy: row.processedBy,
+          processedAt: row.processedAt,
+          transactionId: row.transactionId,
+          bankDetails: row.bankDetails,
+          usdtWalletAddress: row.usdtWalletAddress,
+          networkType: row.networkType
+        };
+      });
+
+      console.log('Transformed rejected withdrawals data:', transformedData);
+      return transformedData;
+
+    } catch (error) {
+      console.error('Error fetching rejected withdrawals with user details:', error);
+      return [];
+    }
+  }
+
+  async updateWithdrawalStatus(id: string, status: string, adminNotes?: string): Promise<boolean> {
+    try {
+      console.log(`=== UPDATING WITHDRAWAL STATUS ===`);
+      console.log(`Withdrawal ID: ${id}`);
+      console.log(`New Status: ${status}`);
+      console.log(`Admin Notes: ${adminNotes}`);
+
+      // First, get the withdrawal request details
+      const [withdrawalRequest] = await db
+        .select()
+        .from(withdrawalRequests)
+        .where(eq(withdrawalRequests.id, id));
+
+      if (!withdrawalRequest) {
+        console.log('Withdrawal request not found');
+        return false;
+      }
+
+      console.log('Found withdrawal request:', {
+        id: withdrawalRequest.id,
+        userId: withdrawalRequest.userId,
+        amount: withdrawalRequest.amount,
+        currentStatus: withdrawalRequest.status
+      });
+
+      // Prevent processing already processed withdrawals
+      if (withdrawalRequest.status === 'processed') {
+        console.log('Withdrawal already processed, skipping wallet operations');
+        return false;
+      }
+
+      // If status is being changed to 'approved' or 'processed', deduct from wallet
+      // Only deduct if the current status is 'pending' (to avoid double deduction)
+      if ((status === 'approved' || status === 'processed') && 
+          withdrawalRequest.status === 'pending') {
+        
+        console.log('Processing wallet deduction for withdrawal approval...');
+        
+        // Get current wallet balance
+        const wallet = await this.getWalletBalance(withdrawalRequest.userId);
+        if (!wallet) {
+          console.log('Wallet not found for user:', withdrawalRequest.userId);
+          return false;
+        }
+
+        const currentBalance = parseFloat(wallet.balance || '0');
+        const withdrawalAmount = parseFloat(withdrawalRequest.amount);
+        const currentTotalWithdrawals = parseFloat(wallet.totalWithdrawals || '0');
+
+        console.log('Wallet details:', {
+          currentBalance,
+          withdrawalAmount,
+          currentTotalWithdrawals
+        });
+
+        // Check if user has sufficient balance
+        if (currentBalance < withdrawalAmount) {
+          console.log('Insufficient balance for withdrawal');
+          throw new Error(`Insufficient balance. User has ${currentBalance} but withdrawal is for ${withdrawalAmount}`);
+        }
+
+        // Calculate new balances
+        const newBalance = currentBalance - withdrawalAmount;
+        const newTotalWithdrawals = currentTotalWithdrawals + withdrawalAmount;
+
+        console.log('New wallet balances:', {
+          newBalance,
+          newTotalWithdrawals
+        });
+
+        // Update wallet balance
+        await db
+          .update(walletBalances)
+          .set({
+            balance: newBalance.toString(),
+            totalWithdrawals: newTotalWithdrawals.toString(),
+            updatedAt: new Date()
+          })
+          .where(eq(walletBalances.userId, withdrawalRequest.userId));
+
+        console.log('Wallet balance updated successfully');
+
+        // Create transaction record for the withdrawal
+        await db.insert(transactions).values({
+          userId: withdrawalRequest.userId,
+          type: 'withdrawal',
+          amount: (-withdrawalAmount).toString(), // Negative amount for withdrawal
+          description: `Withdrawal approved - ${withdrawalRequest.withdrawalType}`,
+          balanceBefore: currentBalance.toString(),
+          balanceAfter: newBalance.toString(),
+        });
+
+        console.log('Transaction record created');
+      }
+
+      // Update withdrawal request status
+      const updateData: any = { 
+        status, 
+        updatedAt: new Date() 
+      };
+      if (adminNotes) updateData.adminNotes = adminNotes;
+      if (status === 'processed') updateData.processedAt = new Date();
+
+      const result = await db
+        .update(withdrawalRequests)
+        .set(updateData)
+        .where(eq(withdrawalRequests.id, id));
+
+      console.log('Withdrawal request status updated successfully');
+      return (result.rowCount ?? 0) > 0;
+
+    } catch (error) {
+      console.error('Error updating withdrawal status:', error);
+      throw error;
+    }
   }
 
   // ===== KYC OPERATIONS =====
@@ -2426,7 +3172,7 @@ export class DatabaseStorage implements IStorage {
         // Only create notification if the overall KYC status actually changed
         if (currentOverallStatus !== overallKYCStatus) {
           console.log(`📢 KYC status changed from ${currentOverallStatus} to ${overallKYCStatus} - sending notification`);
-          await this.createKYCStatusNotification(userId, overallKYCStatus, reason);
+          await this.createKYCStatusNotification(userId, overallKYCStatus as 'pending' | 'approved' | 'rejected', reason);
         } else {
           console.log(`📝 KYC status unchanged (${overallKYCStatus}) - no notification sent`);
         }

@@ -174,13 +174,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const adminRole = (req.session as any)?.user?.role;
       if (adminId && adminRole === 'admin') {
         // Revoke tokens
-        for (const [tok, meta] of impersonationTokens.entries()) {
+        for (const [tok, meta] of Array.from(impersonationTokens.entries())) {
           if (meta.issuedByAdminId === adminId) {
             impersonationTokens.delete(tok);
           }
         }
         // Revoke outstanding one-time codes
-        for (const [codeKey, meta] of impersonationCodes.entries()) {
+        for (const [codeKey, meta] of Array.from(impersonationCodes.entries())) {
           if (meta.issuedByAdminId === adminId) {
             impersonationCodes.delete(codeKey);
           }
@@ -312,6 +312,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user stats:", error);
       res.status(500).json({ message: "Failed to fetch user stats" });
+    }
+  });
+
+  app.get("/api/users/today-joinings", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const userTimezone = req.query.timezone as string || 'UTC';
+      console.log(`[${new Date().toISOString()}] Today's joinings API called with timezone: ${userTimezone}`);
+      const todayJoinings = await storage.getTodayJoinings(userTimezone);
+      console.log(`[${new Date().toISOString()}] Returning ${todayJoinings.length} users for timezone: ${userTimezone}`);
+      res.json(todayJoinings);
+    } catch (error) {
+      console.error("Error fetching today's joinings:", error);
+      res.status(500).json({ message: "Failed to fetch today's joinings" });
+    }
+  });
+
+  app.get("/api/users/paid-members", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      console.log(`[${new Date().toISOString()}] Paid members API called`);
+      const paidMembers = await storage.getPaidMembers();
+      console.log(`[${new Date().toISOString()}] Returning ${paidMembers.length} paid members`);
+      res.json(paidMembers);
+    } catch (error) {
+      console.error("Error fetching paid members:", error);
+      res.status(500).json({ message: "Failed to fetch paid members" });
+    }
+  });
+
+  app.get("/api/users/free-users", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      console.log(`[${new Date().toISOString()}] Free users API called`);
+      const freeUsers = await storage.getFreeUsers();
+      console.log(`[${new Date().toISOString()}] Returning ${freeUsers.length} free users`);
+      res.json(freeUsers);
+    } catch (error) {
+      console.error("Error fetching free users:", error);
+      res.status(500).json({ message: "Failed to fetch free users" });
+    }
+  });
+
+  // Debug endpoint to check date filtering
+  app.get("/api/debug/today-joinings", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const userTimezone = req.query.timezone as string || 'UTC';
+      const { db } = await import("./db");
+      const { users } = await import("@shared/schema");
+      const { sql } = await import("drizzle-orm");
+      
+      // Get current date info
+      const now = new Date();
+      const currentDate = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+      
+      // Get all users with their activation dates
+      const allUsers = await db.select({
+        id: users.id,
+        userId: users.userId,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        createdAt: users.createdAt,
+        activationDate: users.activationDate
+      }).from(users).orderBy(sql`${users.activationDate} DESC`).limit(10);
+      
+      // Get users from today using CURRENT_DATE (activation_date)
+      const todayUsersCurrentDate = await db.select({
+        id: users.id,
+        userId: users.userId,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        createdAt: users.createdAt,
+        activationDate: users.activationDate
+      }).from(users)
+      .where(sql`DATE(${users.activationDate} AT TIME ZONE 'UTC' AT TIME ZONE ${userTimezone}) = DATE(NOW() AT TIME ZONE ${userTimezone})`)
+      .orderBy(sql`${users.activationDate} DESC`);
+      
+      // Get users from today using explicit date string (activation_date)
+      const todayUsersExplicit = await db.select({
+        id: users.id,
+        userId: users.userId,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        createdAt: users.createdAt,
+        activationDate: users.activationDate
+      }).from(users)
+      .where(sql`DATE(${users.activationDate} AT TIME ZONE 'UTC' AT TIME ZONE ${userTimezone}) = DATE(NOW() AT TIME ZONE ${userTimezone})`)
+      .orderBy(sql`${users.activationDate} DESC`);
+      
+      res.json({
+        currentDate,
+        currentTime: now.toISOString(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        allUsers: allUsers.map(u => ({
+          ...u,
+          createdAt: u.createdAt?.toISOString(),
+          activationDate: u.activationDate?.toISOString(),
+          activationDateOnly: u.activationDate?.toISOString().split('T')[0]
+        })),
+        todayUsersCurrentDate: todayUsersCurrentDate.map(u => ({
+          ...u,
+          createdAt: u.createdAt?.toISOString(),
+          activationDate: u.activationDate?.toISOString(),
+          activationDateOnly: u.activationDate?.toISOString().split('T')[0]
+        })),
+        todayUsersExplicit: todayUsersExplicit.map(u => ({
+          ...u,
+          createdAt: u.createdAt?.toISOString(),
+          activationDate: u.activationDate?.toISOString(),
+          activationDateOnly: u.activationDate?.toISOString().split('T')[0]
+        })),
+        todayCountCurrentDate: todayUsersCurrentDate.length,
+        todayCountExplicit: todayUsersExplicit.length
+      });
+    } catch (error: any) {
+      console.error("Error in debug endpoint:", error);
+      res.status(500).json({ message: "Debug endpoint error", error: error.message });
     }
   });
 
@@ -931,8 +1048,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
        
        const referralLink = `${baseUrl}/recruit?ref=${token}`;
       
+      // Send invitation email to recruit
+      try {
+        const { sendRecruitInvitationEmail } = await import('./emailService');
+        const recruiter = await storage.getUser(recruiterId);
+        const recruiterName = recruiter ? `${recruiter.firstName} ${recruiter.lastName}` : 'A team member';
+        
+        const emailSent = await sendRecruitInvitationEmail(
+          recruitData.email,
+          recruitData.fullName,
+          recruiterName,
+          referralLink
+        );
+        
+        if (emailSent) {
+          console.log(`Recruit invitation email sent to ${recruitData.email}`);
+        } else {
+          console.log(`Failed to send email to ${recruitData.email} - Referral link still works`);
+        }
+      } catch (emailError) {
+        console.error('Error sending recruit invitation email:', emailError);
+        // Continue with success response even if email fails
+      }
+      
       res.status(201).json({ 
-        message: "Referral link generated successfully with position selected!",
+        message: "Referral link generated and invitation email sent successfully!",
         referralLink,
         recruitInfo: {
           name: recruitData.fullName,
@@ -1728,10 +1868,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         firstName,
         lastName,
         password: tempPassword, // Store password in plaintext
-        role: 'user',
-        status: 'active',
-        isHiddenId: true,
-        emailVerified: new Date()
+        role: 'user'
       });
       
       res.json({
@@ -1783,6 +1920,328 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching withdrawal requests:', error);
       res.status(500).json({ message: 'Failed to fetch withdrawal requests' });
+    }
+  });
+
+  // Admin create withdrawal request on behalf of user
+  app.post('/api/admin/withdraw-personally', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { userId, withdrawalType, amount, remarks } = req.body;
+
+      console.log('=== ADMIN WITHDRAWAL CREATION ===');
+      console.log('User ID:', userId);
+      console.log('Withdrawal Type:', withdrawalType);
+      console.log('Amount:', amount);
+      console.log('Remarks:', remarks);
+
+      // Validate required fields
+      if (!userId || !withdrawalType || !amount || !remarks) {
+        return res.status(400).json({ 
+          message: 'Missing required fields: userId, withdrawalType, amount, remarks' 
+        });
+      }
+
+      // Validate withdrawal type
+      if (!['INR', 'USD'].includes(withdrawalType)) {
+        return res.status(400).json({ 
+          message: 'Withdrawal type must be either "INR" or "USD"' 
+        });
+      }
+
+      // Validate amount
+      const amountNum = parseFloat(amount);
+      if (isNaN(amountNum) || amountNum <= 0) {
+        return res.status(400).json({ 
+          message: 'Amount must be a positive number' 
+        });
+      }
+
+      // Create withdrawal request using storage method
+      const withdrawalRequest = await storage.createAdminWithdrawalRequest({
+        userId,
+        withdrawalType,
+        amount: amountNum.toString(),
+        remarks
+      });
+
+      res.status(201).json({
+        message: 'Withdrawal request created successfully',
+        withdrawalRequest
+      });
+
+    } catch (error) {
+      console.error('Error creating admin withdrawal request:', error);
+      
+      // Determine appropriate status code based on error type
+      let statusCode = 500;
+      let errorMessage = 'Failed to create withdrawal request';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Set appropriate status codes for different error types
+        if (errorMessage.includes('User not found')) {
+          statusCode = 404;
+        } else if (errorMessage.includes('KYC is not approved') || 
+                   errorMessage.includes('Insufficient balance') ||
+                   errorMessage.includes('does not have a wallet')) {
+          statusCode = 400; // Bad Request
+        }
+      }
+      
+      res.status(statusCode).json({
+        message: errorMessage
+      });
+    }
+  });
+
+  // Admin send fund (credit/debit) to/from user wallet
+  app.post('/api/admin/send-fund', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { userId, option, amount, remarks } = req.body;
+
+      console.log('=== ADMIN SEND FUND ===');
+      console.log('User ID:', userId);
+      console.log('Option:', option);
+      console.log('Amount:', amount);
+      console.log('Remarks:', remarks);
+
+      // Validate required fields
+      if (!userId || !option || !amount || !remarks) {
+        return res.status(400).json({ 
+          message: 'Missing required fields: userId, option, amount, remarks' 
+        });
+      }
+
+      // Validate option
+      if (!['Credit', 'Debit'].includes(option)) {
+        return res.status(400).json({ 
+          message: 'Option must be either "Credit" or "Debit"' 
+        });
+      }
+
+      // Validate amount
+      const amountNum = parseFloat(amount);
+      if (isNaN(amountNum) || amountNum <= 0) {
+        return res.status(400).json({ 
+          message: 'Amount must be a positive number' 
+        });
+      }
+
+      // Find user by userId (display ID like VV0001)
+      const user = await db.select().from(users).where(eq(users.userId, userId)).limit(1);
+      if (!user.length) {
+        return res.status(404).json({ 
+          message: `User not found with ID: ${userId}` 
+        });
+      }
+
+      const userData = user[0];
+      console.log('Found user:', userData.email, userData.firstName, userData.lastName);
+
+      // Get or create wallet balance
+      let wallet = await storage.getWalletBalance(userData.userId || '');
+      if (!wallet) {
+        wallet = await storage.createWalletBalance(userData.userId || '');
+        console.log('Created new wallet for user:', userData.userId);
+      }
+
+      const currentBalance = parseFloat(wallet.balance || '0');
+      const transactionAmount = option === 'Credit' ? amountNum : -amountNum;
+      const newBalance = currentBalance + transactionAmount;
+
+      // For debit, check if user has sufficient balance
+      if (option === 'Debit' && currentBalance < amountNum) {
+        return res.status(400).json({ 
+          message: `Insufficient balance. User has ${currentBalance} but requested to debit ${amountNum}` 
+        });
+      }
+
+      console.log('Wallet transaction:', {
+        currentBalance,
+        transactionAmount,
+        newBalance,
+        option
+      });
+
+      // Update wallet balance and create transaction
+      const transactionType = option === 'Credit' ? 'admin_credit' : 'admin_debit';
+      const description = `${option} by Admin: ${remarks}`;
+      
+      await storage.updateWalletBalance(
+        userData.userId || '',
+        transactionAmount.toString(),
+        description,
+        transactionType
+      );
+
+      console.log('Fund transaction completed successfully');
+
+      res.status(200).json({
+        message: `Fund ${option.toLowerCase()}ed successfully`,
+        data: {
+          userId: userData.userId,
+          option,
+          amount: amountNum,
+          previousBalance: currentBalance,
+          newBalance: newBalance,
+          remarks
+        }
+      });
+
+    } catch (error) {
+      console.error('Error processing send fund:', error);
+      
+      let statusCode = 500;
+      let errorMessage = 'Failed to process fund transaction';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        if (errorMessage.includes('User not found')) {
+          statusCode = 404;
+        } else if (errorMessage.includes('Insufficient balance')) {
+          statusCode = 400;
+        }
+      }
+      
+      res.status(statusCode).json({
+        message: errorMessage
+      });
+    }
+  });
+
+  // Get fund history (all transactions with user details)
+  app.get('/api/admin/fund-history', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      console.log('=== FETCHING FUND HISTORY ===');
+      
+      const { db } = await import("./db");
+      const { transactions, users } = await import("@shared/schema");
+      const { desc, eq } = await import("drizzle-orm");
+
+      // Fetch all transactions with user details, sorted by created_at descending
+      const fundHistory = await db
+        .select({
+          id: transactions.id,
+          userId: transactions.userId,
+          type: transactions.type,
+          amount: transactions.amount,
+          description: transactions.description,
+          referenceId: transactions.referenceId,
+          balanceBefore: transactions.balanceBefore,
+          balanceAfter: transactions.balanceAfter,
+          metadata: transactions.metadata,
+          createdAt: transactions.createdAt,
+          // User details
+          userName: users.firstName,
+          userEmail: users.email,
+          userDisplayId: users.userId,
+        })
+        .from(transactions)
+        .leftJoin(users, eq(transactions.userId, users.userId))
+        .orderBy(desc(transactions.createdAt));
+
+      console.log(`Found ${fundHistory.length} transactions`);
+
+      res.json(fundHistory);
+    } catch (error) {
+      console.error('Error fetching fund history:', error);
+      res.status(500).json({ message: 'Failed to fetch fund history' });
+    }
+  });
+
+// Get pending withdrawal requests with user details
+app.get('/api/admin/pending-withdrawals', isAuthenticated, isAdmin, async (req, res) => {
+  try {
+    const pendingWithdrawals = await storage.getPendingWithdrawalsWithUserDetails();
+    res.json(pendingWithdrawals);
+  } catch (error) {
+    console.error('Error fetching pending withdrawals:', error);
+    res.status(500).json({ message: 'Failed to fetch pending withdrawals' });
+  }
+});
+
+// Get approved withdrawal requests with user details
+app.get('/api/admin/approved-withdrawals', isAuthenticated, isAdmin, async (req, res) => {
+  try {
+    const approvedWithdrawals = await storage.getApprovedWithdrawalsWithUserDetails();
+    res.json(approvedWithdrawals);
+  } catch (error) {
+    console.error('Error fetching approved withdrawals:', error);
+    res.status(500).json({ message: 'Failed to fetch approved withdrawals' });
+  }
+});
+
+// Get rejected withdrawal requests with user details
+app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req, res) => {
+  try {
+    const rejectedWithdrawals = await storage.getRejectedWithdrawalsWithUserDetails();
+    res.json(rejectedWithdrawals);
+  } catch (error) {
+    console.error('Error fetching rejected withdrawals:', error);
+    res.status(500).json({ message: 'Failed to fetch rejected withdrawals' });
+  }
+});
+
+  // Approve withdrawal request
+  app.post('/api/admin/approve-withdrawal/:id', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { adminNotes } = req.body;
+
+      const success = await storage.updateWithdrawalStatus(id, 'approved', adminNotes);
+      
+      if (success) {
+        res.json({ message: 'Withdrawal request approved successfully' });
+      } else {
+        res.status(404).json({ message: 'Withdrawal request not found' });
+      }
+    } catch (error) {
+      console.error('Error approving withdrawal request:', error);
+      res.status(500).json({ message: 'Failed to approve withdrawal request' });
+    }
+  });
+
+  // Reject withdrawal request
+  app.post('/api/admin/reject-withdrawal/:id', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+
+      if (!reason || reason.trim() === '') {
+        return res.status(400).json({ message: 'Rejection reason is required' });
+      }
+
+      const success = await storage.updateWithdrawalStatus(id, 'rejected', reason);
+      
+      if (success) {
+        res.json({ message: 'Withdrawal request rejected successfully' });
+      } else {
+        res.status(404).json({ message: 'Withdrawal request not found' });
+      }
+    } catch (error) {
+      console.error('Error rejecting withdrawal request:', error);
+      res.status(500).json({ message: 'Failed to reject withdrawal request' });
+    }
+  });
+
+  // Reactivate rejected withdrawal request (change status to pending)
+  app.post('/api/admin/reactivate-withdrawal/:id', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const success = await storage.updateWithdrawalStatus(id, 'pending', 'Reactivated by admin');
+      if (success) {
+        res.json({ message: 'Withdrawal request reactivated successfully' });
+      } else {
+        res.status(404).json({ message: 'Withdrawal request not found' });
+      }
+    } catch (error) {
+      console.error('Error reactivating withdrawal:', error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : 'Failed to reactivate withdrawal request'
+      });
     }
   });
 
@@ -1950,8 +2409,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: 'User updated successfully', user: safeUser });
     } catch (error) {
       console.error('Error updating user:', error);
-      console.error('Error details:', error.message);
-      console.error('Error stack:', error.stack);
+      console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Validation error", errors: error.errors });
@@ -2202,10 +2661,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const objectStorageService = new ObjectStorageService();
         
         // Try to find in object storage public directories first
-        let documentFile = await objectStorageService.searchPublicObject(documentPath);
-        
-        if (documentFile) {
+        try {
+          let documentFile = await objectStorageService.getObjectEntityFile(documentPath);
           return objectStorageService.downloadObject(documentFile, res);
+        } catch (storageError) {
+          console.log('Document not found in object storage, trying legacy storage...');
         }
         
         // Try legacy storage as fallback
@@ -2226,7 +2686,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
               res.set('Content-Length', contentLength);
             }
             
-            return response.body?.pipe(res);
+            // Handle the response body properly
+            if (response.body) {
+              const reader = response.body.getReader();
+              const pump = async () => {
+                try {
+                  while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    res.write(value);
+                  }
+                  res.end();
+                } catch (error) {
+                  console.error('Error streaming response:', error);
+                  res.end();
+                }
+              };
+              return pump();
+            }
           }
         } catch (fetchError) {
           console.log('Legacy document not accessible');
@@ -2312,6 +2789,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Complete registration endpoint - Creates pending recruit for admin approval
   app.post('/api/referral/complete-registration', async (req, res) => {
     try {
+      // Check if auto-approval is enabled
+      const AUTO_APPROVE_REGISTRATIONS = process.env.AUTO_APPROVE_REGISTRATIONS === 'true';
+      console.log('🚀 Auto-approval enabled:', AUTO_APPROVE_REGISTRATIONS);
+      
       // Debug: Log what's being received
       console.log('Received registration data:', req.body);
       console.log('Document fields:', {
@@ -2527,12 +3008,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Mark referral link as used
       await storage.markReferralLinkAsUsed(data.referralToken, pendingRecruit.id);
 
-      res.status(201).json({
-        message: 'Registration submitted successfully! Your application has been sent for upline approval first, then admin approval. You will receive login credentials via email once both approvals are complete.',
-        status: 'awaiting_upline',
-        recruitId: pendingRecruit.id,
-        documentsUploaded: documentUploads.length
-      });
+      // AUTO-APPROVAL LOGIC
+      if (AUTO_APPROVE_REGISTRATIONS) {
+        console.log('🚀 AUTO-APPROVING RECRUIT:', pendingRecruit.id);
+        
+        try {
+          // Call the existing approval function with auto-approval settings
+          const newUser = await storage.approvePendingRecruit(pendingRecruit.id, {
+            packageAmount: "0.00",  // Set package to 0 as requested
+            kycDecision: { 
+              status: 'pending' as 'pending'      // Set KYC as pending as requested
+            }
+          });
+          
+          console.log('✅ AUTO-APPROVAL SUCCESSFUL:', newUser.userId);
+          
+          res.status(201).json({
+            message: 'Registration completed successfully! Your account has been created and you can now log in.',
+            status: 'approved',  // User is fully approved and can login
+            userId: newUser.userId,
+            userEmail: newUser.email,
+            documentsUploaded: documentUploads.length
+          });
+          
+        } catch (autoApprovalError) {
+          console.error('❌ AUTO-APPROVAL FAILED:', autoApprovalError);
+          
+          // Fallback to manual approval if auto-approval fails
+          res.status(201).json({
+            message: 'Registration submitted successfully! Your application has been sent for admin approval. You will receive login credentials via email once approved.',
+            status: 'awaiting_admin',
+            recruitId: pendingRecruit.id,
+            documentsUploaded: documentUploads.length
+          });
+        }
+      } else {
+        // MANUAL APPROVAL FLOW (existing logic)
+        res.status(201).json({
+          message: 'Registration submitted successfully! Your application has been sent for upline approval first, then admin approval. You will receive login credentials via email once both approvals are complete.',
+          status: 'awaiting_upline',
+          recruitId: pendingRecruit.id,
+          documentsUploaded: documentUploads.length
+        });
+      }
     } catch (error: any) {
       console.error('Error completing registration:', error);
       
@@ -2617,8 +3135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Activate the user
       const updatedUser = await storage.updateUser(userId, { 
-        status: 'active',
-        activationDate: new Date()
+        status: 'active'
       });
 
       res.json({ 

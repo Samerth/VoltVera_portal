@@ -249,3 +249,59 @@ export async function sendLoginCredentialsEmail(email: string, firstName: string
     text: `Hi ${firstName}, Welcome to Voltverashop! Your account is ready. Login details: User ID: ${userID}, Password: ${password}. Login at: ${loginUrl}`
   });
 }
+
+export async function sendRecruitInvitationEmail(email: string, fullName: string, recruiterName: string, referralLink: string): Promise<boolean> {
+  return sendEmail({
+    to: email,
+    from: 'noreply@voltveratech.com',
+    subject: `You've been invited to join Voltverashop by ${recruiterName}`,
+    html: `
+      <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%); padding: 30px; border-radius: 12px; text-align: center; margin-bottom: 30px;">
+          <h1 style="color: white; margin: 0; font-size: 28px;">Welcome to Voltverashop</h1>
+        </div>
+        
+        <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+          <h2 style="color: #1f2937; margin-top: 0;">Hi ${fullName},</h2>
+          <p style="color: #6b7280; line-height: 1.6;">
+            <strong>${recruiterName}</strong> has invited you to join Voltverashop! 
+            Click the button below to complete your registration and become part of our team.
+          </p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${referralLink}" style="
+              background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+              color: white;
+              padding: 12px 30px;
+              text-decoration: none;
+              border-radius: 6px;
+              font-weight: 600;
+              display: inline-block;
+            ">Complete Registration</a>
+          </div>
+          
+          <div style="background: #f0f9ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0;">
+            <h4 style="color: #1e40af; margin-top: 0; font-size: 14px;">📋 What to expect</h4>
+            <p style="color: #1e40af; font-size: 14px; margin: 0;">
+              After clicking the link, you'll be asked to provide some basic information to complete your registration and join the team.
+            </p>
+          </div>
+          
+          <p style="color: #9ca3af; font-size: 14px;">
+            If the button doesn't work, copy and paste this link into your browser:<br>
+            <a href="${referralLink}" style="color: #16a34a;">${referralLink}</a>
+          </p>
+          
+          <p style="color: #9ca3af; font-size: 12px; margin-top: 30px;">
+            This invitation link will expire in 48 hours for security purposes.
+          </p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px; color: #9ca3af; font-size: 12px;">
+          <p>© 2025 Voltverashop. All rights reserved.</p>
+        </div>
+      </div>
+    `,
+    text: `Hi ${fullName}, ${recruiterName} has invited you to join Voltverashop! Complete your registration at: ${referralLink}`
+  });
+}

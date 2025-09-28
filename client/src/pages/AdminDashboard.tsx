@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, UserCheck, Crown, Clock, Plus, Menu, X, Settings, Lock, BarChart3, FileText, Shield, DollarSign, Award, Search, Filter, ChevronDown, ChevronRight, Wallet, TrendingUp, Activity, Mail, RefreshCw, CheckCircle, XCircle, Link2, Copy } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -16,12 +18,16 @@ import { User, CreateUser } from "@shared/schema";
 import VoltverashopLogo from "@/components/VoltverashopLogo";
 import DataTable from "@/components/ui/data-table";
 import UserManagementTable from "@/components/UserManagementTable";
+import FreeUsersTable from "@/components/FreeUsersTable";
 import { AdminPendingRecruits } from "@/components/AdminPendingRecruits";
 import AdminPendingUsers from "@/components/AdminPendingUsers";
 import UserManagement from "@/components/UserManagement";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { AdminReferralLinkGeneration } from "@/components/AdminStrategicUserCreation";
 import { PendingKYCSection, ApprovedKYCSection, RejectedKYCSection } from "@/components/AdminKYCSections";
+import WithdrawPersonallyForm from "@/components/WithdrawPersonallyForm";
+import SendFundForm from "@/components/SendFundForm";
+import FundHistoryTable from "@/components/FundHistoryTable";
 
 interface UserStats {
   totalUsers: number;
@@ -49,6 +55,11 @@ export default function AdminDashboard() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('dashboard');
+  
+  // Withdrawal management state
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [selectedWithdrawalId, setSelectedWithdrawalId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchType, setSearchType] = useState<'id' | 'name' | 'bv' | 'rank'>('name');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -72,6 +83,83 @@ export default function AdminDashboard() {
       }, 1500);
     }
   }, [isAuthenticated, isLoading, user, toast]);
+
+  // Keyboard shortcut for refresh when on various sections
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((activeSection === 'today-joinings' || activeSection === 'paid-members' || activeSection === 'free-users' || 
+           activeSection === 'pending-withdraw' || activeSection === 'approved-withdraw' || activeSection === 'rejected-withdraw' || 
+           activeSection === 'withdraw-personally' || activeSection === 'send-fund' || activeSection === 'fund-history') && 
+          (event.key === 'F5' || (event.ctrlKey && event.key === 'r'))) {
+        event.preventDefault();
+        if (activeSection === 'today-joinings') {
+          // Invalidate and refetch today's joinings
+          queryClient.invalidateQueries({ queryKey: ["/api/users/today-joinings"] });
+          toast({
+            title: "Refreshed",
+            description: "Today's activations data has been updated.",
+          });
+        } else if (activeSection === 'paid-members') {
+          // Invalidate and refetch paid members
+          queryClient.invalidateQueries({ queryKey: ["/api/users/paid-members"] });
+          toast({
+            title: "Refreshed",
+            description: "Paid members data has been updated.",
+          });
+        } else if (activeSection === 'free-users') {
+          // Invalidate and refetch free users
+          queryClient.invalidateQueries({ queryKey: ["/api/users/free-users"] });
+          toast({
+            title: "Refreshed",
+            description: "Free users data has been updated.",
+          });
+        } else if (activeSection === 'pending-withdraw') {
+          // Invalidate and refetch pending withdrawals
+          queryClient.invalidateQueries({ queryKey: ["/api/admin/pending-withdrawals"] });
+          toast({
+            title: "Refreshed",
+            description: "Pending withdrawals data has been updated.",
+          });
+        } else if (activeSection === 'approved-withdraw') {
+          // Invalidate and refetch approved withdrawals
+          queryClient.invalidateQueries({ queryKey: ["/api/admin/approved-withdrawals"] });
+          toast({
+            title: "Refreshed",
+            description: "Approved withdrawals data has been updated.",
+          });
+        } else if (activeSection === 'rejected-withdraw') {
+          // Invalidate and refetch rejected withdrawals
+          queryClient.invalidateQueries({ queryKey: ["/api/admin/rejected-withdrawals"] });
+          toast({
+            title: "Refreshed",
+            description: "Rejected withdrawals data has been updated.",
+          });
+        } else if (activeSection === 'withdraw-personally') {
+          // Refresh withdraw personally form (no specific data to refresh, just show toast)
+          toast({
+            title: "Refreshed",
+            description: "Withdraw personally form refreshed.",
+          });
+        } else if (activeSection === 'send-fund') {
+          // Refresh send fund form (no specific data to refresh, just show toast)
+          toast({
+            title: "Refreshed",
+            description: "Send fund form refreshed.",
+          });
+        } else if (activeSection === 'fund-history') {
+          // Invalidate and refetch fund history
+          queryClient.invalidateQueries({ queryKey: ["/api/admin/fund-history"] });
+          toast({
+            title: "Refreshed",
+            description: "Fund history data has been updated.",
+          });
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeSection, queryClient, toast]);
 
   const toggleMenu = (menuId: string) => {
     setExpandedMenus(prev => 
@@ -111,10 +199,141 @@ export default function AdminDashboard() {
     enabled: isAuthenticated && user?.role === 'admin',
   });
 
+  // Fetch today's joinings with timezone detection
+  const { data: todayJoinings = [], isLoading: todayJoiningsLoading, refetch: refetchTodayJoinings } = useQuery<User[]>({
+    queryKey: ["/api/users/today-joinings", new Date().toDateString()], // Add date to force cache refresh
+    queryFn: async () => {
+      // Detect user's timezone
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+      const timestamp = Date.now();
+      const response = await fetch(`/api/users/today-joinings?timezone=${encodeURIComponent(userTimezone)}&t=${timestamp}`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch today\'s joinings');
+      return response.json();
+    },
+    enabled: isAuthenticated && user?.role === 'admin',
+    staleTime: 0, // Force fresh data
+    gcTime: 0, // Don't cache (gcTime is the new name for cacheTime in newer versions)
+  });
+
+  // Fetch paid members
+  const { data: paidMembers = [], isLoading: paidMembersLoading, refetch: refetchPaidMembers } = useQuery<User[]>({
+    queryKey: ["/api/users/paid-members"],
+    queryFn: async () => {
+      const response = await fetch('/api/users/paid-members', {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch paid members');
+      return response.json();
+    },
+    enabled: isAuthenticated && user?.role === 'admin',
+  });
+
+  // Fetch free users
+  const { data: freeUsers = [], isLoading: freeUsersLoading, refetch: refetchFreeUsers } = useQuery<User[]>({
+    queryKey: ["/api/users/free-users"],
+    queryFn: async () => {
+      const response = await fetch('/api/users/free-users', {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch free users');
+      return response.json();
+    },
+    enabled: isAuthenticated && user?.role === 'admin',
+  });
+
+  // Handle refresh for today's joinings
+  const handleRefreshTodayJoinings = async () => {
+    try {
+      await queryClient.invalidateQueries({ queryKey: ["/api/users/today-joinings"] });
+      await refetchTodayJoinings();
+      toast({
+        title: "Refreshed",
+        description: "Today's activations data has been updated.",
+      });
+    } catch (error) {
+      console.error('Refresh error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle refresh for paid members
+  const handleRefreshPaidMembers = async () => {
+    try {
+      await queryClient.invalidateQueries({ queryKey: ["/api/users/paid-members"] });
+      await refetchPaidMembers();
+      toast({
+        title: "Refreshed",
+        description: "Paid members data has been updated.",
+      });
+    } catch (error) {
+      console.error('Refresh error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle refresh for free users
+  const handleRefreshFreeUsers = async () => {
+    try {
+      await queryClient.invalidateQueries({ queryKey: ["/api/users/free-users"] });
+      await refetchFreeUsers();
+      toast({
+        title: "Refreshed",
+        description: "Free users data has been updated.",
+      });
+    } catch (error) {
+      console.error('Refresh error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Fetch withdrawal data for all users
   const { data: withdrawalRequests = [] } = useQuery({
     queryKey: ["/api/admin/withdrawals"],
     queryFn: () => apiRequest('GET', '/api/admin/withdrawals'),
+    enabled: isAuthenticated && user?.role === 'admin',
+  });
+
+  // Fetch pending withdrawal requests with user details
+  const { data: pendingWithdrawals = [], isLoading: pendingWithdrawalsLoading, refetch: refetchPendingWithdrawals } = useQuery<any[]>({
+    queryKey: ["/api/admin/pending-withdrawals"],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/admin/pending-withdrawals');
+      return response.json();
+    },
+    enabled: isAuthenticated && user?.role === 'admin',
+  });
+
+  // Fetch approved withdrawal requests with user details
+  const { data: approvedWithdrawals = [], isLoading: approvedWithdrawalsLoading, refetch: refetchApprovedWithdrawals } = useQuery<any[]>({
+    queryKey: ["/api/admin/approved-withdrawals"],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/admin/approved-withdrawals');
+      return response.json();
+    },
+    enabled: isAuthenticated && user?.role === 'admin',
+  });
+
+  // Fetch rejected withdrawal requests with user details
+  const { data: rejectedWithdrawals = [], isLoading: rejectedWithdrawalsLoading, refetch: refetchRejectedWithdrawals } = useQuery<any[]>({
+    queryKey: ["/api/admin/rejected-withdrawals"],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/admin/rejected-withdrawals');
+      return response.json();
+    },
     enabled: isAuthenticated && user?.role === 'admin',
   });
 
@@ -217,6 +436,82 @@ export default function AdminDashboard() {
     }
   });
 
+  // Approve withdrawal mutation
+  const approveWithdrawalMutation = useMutation({
+    mutationFn: async (withdrawalId: string) => {
+      const response = await apiRequest('POST', `/api/admin/approve-withdrawal/${withdrawalId}`, {
+        adminNotes: 'Approved by admin'
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pending-withdrawals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/withdrawals"] });
+      toast({
+        title: "Success",
+        description: "Withdrawal request approved successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to approve withdrawal request",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Reject withdrawal mutation
+  const rejectWithdrawalMutation = useMutation({
+    mutationFn: async ({ withdrawalId, reason }: { withdrawalId: string, reason: string }) => {
+      const response = await apiRequest('POST', `/api/admin/reject-withdrawal/${withdrawalId}`, {
+        reason
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pending-withdrawals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/withdrawals"] });
+      setRejectDialogOpen(false);
+      setRejectionReason('');
+      setSelectedWithdrawalId(null);
+      toast({
+        title: "Success",
+        description: "Withdrawal request rejected successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reject withdrawal request",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Reactivate withdrawal mutation
+  const reactivateWithdrawalMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest('POST', `/api/admin/reactivate-withdrawal/${id}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/rejected-withdrawals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pending-withdrawals"] });
+      toast({
+        title: "Success",
+        description: "Withdrawal request reactivated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reactivate withdrawal request",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreateUser = (e: React.FormEvent) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
@@ -255,6 +550,44 @@ export default function AdminDashboard() {
     if (confirm('Are you sure you want to delete this user?')) {
       deleteUserMutation.mutate(userId);
     }
+  };
+
+  // Withdrawal handlers
+  const handleApproveWithdrawal = (withdrawalId: string) => {
+    if (confirm('Are you sure you want to approve this withdrawal request?')) {
+      approveWithdrawalMutation.mutate(withdrawalId);
+    }
+  };
+
+  const handleRejectWithdrawal = (withdrawalId: string) => {
+    setSelectedWithdrawalId(withdrawalId);
+    setRejectDialogOpen(true);
+  };
+
+  const handleSubmitRejection = () => {
+    if (!selectedWithdrawalId || !rejectionReason.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide a reason for rejection",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    rejectWithdrawalMutation.mutate({
+      withdrawalId: selectedWithdrawalId,
+      reason: rejectionReason.trim()
+    });
+  };
+
+  const handleCancelRejection = () => {
+    setRejectDialogOpen(false);
+    setRejectionReason('');
+    setSelectedWithdrawalId(null);
+  };
+
+  const handleReactivateWithdrawal = (id: string) => {
+    reactivateWithdrawalMutation.mutate(id);
   };
 
   if (isLoading) {
@@ -516,6 +849,14 @@ export default function AdminDashboard() {
                   }`}
                 >
                   Rejected Withdraw Requests
+                </button>
+                <button 
+                  onClick={() => setActiveSection('withdraw-personally')}
+                  className={`block w-full px-4 py-2 text-left text-sm rounded hover:bg-white/10 ${
+                    activeSection === 'withdraw-personally' ? 'text-yellow-300' : 'text-white/80'
+                  }`}
+                >
+                  Withdraw Personally
                 </button>
               </div>
             )}
@@ -975,78 +1316,109 @@ export default function AdminDashboard() {
                   <DollarSign className="mr-2 h-5 w-5 text-volt-light" />
                   Pending Withdrawal Requests
                 </CardTitle>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-600">
+                    {pendingWithdrawalsLoading ? 'Loading...' : `${pendingWithdrawals.length} pending requests`}
+                  </p>
+                  <Button
+                    onClick={() => refetchPendingWithdrawals()}
+                    size="sm"
+                    variant="outline"
+                    disabled={pendingWithdrawalsLoading}
+                  >
+                    <RefreshCw className={`mr-2 h-4 w-4 ${pendingWithdrawalsLoading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-3 font-medium text-gray-700">User</th>
-                        <th className="text-left p-3 font-medium text-gray-700">Type</th>
-                        <th className="text-left p-3 font-medium text-gray-700">Amount</th>
-                        <th className="text-left p-3 font-medium text-gray-700">Details</th>
-                        <th className="text-left p-3 font-medium text-gray-700">Date</th>
-                        <th className="text-left p-3 font-medium text-gray-700">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b hover:bg-gray-50">
-                        <td className="p-3">
-                          <div>
-                            <p className="font-medium">John Doe</p>
-                            <p className="text-sm text-gray-500">john.doe@example.com</p>
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                            Bank Transfer
-                          </span>
-                        </td>
-                        <td className="p-3 font-medium">₹5,000.00</td>
-                        <td className="p-3">
-                          <div className="text-sm">
-                            <p>HDFC Bank</p>
-                            <p className="text-gray-500">****1234</p>
-                          </div>
-                        </td>
-                        <td className="p-3 text-sm text-gray-500">Aug 25, 2025</td>
-                        <td className="p-3">
-                          <div className="flex space-x-2">
-                            <Button size="sm" className="volt-gradient text-white">Approve</Button>
-                            <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50">Reject</Button>
-                          </div>
-                        </td>
-                      </tr>
-                      <tr className="border-b hover:bg-gray-50">
-                        <td className="p-3">
-                          <div>
-                            <p className="font-medium">Jane Smith</p>
-                            <p className="text-sm text-gray-500">jane.smith@example.com</p>
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                            USDT (TRC20)
-                          </span>
-                        </td>
-                        <td className="p-3 font-medium">$100.00</td>
-                        <td className="p-3">
-                          <div className="text-sm">
-                            <p className="font-mono">TBiQ7...4D2a</p>
-                            <p className="text-gray-500">TRC20 Network</p>
-                          </div>
-                        </td>
-                        <td className="p-3 text-sm text-gray-500">Aug 25, 2025</td>
-                        <td className="p-3">
-                          <div className="flex space-x-2">
-                            <Button size="sm" className="volt-gradient text-white">Approve</Button>
-                            <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50">Reject</Button>
-                          </div>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+                {pendingWithdrawalsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-volt-light"></div>
+                    <span className="ml-2 text-gray-600">Loading pending withdrawals...</span>
+                  </div>
+                ) : pendingWithdrawals.length === 0 ? (
+                  <div className="text-center py-8">
+                    <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No pending withdrawals</h3>
+                    <p className="mt-1 text-sm text-gray-500">There are no pending withdrawal requests at the moment.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-3 font-medium text-gray-700">User</th>
+                          <th className="text-left p-3 font-medium text-gray-700">Type</th>
+                          <th className="text-left p-3 font-medium text-gray-700">Amount</th>
+                          <th className="text-left p-3 font-medium text-gray-700">Details</th>
+                          <th className="text-left p-3 font-medium text-gray-700">Date</th>
+                          <th className="text-left p-3 font-medium text-gray-700">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pendingWithdrawals.map((withdrawal: any) => (
+                          <tr key={withdrawal.id} className="border-b hover:bg-gray-50">
+                            <td className="p-3">
+                              <div>
+                                <p className="font-medium">{withdrawal.userName}</p>
+                                <p className="text-sm text-gray-500">{withdrawal.userEmail}</p>
+                                <p className="text-xs text-gray-400">ID: {withdrawal.userDisplayId}</p>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                withdrawal.type === 'Bank Transfer' 
+                                  ? 'bg-blue-100 text-blue-700' 
+                                  : 'bg-green-100 text-green-700'
+                              }`}>
+                                {withdrawal.type}
+                              </span>
+                            </td>
+                            <td className="p-3 font-medium">
+                              {withdrawal.type === 'Bank Transfer' ? '₹' : '$'}{withdrawal.amount.toLocaleString()}
+                            </td>
+                            <td className="p-3">
+                              <div className="text-sm">
+                                <p className="text-gray-900">{withdrawal.details}</p>
+                              </div>
+                            </td>
+                            <td className="p-3 text-sm text-gray-500">
+                              {new Date(withdrawal.date).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </td>
+                            <td className="p-3">
+                              <div className="flex space-x-2">
+                                <Button 
+                                  size="sm" 
+                                  className="volt-gradient text-white"
+                                  onClick={() => handleApproveWithdrawal(withdrawal.id)}
+                                  disabled={approveWithdrawalMutation.isPending}
+                                >
+                                  {approveWithdrawalMutation.isPending ? 'Approving...' : 'Approve'}
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="text-red-600 border-red-200 hover:bg-red-50"
+                                  onClick={() => handleRejectWithdrawal(withdrawal.id)}
+                                  disabled={rejectWithdrawalMutation.isPending}
+                                >
+                                  {rejectWithdrawalMutation.isPending ? 'Rejecting...' : 'Reject'}
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -1058,55 +1430,99 @@ export default function AdminDashboard() {
                   <CheckCircle className="mr-2 h-5 w-5 text-green-600" />
                   Approved Withdrawal Requests
                 </CardTitle>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-600">
+                    {approvedWithdrawalsLoading ? 'Loading...' : `${approvedWithdrawals.length} approved requests`}
+                  </p>
+                  <Button
+                    onClick={() => refetchApprovedWithdrawals()}
+                    size="sm"
+                    variant="outline"
+                    disabled={approvedWithdrawalsLoading}
+                  >
+                    <RefreshCw className={`mr-2 h-4 w-4 ${approvedWithdrawalsLoading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-3 font-medium text-gray-700">User</th>
-                        <th className="text-left p-3 font-medium text-gray-700">Type</th>
-                        <th className="text-left p-3 font-medium text-gray-700">Amount</th>
-                        <th className="text-left p-3 font-medium text-gray-700">Details</th>
-                        <th className="text-left p-3 font-medium text-gray-700">Status</th>
-                        <th className="text-left p-3 font-medium text-gray-700">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b hover:bg-gray-50">
-                        <td className="p-3">
-                          <div>
-                            <p className="font-medium">Alice Johnson</p>
-                            <p className="text-sm text-gray-500">alice.j@example.com</p>
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                            USDT (BEP20)
-                          </span>
-                        </td>
-                        <td className="p-3 font-medium">$250.00</td>
-                        <td className="p-3">
-                          <div className="text-sm">
-                            <p className="font-mono">0x7b2...9c4f</p>
-                            <p className="text-gray-500">BEP20 Network</p>
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                            Processed
-                          </span>
-                        </td>
-                        <td className="p-3">
-                          <div className="flex space-x-2">
-                            <Button size="sm" variant="outline" className="text-blue-600">View Details</Button>
-                            <Button size="sm" variant="outline" className="text-gray-600">Transaction ID</Button>
-                          </div>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+                {approvedWithdrawalsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                    <span className="ml-2 text-gray-600">Loading approved withdrawals...</span>
+                  </div>
+                ) : approvedWithdrawals.length === 0 ? (
+                  <div className="text-center py-8">
+                    <CheckCircle className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No approved withdrawals</h3>
+                    <p className="mt-1 text-sm text-gray-500">There are no approved withdrawal requests at the moment.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-3 font-medium text-gray-700">User</th>
+                          <th className="text-left p-3 font-medium text-gray-700">Type</th>
+                          <th className="text-left p-3 font-medium text-gray-700">Amount</th>
+                          <th className="text-left p-3 font-medium text-gray-700">Details</th>
+                          <th className="text-left p-3 font-medium text-gray-700">Approved Date</th>
+                          <th className="text-left p-3 font-medium text-gray-700">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {approvedWithdrawals.map((withdrawal: any) => (
+                          <tr key={withdrawal.id} className="border-b hover:bg-gray-50">
+                            <td className="p-3">
+                              <div>
+                                <p className="font-medium">{withdrawal.userName}</p>
+                                <p className="text-sm text-gray-500">{withdrawal.userEmail}</p>
+                                <p className="text-xs text-gray-400">ID: {withdrawal.userDisplayId}</p>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                withdrawal.type === 'Bank Transfer' 
+                                  ? 'bg-blue-100 text-blue-700' 
+                                  : 'bg-green-100 text-green-700'
+                              }`}>
+                                {withdrawal.type}
+                              </span>
+                            </td>
+                            <td className="p-3 font-medium">
+                              {withdrawal.type === 'Bank Transfer' ? '₹' : '$'}{withdrawal.amount.toLocaleString()}
+                            </td>
+                            <td className="p-3">
+                              <div className="text-sm">
+                                <p className="text-gray-900">{withdrawal.details}</p>
+                              </div>
+                            </td>
+                            <td className="p-3 text-sm text-gray-500">
+                              {new Date(withdrawal.date).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </td>
+                            <td className="p-3">
+                              <div className="flex space-x-2">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  disabled
+                                >
+                                  Actions
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -1118,50 +1534,144 @@ export default function AdminDashboard() {
                   <XCircle className="mr-2 h-5 w-5 text-red-600" />
                   Rejected Withdrawal Requests
                 </CardTitle>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-600">
+                    {rejectedWithdrawalsLoading ? 'Loading...' : `${rejectedWithdrawals.length} rejected requests`}
+                  </p>
+                  <Button
+                    onClick={() => refetchRejectedWithdrawals()}
+                    size="sm"
+                    variant="outline"
+                    disabled={rejectedWithdrawalsLoading}
+                  >
+                    <RefreshCw className={`mr-2 h-4 w-4 ${rejectedWithdrawalsLoading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-3 font-medium text-gray-700">User</th>
-                        <th className="text-left p-3 font-medium text-gray-700">Type</th>
-                        <th className="text-left p-3 font-medium text-gray-700">Amount</th>
-                        <th className="text-left p-3 font-medium text-gray-700">Reason</th>
-                        <th className="text-left p-3 font-medium text-gray-700">Date</th>
-                        <th className="text-left p-3 font-medium text-gray-700">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b hover:bg-gray-50">
-                        <td className="p-3">
-                          <div>
-                            <p className="font-medium">Bob Wilson</p>
-                            <p className="text-sm text-gray-500">bob.w@example.com</p>
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                            Bank Transfer
-                          </span>
-                        </td>
-                        <td className="p-3 font-medium">₹10,000.00</td>
-                        <td className="p-3">
-                          <p className="text-sm text-red-600">Insufficient KYC documentation</p>
-                        </td>
-                        <td className="p-3 text-sm text-gray-500">Aug 24, 2025</td>
-                        <td className="p-3">
-                          <div className="flex space-x-2">
-                            <Button size="sm" variant="outline" className="text-blue-600">Reconsider</Button>
-                            <Button size="sm" variant="outline" className="text-gray-600">Contact User</Button>
-                          </div>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+                {rejectedWithdrawalsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+                    <span className="ml-2 text-gray-600">Loading rejected withdrawals...</span>
+                  </div>
+                ) : rejectedWithdrawals.length === 0 ? (
+                  <div className="text-center py-8">
+                    <XCircle className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No rejected withdrawals</h3>
+                    <p className="mt-1 text-sm text-gray-500">There are no rejected withdrawal requests at the moment.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-3 font-medium text-gray-700">User</th>
+                          <th className="text-left p-3 font-medium text-gray-700">Type</th>
+                          <th className="text-left p-3 font-medium text-gray-700">Amount</th>
+                          <th className="text-left p-3 font-medium text-gray-700">Reason</th>
+                          <th className="text-left p-3 font-medium text-gray-700">Rejected Date</th>
+                          <th className="text-left p-3 font-medium text-gray-700">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rejectedWithdrawals.map((withdrawal: any) => (
+                          <tr key={withdrawal.id} className="border-b hover:bg-gray-50">
+                            <td className="p-3">
+                              <div>
+                                <p className="font-medium">{withdrawal.userName}</p>
+                                <p className="text-sm text-gray-500">{withdrawal.userEmail}</p>
+                                <p className="text-xs text-gray-400">ID: {withdrawal.userDisplayId}</p>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                withdrawal.type === 'Bank Transfer' 
+                                  ? 'bg-blue-100 text-blue-700' 
+                                  : 'bg-green-100 text-green-700'
+                              }`}>
+                                {withdrawal.type}
+                              </span>
+                            </td>
+                            <td className="p-3 font-medium">
+                              {withdrawal.type === 'Bank Transfer' ? '₹' : '$'}{withdrawal.amount.toLocaleString()}
+                            </td>
+                            <td className="p-3">
+                              <p className="text-sm text-red-600 max-w-xs truncate" title={withdrawal.reason}>
+                                {withdrawal.reason || 'No reason provided'}
+                              </p>
+                            </td>
+                            <td className="p-3 text-sm text-gray-500">
+                              {new Date(withdrawal.date).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </td>
+                            <td className="p-3">
+                              <div className="flex space-x-2">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => handleReactivateWithdrawal(withdrawal.id)}
+                                  disabled={reactivateWithdrawalMutation.isPending}
+                                  className="text-blue-600 hover:text-blue-700"
+                                >
+                                  {reactivateWithdrawalMutation.isPending ? 'Reactivating...' : 'Reconsider'}
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </CardContent>
             </Card>
+          )}
+
+          {/* Withdraw Personally Section */}
+          {activeSection === 'withdraw-personally' && (
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="text-lg font-medium text-gray-800 flex items-center">
+                  <DollarSign className="mr-2 h-5 w-5 text-volt-light" />
+                  Withdraw Personally
+                </CardTitle>
+                <p className="text-sm text-gray-600">
+                  Create withdrawal requests on behalf of users
+                </p>
+              </CardHeader>
+              <CardContent>
+                <WithdrawPersonallyForm />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Send Fund Section */}
+          {activeSection === 'send-fund' && (
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="text-lg font-medium text-gray-800 flex items-center">
+                  <DollarSign className="mr-2 h-5 w-5 text-volt-light" />
+                  Send Fund
+                </CardTitle>
+                <p className="text-sm text-gray-600">
+                  Credit or debit funds to/from user wallets
+                </p>
+              </CardHeader>
+              <CardContent>
+                <SendFundForm />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Fund History Section */}
+          {activeSection === 'fund-history' && (
+            <FundHistoryTable />
           )}
 
           {/* KYC Management Sections */}
@@ -1207,18 +1717,267 @@ export default function AdminDashboard() {
             </Card>
           )}
 
+          {/* Today's Joinings Section */}
+          {activeSection === 'today-joinings' && (
+            <div className="space-y-6">
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                <CardTitle className="text-lg font-medium text-gray-800 flex items-center">
+                  <Users className="mr-2 h-5 w-5 text-volt-light" />
+                  Today's Activations
+                </CardTitle>
+                <p className="text-sm text-gray-600">
+                  Users who were activated today ({new Date().toLocaleDateString()})
+                </p>
+                </CardHeader>
+                <CardContent>
+                  {todayJoiningsLoading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-volt-light mx-auto mb-4"></div>
+                      <p className="text-gray-600">Loading today's activations...</p>
+                    </div>
+                  ) : (todayJoinings as User[]).length === 0 ? (
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                        <Users className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-800 mb-2">No Activations Today</h3>
+                      <p className="text-gray-600 mb-4">
+                        No users have been activated today. Check back later or review previous days.
+                      </p>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={todayJoiningsLoading}
+                              onClick={handleRefreshTodayJoinings}
+                            >
+                              <RefreshCw className={`mr-2 h-4 w-4 ${todayJoiningsLoading ? 'animate-spin' : ''}`} />
+                              {todayJoiningsLoading ? 'Refreshing...' : 'Refresh'}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Refresh data (F5 or Ctrl+R)</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-gray-600">
+                          Found {(todayJoinings as User[]).length} user{(todayJoinings as User[]).length !== 1 ? 's' : ''} who were activated today
+                        </p>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={todayJoiningsLoading}
+                                onClick={handleRefreshTodayJoinings}
+                              >
+                                <RefreshCw className={`mr-2 h-4 w-4 ${todayJoiningsLoading ? 'animate-spin' : ''}`} />
+                                {todayJoiningsLoading ? 'Refreshing...' : 'Refresh'}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Refresh data (F5 or Ctrl+R)</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      
+                      {/* User Management Table for Today's Joinings */}
+                      <UserManagementTable 
+                        users={todayJoinings as any}
+                        walletData={walletDataMap}
+                        withdrawalData={withdrawalDataMap}
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Paid Members Section */}
+          {activeSection === 'paid-members' && (
+            <div className="space-y-6">
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <CardTitle className="text-lg font-medium text-gray-800 flex items-center">
+                    <Users className="mr-2 h-5 w-5 text-volt-light" />
+                    Paid Members
+                  </CardTitle>
+                  <p className="text-sm text-gray-600">
+                    Users with approved KYC, complete bank details, and active package
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {paidMembersLoading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-volt-light mx-auto mb-4"></div>
+                      <p className="text-gray-600">Loading paid members...</p>
+                    </div>
+                  ) : (paidMembers as User[]).length === 0 ? (
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                        <Users className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-800 mb-2">No Paid Members</h3>
+                      <p className="text-gray-600 mb-4">
+                        No users meet the paid member criteria. Users need approved KYC, complete bank details, and an active package.
+                      </p>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={paidMembersLoading}
+                              onClick={handleRefreshPaidMembers}
+                            >
+                              <RefreshCw className={`mr-2 h-4 w-4 ${paidMembersLoading ? 'animate-spin' : ''}`} />
+                              {paidMembersLoading ? 'Refreshing...' : 'Refresh'}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Refresh data (F5 or Ctrl+R)</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-gray-600">
+                          Found {(paidMembers as User[]).length} paid member{(paidMembers as User[]).length !== 1 ? 's' : ''}
+                        </p>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={paidMembersLoading}
+                                onClick={handleRefreshPaidMembers}
+                              >
+                                <RefreshCw className={`mr-2 h-4 w-4 ${paidMembersLoading ? 'animate-spin' : ''}`} />
+                                {paidMembersLoading ? 'Refreshing...' : 'Refresh'}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Refresh data (F5 or Ctrl+R)</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <UserManagementTable 
+                        users={paidMembers as any}
+                        walletData={walletDataMap}
+                        withdrawalData={withdrawalDataMap}
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Free Users Section */}
+          {activeSection === 'free-users' && (
+            <div className="space-y-6">
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <CardTitle className="text-lg font-medium text-gray-800 flex items-center">
+                    <Users className="mr-2 h-5 w-5 text-volt-light" />
+                    Free Users
+                  </CardTitle>
+                  <p className="text-sm text-gray-600">
+                    Users with no package amount (package amount = 0 or null)
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {freeUsersLoading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-volt-light mx-auto mb-4"></div>
+                      <p className="text-gray-600">Loading free users...</p>
+                    </div>
+                  ) : (freeUsers as User[]).length === 0 ? (
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                        <Users className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-800 mb-2">No Free Users</h3>
+                      <p className="text-gray-600 mb-4">
+                        No users found with zero package amount. All users have active packages.
+                      </p>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={freeUsersLoading}
+                              onClick={handleRefreshFreeUsers}
+                            >
+                              <RefreshCw className={`mr-2 h-4 w-4 ${freeUsersLoading ? 'animate-spin' : ''}`} />
+                              {freeUsersLoading ? 'Refreshing...' : 'Refresh'}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Refresh data (F5 or Ctrl+R)</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-gray-600">
+                          Found {(freeUsers as User[]).length} free user{(freeUsers as User[]).length !== 1 ? 's' : ''}
+                        </p>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={freeUsersLoading}
+                                onClick={handleRefreshFreeUsers}
+                              >
+                                <RefreshCw className={`mr-2 h-4 w-4 ${freeUsersLoading ? 'animate-spin' : ''}`} />
+                                {freeUsersLoading ? 'Refreshing...' : 'Refresh'}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Refresh data (F5 or Ctrl+R)</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <FreeUsersTable 
+                        users={freeUsers as any}
+                        walletData={walletDataMap}
+                        withdrawalData={withdrawalDataMap}
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {/* Enhanced Section Content for other sections */}
-          {(activeSection === 'paid-members' || 
-            activeSection === 'today-joinings' || 
-            activeSection === 'free-users' || 
-            activeSection === 'user-activities' ||
+          {(activeSection === 'user-activities' ||
             activeSection === 'direct-income' ||
             activeSection === 'roi-income' ||
             activeSection === 'salary-income' ||
             activeSection === 'payout-summary' ||
             activeSection === 'holiday-reward' ||
-            activeSection === 'send-fund' ||
-            activeSection === 'fund-history' ||
             activeSection === 'manage-fund' ||
             activeSection === 'pending-fund') && (
             <Card className="hover:shadow-lg transition-shadow">
@@ -1335,6 +2094,44 @@ export default function AdminDashboard() {
               </div>
             </form>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Rejection Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reject Withdrawal Request</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="rejection-reason">Reason for rejection</Label>
+              <Textarea
+                id="rejection-reason"
+                placeholder="Please provide a reason for rejecting this withdrawal request..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="mt-1"
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex space-x-2">
+            <Button
+              variant="outline"
+              onClick={handleCancelRejection}
+              disabled={rejectWithdrawalMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmitRejection}
+              disabled={rejectWithdrawalMutation.isPending || !rejectionReason.trim()}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {rejectWithdrawalMutation.isPending ? 'Rejecting...' : 'Reject Request'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -26,7 +26,7 @@ export async function apiRequest(
   });
 
   // Throw for both server errors (5xx) and client errors (4xx) - let redirects (3xx) pass through
-  if (res.status >= 400) {
+  if (res.status >= 500) {
     await throwIfResNotOk(res);
   }
   

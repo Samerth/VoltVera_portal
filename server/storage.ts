@@ -150,6 +150,7 @@ export interface IStorage {
   
   // Withdrawal operations
   createWithdrawalRequest(userId: string, data: CreateWithdrawal): Promise<WithdrawalRequest>;
+  createUserWithdrawalRequest(data: { userId: string; withdrawalType: 'INR' | 'USD'; amount: string; remarks: string }): Promise<WithdrawalRequest>;
   createAdminWithdrawalRequest(data: { userId: string; withdrawalType: 'INR' | 'USD'; amount: string; remarks: string }): Promise<WithdrawalRequest>;
   getUserWithdrawals(userId: string): Promise<WithdrawalRequest[]>;
   getAllWithdrawals(): Promise<WithdrawalRequest[]>;
@@ -2167,6 +2168,94 @@ export class DatabaseStorage implements IStorage {
     }
 
     const [withdrawal] = await db.insert(withdrawalRequests).values(withdrawalData).returning();
+    return withdrawal;
+  }
+
+  async createUserWithdrawalRequest(data: { userId: string; withdrawalType: 'INR' | 'USD'; amount: string; remarks: string }): Promise<WithdrawalRequest> {
+    console.log('=== CREATING USER WITHDRAWAL REQUEST ===');
+    console.log('Data received:', data);
+
+    // Find user by display ID (VV0007)
+    const user = await db.select().from(users).where(eq(users.userId, data.userId)).limit(1);
+    if (!user.length) {
+      throw new Error(`User not found with ID: ${data.userId}`);
+    }
+
+    const userData = user[0];
+    console.log('Found user:', userData.email, userData.firstName, userData.lastName);
+    console.log('User internal ID:', userData.id);
+    console.log('User display ID:', userData.userId);
+
+    // Check if user has approved KYC
+    if (userData.kycStatus !== 'approved') {
+      throw new Error(`User KYC is not approved. Current status: ${userData.kycStatus}. User must have approved KYC to create withdrawal requests.`);
+    }
+    console.log('User KYC status:', userData.kycStatus);
+
+    // Check if user has sufficient balance
+    console.log('Looking up wallet for display user ID:', userData.userId);
+    
+    const wallet = await this.getWalletBalance(userData.userId || '');
+    console.log('Wallet lookup result:', wallet);
+    
+    if (!wallet) {
+      throw new Error(`User does not have a wallet. Please create a wallet balance record first.`);
+    }
+    console.log('Found wallet:', wallet);
+    
+    const currentBalance = parseFloat(wallet.balance || '0');
+    const requestedAmount = parseFloat(data.amount);
+    
+    if (currentBalance < requestedAmount) {
+      throw new Error(`Insufficient balance. User has ${currentBalance} but requested ${requestedAmount}`);
+    }
+    console.log('User wallet balance:', currentBalance, 'Requested amount:', requestedAmount);
+
+    // Prepare withdrawal data
+    const withdrawalData: any = {
+      userId: userData.userId, // Use the display user ID (VV0002)
+      amount: data.amount,
+      withdrawalType: data.withdrawalType, // Store 'INR' or 'USD' directly
+      status: 'pending',
+      adminNotes: data.remarks,
+      processedBy: null, // Will be set when admin processes the request
+      processedAt: null, // Will be set when admin processes the request
+      transactionId: null, // Will be set when admin processes the request
+    };
+
+    // Handle bank details for INR withdrawals
+    if (data.withdrawalType === 'INR') {
+      // Fetch bank details from users table
+      const bankDetails = {
+        bankAccountNumber: userData.bankAccountNumber || '',
+        bankIFSC: userData.bankIFSC || '',
+        bankName: userData.bankName || '',
+        bankAccountHolderName: userData.bankAccountHolderName || ''
+      };
+
+      // Validate that all required bank details are present
+      if (!bankDetails.bankAccountNumber || !bankDetails.bankIFSC || 
+          !bankDetails.bankName || !bankDetails.bankAccountHolderName) {
+        throw new Error('User does not have complete bank details. Please ensure the user has filled all bank information.');
+      }
+
+      withdrawalData.bankDetails = bankDetails;
+      console.log('Bank details set for INR withdrawal:', bankDetails);
+    } else if (data.withdrawalType === 'USD') {
+      // For USD withdrawals, we'll leave space for future logic
+      if (userData.cryptoWalletAddress) {
+        withdrawalData.usdtWalletAddress = userData.cryptoWalletAddress;
+        withdrawalData.networkType = 'TRC20'; // Default network
+        console.log('USD withdrawal - using crypto wallet:', userData.cryptoWalletAddress);
+      } else {
+        throw new Error('User does not have a crypto wallet address configured for USD withdrawals.');
+      }
+    }
+
+    // Create the withdrawal request
+    const [withdrawal] = await db.insert(withdrawalRequests).values(withdrawalData).returning();
+    
+    console.log('User withdrawal request created successfully:', withdrawal.id);
     return withdrawal;
   }
 

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { createUserSchema, updateUserSchema, signupUserSchema, passwordResetSchema, recruitUserSchema, completeUserRegistrationSchema, users, pendingRecruits, referralLinks, kycDocuments } from "@shared/schema";
+import { createUserSchema, updateUserSchema, signupUserSchema, passwordResetSchema, recruitUserSchema, completeUserRegistrationSchema, users, pendingRecruits, referralLinks, kycDocuments, fundRequests, withdrawalRequests } from "@shared/schema";
 import { z } from "zod";
 import session from "express-session";
 import ConnectPgSimple from "connect-pg-simple";
@@ -10,7 +10,7 @@ import { nanoid } from "nanoid";
 
 import mlmRoutes from "./mlmRoutes";
 import { db } from "./db";
-import { eq, lt, and, sql } from "drizzle-orm";
+import { eq, lt, and, sql, desc } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint for deployment
@@ -2151,6 +2151,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+// Get all fund requests with user details
+app.get('/api/admin/fund-requests', isAuthenticated, isAdmin, async (req, res) => {
+  try {
+    console.log('=== FETCHING FUND REQUESTS ===');
+    
+    const { db } = await import("./db");
+    const { fundRequests, users } = await import("@shared/schema");
+    const { desc, eq } = await import("drizzle-orm");
+
+    // Fetch all fund requests with user details, sorted by created_at descending
+    const allFundRequests = await db
+      .select({
+        id: fundRequests.id,
+        userId: fundRequests.userId,
+        amount: fundRequests.amount,
+        receiptUrl: fundRequests.receiptUrl,
+        status: fundRequests.status,
+        paymentMethod: fundRequests.paymentMethod,
+        transactionId: fundRequests.transactionId,
+        adminNotes: fundRequests.adminNotes,
+        processedBy: fundRequests.processedBy,
+        processedAt: fundRequests.processedAt,
+        createdAt: fundRequests.createdAt,
+        updatedAt: fundRequests.updatedAt,
+        // User details (joined from users table)
+        userName: users.firstName,
+        userLastName: users.lastName,
+        userEmail: users.email,
+        userDisplayId: users.userId,
+      })
+      .from(fundRequests)
+      .leftJoin(users, eq(fundRequests.userId, users.userId))
+      .orderBy(desc(fundRequests.createdAt));
+
+    console.log(`Found ${allFundRequests.length} fund requests`);
+
+    res.json(allFundRequests);
+  } catch (error) {
+    console.error('Error fetching fund requests:', error);
+    res.status(500).json({ message: 'Failed to fetch fund requests' });
+  }
+});
+
+// Update fund request status (approve/reject)
+app.put('/api/admin/fund-requests/:id', isAuthenticated, isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, adminNotes, amount } = req.body;
+    const adminId = req.user.id;
+
+    console.log('=== UPDATING FUND REQUEST ===');
+    console.log('Request ID:', id);
+    console.log('Status:', status);
+    console.log('Admin Notes:', adminNotes);
+    console.log('Amount received:', amount);
+    console.log('Amount type:', typeof amount);
+    console.log('Amount undefined?', amount === undefined);
+
+    // Validate status
+    if (!['pending', 'approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ 
+        message: 'Status must be pending, approved, or rejected' 
+      });
+    }
+
+    // Validate amount if provided
+    if (amount !== undefined) {
+      const amountNum = parseFloat(amount);
+      if (isNaN(amountNum) || amountNum <= 0) {
+        return res.status(400).json({ 
+          message: 'Amount must be a positive number' 
+        });
+      }
+    }
+
+    const { db } = await import("./db");
+    const { fundRequests } = await import("@shared/schema");
+    const { eq } = await import("drizzle-orm");
+
+    // Prepare update data
+    const updateData: any = {
+      status,
+      adminNotes,
+      processedBy: adminId,
+      processedAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    // Add amount to update if provided
+    if (amount !== undefined && amount !== null && amount !== '') {
+      updateData.amount = amount;
+      console.log('🔄 Updating amount to:', amount);
+    } else {
+      console.log('⚠️ No amount provided, keeping existing amount');
+    }
+    
+    console.log('📥 Backend: Final updateData:', updateData);
+
+    // Update the fund request
+    const updatedRequest = await db
+      .update(fundRequests)
+      .set(updateData)
+      .where(eq(fundRequests.id, id))
+      .returning();
+
+    if (!updatedRequest.length) {
+      return res.status(404).json({ 
+        message: 'Fund request not found' 
+      });
+    }
+
+    console.log('✅ Fund request updated successfully');
+    console.log('📊 Updated record:', {
+      id: updatedRequest[0].id,
+      amount: updatedRequest[0].amount,
+      status: updatedRequest[0].status,
+      adminNotes: updatedRequest[0].adminNotes
+    });
+
+    res.json({
+      message: `Fund request ${status} successfully`,
+      data: updatedRequest[0]
+    });
+
+  } catch (error) {
+    console.error('Error updating fund request:', error);
+    res.status(500).json({ message: 'Failed to update fund request' });
+  }
+});
+
 // Get pending withdrawal requests with user details
 app.get('/api/admin/pending-withdrawals', isAuthenticated, isAdmin, async (req, res) => {
   try {
@@ -3105,6 +3235,174 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
     } catch (error) {
       console.error('Error updating profile:', error);
       res.status(500).json({ message: 'Failed to update profile' });
+    }
+  });
+
+  // User fund request creation endpoint
+  app.post('/api/user/fund-requests', isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const { amount, transactionId, paymentMethod, receiptUrl } = req.body;
+
+      // Validation
+      if (!amount || !transactionId || !paymentMethod) {
+        return res.status(400).json({ 
+          message: 'Missing required fields: amount, transactionId, paymentMethod' 
+        });
+      }
+
+      const amountNum = parseFloat(amount);
+      if (isNaN(amountNum) || amountNum <= 0) {
+        return res.status(400).json({ 
+          message: 'Invalid amount. Must be a positive number.' 
+        });
+      }
+
+      // Create fund request
+      const fundRequest = await db.insert(fundRequests).values({
+        userId,
+        amount: amountNum.toString(),
+        transactionId,
+        paymentMethod,
+        receiptUrl: receiptUrl || null,
+        status: 'pending'
+      }).returning();
+
+      console.log('✅ Fund request created:', fundRequest[0].id);
+      res.status(201).json({
+        message: 'Fund request submitted successfully',
+        requestId: fundRequest[0].id
+      });
+    } catch (error) {
+      console.error('Error creating fund request:', error);
+      res.status(500).json({ message: 'Failed to create fund request' });
+    }
+  });
+
+  // User fund requests history endpoint
+  app.get('/api/user/fund-requests', isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      // Get user's fund requests
+      const userFundRequests = await db
+        .select()
+        .from(fundRequests)
+        .where(eq(fundRequests.userId, userId))
+        .orderBy(desc(fundRequests.createdAt));
+
+      res.json(userFundRequests);
+    } catch (error) {
+      console.error('Error fetching user fund requests:', error);
+      res.status(500).json({ message: 'Failed to fetch fund requests' });
+    }
+  });
+
+  // User withdrawal request creation endpoint
+  app.post('/api/user/withdrawal-requests', isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const { amount, remarks } = req.body;
+
+      console.log('=== USER WITHDRAWAL CREATION ===');
+      console.log('User ID:', userId);
+      console.log('Amount:', amount);
+      console.log('Remarks:', remarks);
+
+      // Validation
+      if (!amount) {
+        return res.status(400).json({ 
+          message: 'Missing required field: amount' 
+        });
+      }
+
+      const amountNum = parseFloat(amount);
+      if (isNaN(amountNum) || amountNum <= 0) {
+        return res.status(400).json({ 
+          message: 'Amount must be a positive number' 
+        });
+      }
+
+      // Create withdrawal request using storage method (similar to admin but for user)
+      const withdrawalRequest = await storage.createUserWithdrawalRequest({
+        userId,
+        withdrawalType: 'INR', // Always INR for user withdrawals
+        amount: amountNum.toString(),
+        remarks: remarks || ''
+      });
+
+      console.log('✅ User withdrawal request created:', withdrawalRequest.id);
+      res.status(201).json({
+        message: 'Withdrawal request submitted successfully',
+        requestId: withdrawalRequest.id
+      });
+    } catch (error) {
+      console.error('Error creating user withdrawal request:', error);
+      
+      // Determine appropriate status code based on error type
+      let statusCode = 500;
+      let errorMessage = 'Failed to create withdrawal request';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Set appropriate status codes for different error types
+        if (errorMessage.includes('User not found')) {
+          statusCode = 404;
+        } else if (errorMessage.includes('KYC is not approved') || 
+                   errorMessage.includes('Insufficient balance') ||
+                   errorMessage.includes('does not have a wallet')) {
+          statusCode = 400; // Bad Request
+        }
+      }
+      
+      res.status(statusCode).json({
+        message: errorMessage
+      });
+    }
+  });
+
+  // User withdrawal requests history endpoint
+  app.get('/api/user/withdrawal-requests', isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.userId;
+      console.log('🔍 GET /api/user/withdrawal-requests - User ID:', userId);
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      // Get user's withdrawal requests
+      const userWithdrawalRequests = await db
+        .select()
+        .from(withdrawalRequests)
+        .where(eq(withdrawalRequests.userId, userId))
+        .orderBy(desc(withdrawalRequests.createdAt));
+
+      console.log('🔍 Found withdrawal requests:', userWithdrawalRequests.length);
+      console.log('🔍 Withdrawal requests data:', userWithdrawalRequests);
+
+      // Debug: Check all withdrawal requests in database
+      const allWithdrawalRequests = await db
+        .select()
+        .from(withdrawalRequests)
+        .orderBy(desc(withdrawalRequests.createdAt));
+      console.log('🔍 ALL withdrawal requests in database:', allWithdrawalRequests.length);
+      console.log('🔍 ALL withdrawal requests data:', allWithdrawalRequests);
+      res.json(userWithdrawalRequests);
+    } catch (error) {
+      console.error('Error fetching user withdrawal requests:', error);
+      res.status(500).json({ message: 'Failed to fetch withdrawal requests' });
     }
   });
 

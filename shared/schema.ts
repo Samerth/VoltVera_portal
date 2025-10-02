@@ -316,6 +316,22 @@ export const withdrawalRequests = pgTable("withdrawal_requests", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Fund requests table for pending fund requests
+export const fundRequests = pgTable("fund_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  receiptUrl: varchar("receipt_url"), // Link to uploaded receipt image/PDF
+  status: varchar("status").default('pending'), // 'pending', 'approved', 'rejected'
+  paymentMethod: varchar("payment_method"), // 'bank_transfer', 'upi', 'cash', 'cheque', etc.
+  transactionId: varchar("transaction_id"),
+  adminNotes: text("admin_notes"),
+  processedBy: varchar("processed_by"),
+  processedAt: timestamp("processed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // KYC documents table
 export const kycDocuments = pgTable("kyc_documents", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -732,6 +748,7 @@ export type Purchase = typeof purchases.$inferSelect;
 export type WalletBalance = typeof walletBalances.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type WithdrawalRequest = typeof withdrawalRequests.$inferSelect;
+export type FundRequest = typeof fundRequests.$inferSelect;
 export type KYCDocument = typeof kycDocuments.$inferSelect;
 export type RankAchievement = typeof rankAchievements.$inferSelect;
 export type FranchiseRequest = typeof franchiseRequests.$inferSelect;

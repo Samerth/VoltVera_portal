@@ -5,13 +5,18 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Zap, Leaf, BarChart3, Smartphone, Target, Bell, Lock, Users, Home, Settings, ShoppingCart, Package, Shield, Eye, CheckCircle, XCircle, Clock, Upload, Menu, X } from "lucide-react";
+import { Zap, Leaf, BarChart3, Smartphone, Target, Bell, Lock, Users, Home, Settings, ShoppingCart, Package, Shield, Eye, CheckCircle, XCircle, Clock, Upload, Menu, X, DollarSign, ArrowUpRight } from "lucide-react";
 import { Link } from "wouter";
 import VoltverashopLogo from "@/components/VoltverashopLogo";
 import MyTeam from "./MyTeam";
 import ProductCatalog from "./ProductCatalog";
 import MyPurchases from "./MyPurchases";
 import { NotificationCenter } from "@/components/NotificationCenter";
+import RequestFundsForm from "@/components/RequestFundsForm";
+import FundRequestHistory from "@/components/FundRequestHistory";
+import WithdrawalRequestForm from "@/components/WithdrawalRequestForm";
+import WithdrawalHistory from "@/components/WithdrawalHistory";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 function getInitials(firstName?: string | null, lastName?: string | null) {
   const first = firstName?.[0] || '';
@@ -405,6 +410,28 @@ export default function UserDashboard() {
             My Purchases
           </Button>
           <Button
+            variant={activeTab === 'deposits' ? 'secondary' : 'ghost'}
+            className="w-full justify-start text-white hover:text-gray-900"
+            onClick={() => {
+              setActiveTab('deposits');
+              setIsSidebarOpen(false);
+            }}
+          >
+            <DollarSign className="mr-3 h-4 w-4" />
+            Deposits
+          </Button>
+          <Button
+            variant={activeTab === 'withdraw' ? 'secondary' : 'ghost'}
+            className="w-full justify-start text-white hover:text-gray-900"
+            onClick={() => {
+              setActiveTab('withdraw');
+              setIsSidebarOpen(false);
+            }}
+          >
+            <ArrowUpRight className="mr-3 h-4 w-4" />
+            Withdraw
+          </Button>
+          <Button
             variant={activeTab === 'settings' ? 'secondary' : 'ghost'}
             className="w-full justify-start text-white hover:text-gray-900"
             onClick={() => {
@@ -509,6 +536,28 @@ export default function UserDashboard() {
               >
                 <Package className="mr-2 h-4 w-4" />
                 My Purchases
+              </button>
+              <button
+                onClick={() => setActiveTab('deposits')}
+                className={`flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'deposits'
+                    ? 'border-white text-white'
+                    : 'border-transparent text-white/70 hover:text-white hover:border-white/30'
+                }`}
+              >
+                <DollarSign className="mr-2 h-4 w-4" />
+                Deposits
+              </button>
+              <button
+                onClick={() => setActiveTab('withdraw')}
+                className={`flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'withdraw'
+                    ? 'border-white text-white'
+                    : 'border-transparent text-white/70 hover:text-white hover:border-white/30'
+                }`}
+              >
+                <ArrowUpRight className="mr-2 h-4 w-4" />
+                Withdraw
               </button>
               <button
                 onClick={() => setActiveTab('settings')}
@@ -633,6 +682,44 @@ export default function UserDashboard() {
         {activeTab === 'products' && <ProductCatalog />}
         
         {activeTab === 'purchases' && <MyPurchases />}
+        
+        {activeTab === 'deposits' && (
+          <div className="p-4 sm:p-6 lg:p-8">
+            <Tabs defaultValue="request" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="request">Request Funds</TabsTrigger>
+                <TabsTrigger value="history">Fund Request History</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="request" className="mt-6">
+                <RequestFundsForm />
+              </TabsContent>
+              
+              <TabsContent value="history" className="mt-6">
+                <FundRequestHistory />
+              </TabsContent>
+            </Tabs>
+          </div>
+        )}
+        
+        {activeTab === 'withdraw' && (
+          <div className="p-4 sm:p-6 lg:p-8">
+            <Tabs defaultValue="request" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="request">Withdrawal Request</TabsTrigger>
+                <TabsTrigger value="history">Withdrawal History</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="request" className="mt-6">
+                <WithdrawalRequestForm />
+              </TabsContent>
+              
+              <TabsContent value="history" className="mt-6">
+                <WithdrawalHistory />
+              </TabsContent>
+            </Tabs>
+          </div>
+        )}
         
         {activeTab === 'settings' && (
           <div className="p-4 sm:p-6 lg:p-8 space-y-6">

@@ -28,6 +28,7 @@ import { PendingKYCSection, ApprovedKYCSection, RejectedKYCSection } from "@/com
 import WithdrawPersonallyForm from "@/components/WithdrawPersonallyForm";
 import SendFundForm from "@/components/SendFundForm";
 import FundHistoryTable from "@/components/FundHistoryTable";
+import FundRequestsTable from "@/components/PendingFundRequestsTable";
 
 interface UserStats {
   totalUsers: number;
@@ -89,7 +90,8 @@ export default function AdminDashboard() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((activeSection === 'today-joinings' || activeSection === 'paid-members' || activeSection === 'free-users' || 
            activeSection === 'pending-withdraw' || activeSection === 'approved-withdraw' || activeSection === 'rejected-withdraw' || 
-           activeSection === 'withdraw-personally' || activeSection === 'send-fund' || activeSection === 'fund-history') && 
+           activeSection === 'withdraw-personally' || activeSection === 'send-fund' || activeSection === 'fund-history' || 
+           activeSection === 'pending-fund-requests' || activeSection === 'approved-fund-requests' || activeSection === 'rejected-fund-requests') && 
           (event.key === 'F5' || (event.ctrlKey && event.key === 'r'))) {
         event.preventDefault();
         if (activeSection === 'today-joinings') {
@@ -152,6 +154,27 @@ export default function AdminDashboard() {
           toast({
             title: "Refreshed",
             description: "Fund history data has been updated.",
+          });
+        } else if (activeSection === 'pending-fund-requests') {
+          // Invalidate and refetch pending fund requests
+          queryClient.invalidateQueries({ queryKey: ["/api/admin/fund-requests"] });
+          toast({
+            title: "Refreshed",
+            description: "Pending fund requests data has been updated.",
+          });
+        } else if (activeSection === 'approved-fund-requests') {
+          // Invalidate and refetch approved fund requests
+          queryClient.invalidateQueries({ queryKey: ["/api/admin/fund-requests"] });
+          toast({
+            title: "Refreshed",
+            description: "Approved fund requests data has been updated.",
+          });
+        } else if (activeSection === 'rejected-fund-requests') {
+          // Invalidate and refetch rejected fund requests
+          queryClient.invalidateQueries({ queryKey: ["/api/admin/fund-requests"] });
+          toast({
+            title: "Refreshed",
+            description: "Rejected fund requests data has been updated.",
           });
         }
       }
@@ -894,20 +917,36 @@ export default function AdminDashboard() {
                   Fund History
                 </button>
                 <button 
+                  onClick={() => setActiveSection('pending-fund-requests')}
+                  className={`block w-full px-4 py-2 text-left text-sm rounded hover:bg-white/10 ${
+                    activeSection === 'pending-fund-requests' ? 'text-yellow-300' : 'text-white/80'
+                  }`}
+                >
+                  Pending Fund Requests
+                </button>
+                <button 
+                  onClick={() => setActiveSection('approved-fund-requests')}
+                  className={`block w-full px-4 py-2 text-left text-sm rounded hover:bg-white/10 ${
+                    activeSection === 'approved-fund-requests' ? 'text-yellow-300' : 'text-white/80'
+                  }`}
+                >
+                  Approved Fund Requests
+                </button>
+                <button 
+                  onClick={() => setActiveSection('rejected-fund-requests')}
+                  className={`block w-full px-4 py-2 text-left text-sm rounded hover:bg-white/10 ${
+                    activeSection === 'rejected-fund-requests' ? 'text-yellow-300' : 'text-white/80'
+                  }`}
+                >
+                  Rejected Fund Requests
+                </button>
+                <button 
                   onClick={() => setActiveSection('manage-fund')}
                   className={`block w-full px-4 py-2 text-left text-sm rounded hover:bg-white/10 ${
                     activeSection === 'manage-fund' ? 'text-yellow-300' : 'text-white/80'
                   }`}
                 >
                   Manage Fund
-                </button>
-                <button 
-                  onClick={() => setActiveSection('pending-fund')}
-                  className={`block w-full px-4 py-2 text-left text-sm rounded hover:bg-white/10 ${
-                    activeSection === 'pending-fund' ? 'text-yellow-300' : 'text-white/80'
-                  }`}
-                >
-                  Pending Fund Requests
                 </button>
               </div>
             )}
@@ -1672,6 +1711,33 @@ export default function AdminDashboard() {
           {/* Fund History Section */}
           {activeSection === 'fund-history' && (
             <FundHistoryTable />
+          )}
+
+          {/* Pending Fund Requests Section */}
+          {activeSection === 'pending-fund-requests' && (
+            <FundRequestsTable 
+              statusFilter="pending"
+              title="Pending Fund Requests"
+              description="Fund requests awaiting admin approval"
+            />
+          )}
+
+          {/* Approved Fund Requests Section */}
+          {activeSection === 'approved-fund-requests' && (
+            <FundRequestsTable 
+              statusFilter="approved"
+              title="Approved Fund Requests"
+              description="Successfully approved fund requests"
+            />
+          )}
+
+          {/* Rejected Fund Requests Section */}
+          {activeSection === 'rejected-fund-requests' && (
+            <FundRequestsTable 
+              statusFilter="rejected"
+              title="Rejected Fund Requests"
+              description="Fund requests that were rejected"
+            />
           )}
 
           {/* KYC Management Sections */}

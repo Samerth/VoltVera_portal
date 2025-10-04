@@ -1139,23 +1139,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Binary MLM Tree routes
-  app.get("/api/binary-tree", isAuthenticated, async (req: any, res) => {
+  // Binary MLM Tree routes (LEGACY - commented out)
+  // app.get("/api/binary-tree", isAuthenticated, async (req: any, res) => {
+  //   try {
+  //     const userId = req.user.id;
+  //     const treeData = await storage.getBinaryTreeData_legacy(userId);
+  //     res.json(treeData);
+  //   } catch (error) {
+  //     console.error("Error fetching binary tree data:", error);
+  //     res.status(500).json({ message: "Failed to fetch binary tree data" });
+  //   }
+  // });
+
+  // Multi-Child MLM Tree routes (NEW)
+  app.get("/api/multi-tree", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
-      const treeData = await storage.getBinaryTreeData(userId);
+      // Use userId from query params if provided, otherwise use authenticated user's ID
+      const userId = req.query.userId || req.user.id;
+      const treeData = await storage.getMultiChildTreeData(userId);
       res.json(treeData);
     } catch (error) {
-      console.error("Error fetching binary tree data:", error);
-      res.status(500).json({ message: "Failed to fetch binary tree data" });
+      console.error("Error fetching multi-child tree data:", error);
+      res.status(500).json({ message: "Failed to fetch tree data" });
     }
   });
 
-  // Direct recruits only (left and right positions in binary tree)
+  // Direct recruits only (LEGACY - commented out)
+  // app.get("/api/direct-recruits", isAuthenticated, async (req: any, res) => {
+  //   try {
+  //     const userId = req.user.id;
+  //     const directRecruits = await storage.getDirectRecruits_legacy(userId);
+  //     res.json(directRecruits);
+  //   } catch (error) {
+  //     console.error("Error fetching direct recruits:", error);
+  //     res.status(500).json({ message: "Failed to fetch direct recruits" });
+  //   }
+  // });
+
+  // Direct recruits only (left and right positions in multi-child tree) (NEW)
   app.get("/api/direct-recruits", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const directRecruits = await storage.getDirectRecruits(userId);
+      const directRecruits = await storage.getMultiChildDirectRecruits(userId);
       res.json(directRecruits);
     } catch (error) {
       console.error("Error fetching direct recruits:", error);
@@ -2199,7 +2224,7 @@ app.put('/api/admin/fund-requests/:id', isAuthenticated, isAdmin, async (req, re
   try {
     const { id } = req.params;
     const { status, adminNotes, amount } = req.body;
-    const adminId = req.user.id;
+    const adminId = (req as any).user?.id;
 
     console.log('=== UPDATING FUND REQUEST ===');
     console.log('Request ID:', id);
@@ -3546,7 +3571,7 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
         placement: {
           parentId,
           position,
-          level: newUser.level
+          level: newUser.level || '0'
         }
       });
 

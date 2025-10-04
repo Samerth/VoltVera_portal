@@ -75,6 +75,9 @@ export const users = pgTable("users", {
   position: varchar("position"), // 'left' or 'right' position under parent
   level: varchar("level").default('0'), // Depth in the binary tree
   
+  // Multi-Child MLM Structure (NEW)
+  order: integer("order").default(0), // Order within position (0, 1, 2...N)
+  
   // Team Management Fields
   packageAmount: decimal("package_amount", { precision: 10, scale: 2 }).default('0.00'),
   registrationDate: timestamp("registration_date").defaultNow(),

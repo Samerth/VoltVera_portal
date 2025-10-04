@@ -51,7 +51,7 @@ import {
   type CreateNews,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, ilike, or, desc, and, sql, gte, lte } from "drizzle-orm";
+import { eq, ilike, or, desc, and, sql, gte, lte, asc } from "drizzle-orm";
 
 import { nanoid } from "nanoid";
 
@@ -117,10 +117,15 @@ export interface IStorage {
     activeMembers: number;
   }>;
   
-  // Binary MLM Tree operations
-  getBinaryTreeData(userId: string): Promise<any>;
-  getDirectRecruits(userId: string): Promise<User[]>;
+  // Binary MLM Tree operations (LEGACY)
+  getBinaryTreeData_legacy(userId: string): Promise<any>;
+  getDirectRecruits_legacy(userId: string): Promise<User[]>;
   placeUserInBinaryTree(userId: string, sponsorId: string): Promise<void>;
+  
+  // Multi-Child MLM Tree operations (NEW)
+  getMultiChildTreeData(userId: string): Promise<any>;
+  getMultiChildDirectRecruits(userId: string): Promise<User[]>;
+  placeUserInMultiChildTree(userId: string, sponsorId: string): Promise<void>;
   
   // Pending recruits operations (new workflow)
   createPendingRecruit(data: RecruitUser, recruiterId: string): Promise<PendingRecruit>;
@@ -1595,11 +1600,17 @@ export class DatabaseStorage implements IStorage {
       profileImageUrl: pendingRecruit.profileImageUrl,
     }).returning();
 
-    // Place user in binary tree at the final position
+    // Place user in tree (LEGACY - commented out)
+    // if (!pendingRecruit.uplineId) {
+    //   throw new Error('Upline ID is required for position placement');
+    // }
+    // await this.placeUserInBinaryTreeAtSpecificPosition(newUser.id, pendingRecruit.uplineId, finalPosition as 'left' | 'right', pendingRecruit.recruiterId);
+
+    // Place user in multi-child tree at the final position (NEW)
     if (!pendingRecruit.uplineId) {
       throw new Error('Upline ID is required for position placement');
     }
-    await this.placeUserInBinaryTreeAtSpecificPosition(newUser.id, pendingRecruit.uplineId, finalPosition as 'left' | 'right', pendingRecruit.recruiterId);
+    await this.placeUserInMultiChildTree(newUser.id, pendingRecruit.recruiterId);
 
     // Transfer KYC documents if available from comprehensive registration
     if (pendingRecruit.panCardUrl || pendingRecruit.aadhaarFrontUrl || 
@@ -1903,20 +1914,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Binary MLM Tree operations
-  async getBinaryTreeData(userId: string): Promise<any> {
+  async getBinaryTreeData_legacy(userId: string): Promise<any> {
     // Import and use binary tree service
-    const { binaryTreeService } = await import('./binaryTreeService');
+    const { binaryTreeService } = await import('./binaryTreeService_legacy');
     // Increase depth to 10 to show complete tree including grandchildren
     const treeData = await binaryTreeService.getBinaryTree(userId, 10);
-    console.log('=== BINARY TREE DATA ===');
+    console.log('=== BINARY TREE DATA (LEGACY) ===');
     console.log('Root user:', userId);
     console.log('Tree structure:', JSON.stringify(treeData, null, 2));
     return treeData;
   }
 
-  async getDirectRecruits(userId: string): Promise<User[]> {
+  async getDirectRecruits_legacy(userId: string): Promise<User[]> {
     // Import and use binary tree service
-    const { binaryTreeService } = await import('./binaryTreeService');
+    const { binaryTreeService } = await import('./binaryTreeService_legacy');
     const binaryUsers = await binaryTreeService.getDirectRecruits(userId);
     
     // Convert BinaryTreeUser to User format
@@ -1977,18 +1988,19 @@ export class DatabaseStorage implements IStorage {
       kycDeadline: null,
       kycLocked: false,
       lastLoginAt: null,
+      order: 0, // Default order for legacy binary tree users
     }));
   }
 
   async placeUserInBinaryTree(userId: string, sponsorId: string): Promise<void> {
-    const { binaryTreeService } = await import('./binaryTreeService');
+    const { binaryTreeService } = await import('./binaryTreeService_legacy');
     const position = await binaryTreeService.findNextAvailablePosition(sponsorId);
     await binaryTreeService.placeUserInTree(userId, position.parentId, position.position, sponsorId);
   }
 
   // Place user at specific position decided by upline (with intelligent spillover)
   async placeUserInBinaryTreeAtSpecificPosition(userId: string, uplineId: string, desiredPosition: 'left' | 'right', sponsorId: string): Promise<void> {
-    const { binaryTreeService } = await import('./binaryTreeService');
+    const { binaryTreeService } = await import('./binaryTreeService_legacy');
     
     // Get the upline who made the strategic decision
     const upline = await this.getUser(uplineId);
@@ -2013,6 +2025,125 @@ export class DatabaseStorage implements IStorage {
       // Strategic spillover placement in the chosen direction
       await binaryTreeService.placeUserInDirectionalSpillover(userId, uplineId, desiredPosition, sponsorId);
     }
+  }
+
+  // ===== MULTI-CHILD MLM TREE OPERATIONS (NEW) =====
+  async getMultiChildTreeData(userId: string): Promise<any> {
+    // Get user data
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Get direct children
+    const children = await this.getMultiChildDirectRecruits(userId);
+    
+    // Get grandchildren (up to 2 levels deep)
+    const grandchildren = [];
+    for (const child of children) {
+      const childChildren = await this.getMultiChildDirectRecruits(child.id);
+      grandchildren.push(...childChildren);
+    }
+
+    return {
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        position: user.position,
+        order: user.order,
+        status: user.status,
+        packageAmount: user.packageAmount,
+        totalBV: user.totalBV,
+        leftBV: user.leftBV,
+        rightBV: user.rightBV,
+        totalDirects: user.totalDirects,
+        leftDirects: user.leftDirects,
+        rightDirects: user.rightDirects,
+      },
+      children: children.map(child => ({
+        id: child.id,
+        firstName: child.firstName,
+        lastName: child.lastName,
+        email: child.email,
+        position: child.position,
+        order: child.order,
+        status: child.status,
+        packageAmount: child.packageAmount,
+        totalBV: child.totalBV,
+        leftBV: child.leftBV,
+        rightBV: child.rightBV,
+        totalDirects: child.totalDirects,
+        leftDirects: child.leftDirects,
+        rightDirects: child.rightDirects,
+      })),
+      grandchildren: grandchildren.map(grandchild => ({
+        id: grandchild.id,
+        firstName: grandchild.firstName,
+        lastName: grandchild.lastName,
+        email: grandchild.email,
+        position: grandchild.position,
+        order: grandchild.order,
+        status: grandchild.status,
+        packageAmount: grandchild.packageAmount,
+        totalBV: grandchild.totalBV,
+        leftBV: grandchild.leftBV,
+        rightBV: grandchild.rightBV,
+        totalDirects: grandchild.totalDirects,
+        leftDirects: grandchild.leftDirects,
+        rightDirects: grandchild.rightDirects,
+      }))
+    };
+  }
+
+  async getMultiChildDirectRecruits(userId: string): Promise<User[]> {
+    // Get all direct children of the user
+    const directChildren = await db.select()
+      .from(users)
+      .where(eq(users.parentId, userId))
+      .orderBy(asc(users.position), asc(users.order));
+
+    return directChildren;
+  }
+
+  async placeUserInMultiChildTree(userId: string, sponsorId: string): Promise<void> {
+    // Find the best position (left or right with fewer children)
+    const leftCount = await db.select({ count: sql`count(*)` })
+      .from(users)
+      .where(and(eq(users.parentId, sponsorId), eq(users.position, 'left')));
+    
+    const rightCount = await db.select({ count: sql`count(*)` })
+      .from(users)
+      .where(and(eq(users.parentId, sponsorId), eq(users.position, 'right')));
+
+    const leftChildrenCount = parseInt(leftCount[0]?.count as string) || 0;
+    const rightChildrenCount = parseInt(rightCount[0]?.count as string) || 0;
+
+    // Choose side with fewer children (left if equal)
+    const position = leftChildrenCount <= rightChildrenCount ? 'left' : 'right';
+    const order = position === 'left' ? leftChildrenCount : rightChildrenCount;
+
+    // Update user with tree position
+    await db.update(users)
+      .set({
+        sponsorId: sponsorId,
+        parentId: sponsorId,
+        position: position,
+        order: order,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId));
+
+    // Update parent's direct counts
+    const countField = position === 'left' ? 'leftDirects' : 'rightDirects';
+    await db.update(users)
+      .set({ 
+        [countField]: sql`${countField} + 1`,
+        totalDirects: sql`total_directs + 1`,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, sponsorId));
   }
 
   // ===== PRODUCT OPERATIONS =====
@@ -4067,16 +4198,19 @@ export class DatabaseStorage implements IStorage {
       
       console.log('✅ Strategic user created, originalPassword in result:', newUser.originalPassword);
       
-      // Update parent's child reference
-      if (data.position === 'left') {
-        await db.update(users)
-          .set({ leftChildId: newUser.id })
-          .where(eq(users.id, data.parentId));
-      } else {
-        await db.update(users)
-          .set({ rightChildId: newUser.id })
-          .where(eq(users.id, data.parentId));
-      }
+      // Update parent's child reference (LEGACY - commented out)
+      // if (data.position === 'left') {
+      //   await db.update(users)
+      //     .set({ leftChildId: newUser.id })
+      //     .where(eq(users.id, data.parentId));
+      // } else {
+      //   await db.update(users)
+      //     .set({ rightChildId: newUser.id })
+      //     .where(eq(users.id, data.parentId));
+      // }
+
+      // Place user in multi-child tree (NEW)
+      await this.placeUserInMultiChildTree(newUser.id, data.sponsorId);
       
       console.log(`User created with strategic placement: ${newUser.email} under ${data.parentId} at ${data.position} position`);
       

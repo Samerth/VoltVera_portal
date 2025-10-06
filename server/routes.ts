@@ -666,7 +666,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!emailSent) {
         // For development, still allow signup but show different message
         console.log(`Development mode: Verification token for ${userData.email!}: ${token}`);
-        console.log(`Verification URL: http://localhost:5000/verify-email?token=${token}`);
+        console.log(`Verification URL: http://localhost:${process.env.PORT || 5000}/verify-email?token=${token}`);
         return res.status(201).json({ 
           message: "Account created! Email service needs configuration. Use verification URL from server logs.",
           userId: user.id,
@@ -1039,7 +1039,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
              // Generate referral link with correct pattern for user recruits
        let baseUrl;
        if (process.env.NODE_ENV === 'development') {
-         baseUrl = 'http://localhost:5000';
+         baseUrl = `http://localhost:${process.env.PORT}`;
        } else if (req.get('host')?.includes('replit.dev')) {
          baseUrl = `https://${req.get('host')}`;
        } else {
@@ -1404,7 +1404,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const baseUrl = process.env.NODE_ENV === 'production' 
           ? 'https://voltveratech.com' 
-          : `http://localhost:5173`;
+          : `http://localhost:${process.env.PORT || 5000}`;
         const fullUrl = `${baseUrl}/referral-register?token=${token}`;
         
         // Update the pending recruit with link generation step
@@ -1490,7 +1490,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Referral link endpoints
-  app.post('/api/referral/generate', isAuthenticated, async (req: any, res) => {
+  // ====================================================================================
+  // LEGACY ROUTE - ORIGINALLY FOR BINARY MLM WITH COMPLEX TEMPORARY RECORDS
+  // ====================================================================================
+  // This route was designed for binary MLM with complex temporary pending_recruits
+  // entries to store strategic placement information. It creates fake records with
+  // names like 'STRATEGIC_PLACEMENT_TEMP' and emails like 'temp_123@strategic.local'
+  // to store placement information until someone uses the referral link.
+  // 
+  // PROBLEMS WITH THIS APPROACH:
+  // - Creates unnecessary temporary records in pending_recruits table
+  // - Complex logic to manage and clean up temporary records
+  // - Admin becomes generatedBy instead of selected parent
+  // - Requires additional database queries and updates
+  // 
+  // NEW SIMPLIFIED APPROACH:
+  // - No temporary records needed
+  // - Direct storage of placement info in referral_links table
+  // - Selected parent becomes generatedBy (like user portal)
+  // - Much simpler and cleaner code
+  // ====================================================================================
+  app.post('/api/referral/generate_legacy_for_binary', isAuthenticated, async (req: any, res) => {
     try {
       const { placementType, placementSide, parentId } = req.body; // Placement type, side, and optional parent ID
       const userId = req.user.id;
@@ -1575,7 +1595,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const baseUrl = process.env.NODE_ENV === 'production' 
         ? 'https://voltveratech.com' 
-        : 'http://localhost:5000';
+        : `http://localhost:${process.env.PORT || 5000}`;
       const fullUrl = `${baseUrl}/recruit?ref=${token}`;
       
       res.json({
@@ -1586,6 +1606,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
         parentId: parentId || null,
         placementSide: placementSide,
         message: `${placementType === 'strategic' ? 'Strategic' : placementType === 'auto' ? 'Auto' : 'Root'} referral link generated. User will complete registration through the link.`
+      });
+    } catch (error) {
+      console.error('Error generating referral link:', error);
+      res.status(500).json({ message: 'Failed to generate referral link' });
+    }
+  });
+
+  // ====================================================================================
+  // NEW SIMPLIFIED ROUTE - WORKS LIKE USER PORTAL (NO TEMPORARY RECORDS)
+  // ====================================================================================
+  // This route follows the same pattern as /api/team/recruit (user portal):
+  // - No temporary pending_recruits entries
+  // - Direct storage of placement info in referral_links table
+  // - Selected parent becomes generatedBy (sponsor)
+  // - Much simpler and cleaner code
+  // 
+  // STRATEGIC PLACEMENT:
+  // - parentId = selected parent (VV0025)
+  // - sponsorId = selected parent (VV0025) 
+  // - generatedBy = selected parent (VV0025)
+  // - generatedByRole = 'user' (role of selected parent)
+  // 
+  // ROOT PLACEMENT:
+  // - parentId = 'admin-demo'
+  // - sponsorId = 'admin-demo'
+  // - generatedBy = 'admin-demo'
+  // - generatedByRole = 'admin'
+  // ====================================================================================
+  app.post('/api/referral/generate', isAuthenticated, async (req: any, res) => {
+    try {
+      const { placementType, placementSide, parentId } = req.body;
+      const userId = req.user.id;
+      const userRole = req.user.role;
+      
+      if (!placementType || !placementSide || !['left', 'right'].includes(placementSide)) {
+        return res.status(400).json({ message: 'Valid placement type and side (left/right) are required' });
+      }
+      
+      // Validate parentId requirement for strategic placement
+      if (placementType === 'strategic' && !parentId) {
+        return res.status(400).json({ message: 'Parent ID is required for strategic placement' });
+      }
+      
+      const token = nanoid(32);
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 48); // 48 hours expiry
+      
+      // Determine generatedBy and generatedByRole based on placement type
+      let generatedBy: string;
+      let generatedByRole: string;
+      
+      console.log(`Admin ${userId} generating ${placementType} referral link`);
+      
+      if (placementType === 'strategic') {
+        // Strategic placement: selected parent becomes the sponsor
+        generatedBy = parentId;
+        
+        // Get the role of the selected parent
+        const parentUser = await storage.getUser(parentId);
+        generatedByRole = parentUser?.role || 'user';
+        
+        console.log(`Strategic placement: User will be placed under ${parentUser?.userId || parentId} (${generatedByRole}) on ${placementSide} side`);
+      } else if (placementType === 'root') {
+        // Root placement: current admin becomes the sponsor
+        generatedBy = userId;  // Use the actual admin ID who generated the link
+        generatedByRole = userRole;  // Use the actual admin role
+        
+        console.log(`Root placement: User will be placed under admin ${userId} (${userRole}) on ${placementSide} side`);
+      } else {
+        return res.status(400).json({ message: 'Only strategic and root placement types are supported' });
+      }
+      
+      // Create referral link with placement information (NO temporary records)
+      const referralLink = await storage.createReferralLink({
+        token,
+        generatedBy: generatedBy,        // Selected parent for strategic, admin-demo for root
+        generatedByRole: generatedByRole, // Role of selected parent for strategic, admin for root
+        placementSide,
+        pendingRecruitId: null,         // No temporary records needed
+        expiresAt
+      });
+      
+      console.log(`Referral link created successfully: ${token.substring(0, 8)}... (expires in 48h)`);
+      
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://voltveratech.com' 
+        : `http://localhost:${process.env.PORT || 5000}`;
+      const fullUrl = `${baseUrl}/recruit?ref=${token}`;
+      
+      res.json({
+        referralLink,
+        url: fullUrl,
+        expiresIn: '48 hours',
+        placementType: placementType,
+        parentId: parentId || null,
+        placementSide: placementSide,
+        message: `${placementType === 'strategic' ? 'Strategic' : 'Root'} referral link generated. User will complete registration through the link.`
       });
     } catch (error) {
       console.error('Error generating referral link:', error);
@@ -1638,7 +1755,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Recruitment registration endpoint (when new user fills details via referral link)
-  app.post('/api/recruitment/register', async (req, res) => {
+  // ====================================================================================
+  // DEPRECATED ROUTE - ORIGINALLY USED BY ReferralRegistration.tsx (NOW UNUSED)
+  // ====================================================================================
+  // This route was originally called by ReferralRegistration.tsx which has been renamed
+  // to ReferralRegistration_backup_unused.tsx because it's not used anywhere in the app.
+  // 
+  // CURRENT ACTIVE FLOW:
+  // - Admin Strategic Placement: /api/referral/generate → /api/referral/complete-registration
+  // - User Recruitment: /api/team/recruit → /api/referral/complete-registration
+  // 
+  // This route is kept for reference but should not be used in new implementations.
+  // If you need similar functionality, use /api/referral/complete-registration instead.
+  // ====================================================================================
+  app.post('/api/recruitment/register_referralregistration_file_route', async (req, res) => {
     try {
       const { token, recruiteeName, recruiteeEmail } = req.body;
       
@@ -1729,6 +1859,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (strategicRecruit.length > 0 && strategicRecruit[0].fullName === 'STRATEGIC_PLACEMENT_TEMP') {
             await db.update(pendingRecruits)
               .set({ 
+                // recruiterId: strategicRecruit[0].recruiterId || referralLink.generatedBy, // COMMENTED FOR FUTURE REFERENCE
                 uplineId: strategicRecruit[0].uplineId || referralLink.generatedBy,
                 position: strategicRecruit[0].position || 'left',
                 updatedAt: new Date()

@@ -125,7 +125,7 @@ export interface IStorage {
   // Multi-Child MLM Tree operations (NEW)
   getMultiChildTreeData(userId: string): Promise<any>;
   getMultiChildDirectRecruits(userId: string): Promise<User[]>;
-  placeUserInMultiChildTree(userId: string, sponsorId: string): Promise<void>;
+  placeUserInMultiChildTree(userId: string, sponsorId: string, desiredPosition?: 'left' | 'right'): Promise<void>;
   
   // Pending recruits operations (new workflow)
   createPendingRecruit(data: RecruitUser, recruiterId: string): Promise<PendingRecruit>;
@@ -1610,7 +1610,13 @@ export class DatabaseStorage implements IStorage {
     if (!pendingRecruit.uplineId) {
       throw new Error('Upline ID is required for position placement');
     }
-    await this.placeUserInMultiChildTree(newUser.id, pendingRecruit.recruiterId);
+    
+    // Use the position from pending recruit (set during referral link registration)
+    const placementPosition = finalPosition as 'left' | 'right';
+    await this.placeUserInMultiChildTree(newUser.id, pendingRecruit.recruiterId, placementPosition);
+
+    // Create wallet balance for the new user
+    await this.createWalletBalance(userId);
 
     // Transfer KYC documents if available from comprehensive registration
     if (pendingRecruit.panCardUrl || pendingRecruit.aadhaarFrontUrl || 
@@ -2107,22 +2113,37 @@ export class DatabaseStorage implements IStorage {
     return directChildren;
   }
 
-  async placeUserInMultiChildTree(userId: string, sponsorId: string): Promise<void> {
-    // Find the best position (left or right with fewer children)
-    const leftCount = await db.select({ count: sql`count(*)` })
-      .from(users)
-      .where(and(eq(users.parentId, sponsorId), eq(users.position, 'left')));
-    
-    const rightCount = await db.select({ count: sql`count(*)` })
-      .from(users)
-      .where(and(eq(users.parentId, sponsorId), eq(users.position, 'right')));
+  async placeUserInMultiChildTree(userId: string, sponsorId: string, desiredPosition?: 'left' | 'right'): Promise<void> {
+    let position: 'left' | 'right';
+    let order: number;
 
-    const leftChildrenCount = parseInt(leftCount[0]?.count as string) || 0;
-    const rightChildrenCount = parseInt(rightCount[0]?.count as string) || 0;
+    if (desiredPosition) {
+      // Use the desired position from referral link
+      position = desiredPosition;
+      
+      // Get count for the desired position to determine order
+      const countResult = await db.select({ count: sql`count(*)` })
+        .from(users)
+        .where(and(eq(users.parentId, sponsorId), eq(users.position, desiredPosition)));
+      
+      order = parseInt(countResult[0]?.count as string) || 0;
+    } else {
+      // Fallback to auto-balancing if no position specified
+      const leftCount = await db.select({ count: sql`count(*)` })
+        .from(users)
+        .where(and(eq(users.parentId, sponsorId), eq(users.position, 'left')));
+      
+      const rightCount = await db.select({ count: sql`count(*)` })
+        .from(users)
+        .where(and(eq(users.parentId, sponsorId), eq(users.position, 'right')));
 
-    // Choose side with fewer children (left if equal)
-    const position = leftChildrenCount <= rightChildrenCount ? 'left' : 'right';
-    const order = position === 'left' ? leftChildrenCount : rightChildrenCount;
+      const leftChildrenCount = parseInt(leftCount[0]?.count as string) || 0;
+      const rightChildrenCount = parseInt(rightCount[0]?.count as string) || 0;
+
+      // Choose side with fewer children (left if equal)
+      position = leftChildrenCount <= rightChildrenCount ? 'left' : 'right';
+      order = position === 'left' ? leftChildrenCount : rightChildrenCount;
+    }
 
     // Update user with tree position
     await db.update(users)
@@ -2136,14 +2157,23 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId));
 
     // Update parent's direct counts
-    const countField = position === 'left' ? 'leftDirects' : 'rightDirects';
-    await db.update(users)
-      .set({ 
-        [countField]: sql`${countField} + 1`,
-        totalDirects: sql`total_directs + 1`,
-        updatedAt: new Date()
-      })
-      .where(eq(users.id, sponsorId));
+    if (position === 'left') {
+      await db.update(users)
+        .set({ 
+          leftDirects: sql`left_directs + 1`,
+          totalDirects: sql`total_directs + 1`,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, sponsorId));
+    } else {
+      await db.update(users)
+        .set({ 
+          rightDirects: sql`right_directs + 1`,
+          totalDirects: sql`total_directs + 1`,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, sponsorId));
+    }
   }
 
   // ===== PRODUCT OPERATIONS =====
@@ -4210,7 +4240,10 @@ export class DatabaseStorage implements IStorage {
       // }
 
       // Place user in multi-child tree (NEW)
-      await this.placeUserInMultiChildTree(newUser.id, data.sponsorId);
+      await this.placeUserInMultiChildTree(newUser.id, data.sponsorId, data.position as 'left' | 'right');
+      
+      // Create wallet balance for the new user
+      await this.createWalletBalance(userId);
       
       console.log(`User created with strategic placement: ${newUser.email} under ${data.parentId} at ${data.position} position`);
       

@@ -182,7 +182,18 @@ const ClickTreeModal = ({ user, isOpen, onClose }: { user: MultiChildTreeUser | 
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`/api/multi-tree?userId=${userId}`);
+      
+      // Include impersonation token if available
+      const headers: Record<string, string> = {};
+      const impersonationToken = sessionStorage.getItem('impersonationToken');
+      if (impersonationToken) {
+        headers['Authorization'] = `Bearer ${impersonationToken}`;
+      }
+      
+      const response = await fetch(`/api/multi-tree?userId=${userId}`, {
+        headers,
+        credentials: 'include'
+      });
       
       if (!response.ok) {
         throw new Error('Failed to fetch user tree structure');
@@ -335,7 +346,18 @@ export default function MultiChildTreeView({ userId, onUserClick }: MultiChildTr
   const fetchTreeStructure = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/multi-tree`);
+      
+      // Include impersonation token if available
+      const headers: Record<string, string> = {};
+      const impersonationToken = sessionStorage.getItem('impersonationToken');
+      if (impersonationToken) {
+        headers['Authorization'] = `Bearer ${impersonationToken}`;
+      }
+      
+      const response = await fetch(`/api/multi-tree`, {
+        headers,
+        credentials: 'include'
+      });
       
       if (!response.ok) {
         throw new Error('Failed to fetch tree structure');

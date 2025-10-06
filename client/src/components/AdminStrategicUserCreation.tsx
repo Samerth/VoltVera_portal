@@ -30,7 +30,7 @@ interface UserForPlacement {
 }
 
 interface ReferralFormData {
-  placementType: 'strategic' | 'auto' | 'root';
+  placementType: 'strategic' | 'root';
   placementSide: 'left' | 'right';
   parentId: string; // Add parent user selection
 }
@@ -107,13 +107,21 @@ export function AdminReferralLinkGeneration() {
   };
 
   const getAvailablePositions = (userId: string) => {
-    const user = usersForPlacement.find(u => u.id === userId);
-    if (!user) return { left: false, right: false };
-    
+    // In multi-child tree, all users can have children on both sides
+    // No need to check for existing children since multiple children are allowed
     return {
-      left: !user.leftChildId,
-      right: !user.rightChildId
+      left: true,
+      right: true
     };
+    
+    // OLD CODE (Binary tree logic - commented out):
+    // const user = usersForPlacement.find(u => u.id === userId);
+    // if (!user) return { left: false, right: false };
+    // 
+    // return {
+    //   left: !user.leftChildId,
+    //   right: !user.rightChildId
+    // };
   };
 
 
@@ -173,14 +181,13 @@ export function AdminReferralLinkGeneration() {
                       <Label htmlFor="placementType">Placement Type *</Label>
                       <Select
                         value={referralFormData.placementType}
-                        onValueChange={(value: 'strategic' | 'auto' | 'root') => setReferralFormData(prev => ({ ...prev, placementType: value }))}
+                        onValueChange={(value: 'strategic' | 'root') => setReferralFormData(prev => ({ ...prev, placementType: value }))}
                       >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="strategic">Strategic Placement (Choose Parent + Position)</SelectItem>
-                          <SelectItem value="auto">Auto Placement (System Finds Best Position)</SelectItem>
                           <SelectItem value="root">Root Placement (Top Level of Tree)</SelectItem>
                         </SelectContent>
                       </Select>
@@ -251,12 +258,6 @@ export function AdminReferralLinkGeneration() {
                           {referralFormData.placementType === 'strategic' && referralFormData.parentId && getAvailablePositions(referralFormData.parentId).right && (
                             <SelectItem value="right">Right Side</SelectItem>
                           )}
-                          {referralFormData.placementType === 'auto' && (
-                            <>
-                              <SelectItem value="left">Left Side (Auto-find best position)</SelectItem>
-                              <SelectItem value="right">Right Side (Auto-find best position)</SelectItem>
-                            </>
-                          )}
                           {referralFormData.placementType === 'root' && (
                             <>
                               <SelectItem value="left">Left Side (Root level)</SelectItem>
@@ -317,10 +318,6 @@ export function AdminReferralLinkGeneration() {
                           <p>🎯 Strategic placement: <strong>{referralFormData.parentId ? `Under ${usersForPlacement.find(u => u.id === referralFormData.parentId)?.firstName || 'Selected User'}` : 'No parent selected'}</strong></p>
                           <p>📍 Placement side: <strong>{referralFormData.placementSide === 'left' ? 'Left' : 'Right'}</strong></p>
                         </>
-                      )}
-                      
-                      {referralFormData.placementType === 'auto' && (
-                        <p>🎯 Auto placement: <strong>System will find best available position in tree</strong></p>
                       )}
                       
                       {referralFormData.placementType === 'root' && (

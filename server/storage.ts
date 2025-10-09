@@ -1503,7 +1503,7 @@ export class DatabaseStorage implements IStorage {
     // Check if recruit is ready for admin approval
     // Special case: If recruiter is admin, allow direct approval
     // We need to check the recruiter's role from the users table
-    const recruiter = await this.getUser(pendingRecruit.recruiterId);
+    const recruiter = await this.getUser(pendingRecruit.recruiterId); // recruiterId is always null as per new code for multi-child tree
     const isAdminGenerated = recruiter?.role === 'admin' || recruiter?.role === 'founder';
     
     if (isAdminGenerated) {
@@ -2269,37 +2269,283 @@ export class DatabaseStorage implements IStorage {
     return wallet;
   }
 
+  /**
+   * Updates wallet balance with comprehensive validation and error handling.
+   * 
+   * FUTURE TRANSACTION IMPLEMENTATION:
+   * When switching to a database driver that supports transactions (e.g., Neon WebSocket, PostgreSQL),
+   * replace the direct operations below with the following transaction-based approach:
+   * 
+   * ```typescript
+   * return await db.transaction(async (tx) => {
+   *   // Re-fetch wallet within transaction to get latest values (prevents race conditions)
+   *   const [latestWallet] = await tx.select().from(walletBalances).where(eq(walletBalances.userId, userId)).limit(1);
+   *   
+   *   if (!latestWallet) {
+   *     throw new Error('Wallet not found during transaction');
+   *   }
+   * 
+   *   const currentBalance = parseFloat(latestWallet.balance || '0');
+   *   const currentEarnings = parseFloat(latestWallet.totalEarnings || '0');
+   *   const currentWithdrawals = parseFloat(latestWallet.totalWithdrawals || '0');
+   * 
+   *   // ... business logic calculations ...
+   * 
+   *   // Update wallet balance within transaction
+   *   await tx.update(walletBalances)
+   *     .set(updateData)
+   *     .where(eq(walletBalances.userId, userId));
+   * 
+   *   // Create transaction record within transaction
+   *   const [transaction] = await tx.insert(transactions).values({
+   *     userId,
+   *     type: type as any,
+   *     amount,
+   *     description,
+   *     balanceBefore: currentBalance.toString(),
+   *     balanceAfter: updateData.balance || currentBalance.toString(),
+   *   }).returning();
+   * 
+   *   return transaction;
+   * });
+   * ```
+   * 
+   * BENEFITS OF TRANSACTION IMPLEMENTATION:
+   * - Atomic operations (all succeed or all fail)
+   * - Race condition prevention
+   * - Data consistency guarantees
+   * - Proper isolation levels
+   * - Rollback capability on errors
+   * 
+   * CURRENT IMPLEMENTATION:
+   * Uses direct operations with manual validation due to Neon HTTP driver limitations.
+   * Includes comprehensive error handling and input validation.
+   */
   async updateWalletBalance(userId: string, amount: string, description: string, type: any): Promise<Transaction> {
+    // Input validation and sanitization
+    if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+      throw new Error('Invalid userId: must be a non-empty string');
+    }
+    
+    if (!amount || typeof amount !== 'string' || amount.trim().length === 0) {
+      throw new Error('Invalid amount: must be a non-empty string');
+    }
+    
+    if (!description || typeof description !== 'string' || description.trim().length === 0) {
+      throw new Error('Invalid description: must be a non-empty string');
+    }
+    
+    if (!type || typeof type !== 'string' || type.trim().length === 0) {
+      throw new Error('Invalid type: must be a non-empty string');
+    }
+
+    // Sanitize and validate amount
+    const sanitizedAmount = amount.trim();
+    const changeAmount = parseFloat(sanitizedAmount);
+    
+    // Validate numeric amount
+    if (isNaN(changeAmount) || !isFinite(changeAmount)) {
+      throw new Error(`Invalid amount format: "${amount}" is not a valid number`);
+    }
+    
+    // Validate amount range (prevent extremely large values)
+    if (Math.abs(changeAmount) > 999999999) { // 999 million limit
+      throw new Error('Amount exceeds maximum limit of ₹999,999,999');
+    }
+    
+    // Validate amount precision (max 2 decimal places)
+    const decimalPlaces = (sanitizedAmount.split('.')[1] || '').length;
+    if (decimalPlaces > 2) {
+      throw new Error('Amount cannot have more than 2 decimal places');
+    }
+
     let wallet = await this.getWalletBalance(userId);
     if (!wallet) {
       wallet = await this.createWalletBalance(userId);
     }
 
-    const currentBalance = parseFloat(wallet.balance || '0');
-    const changeAmount = parseFloat(amount);
-    const newBalance = currentBalance + changeAmount;
+    // Validate transaction type against whitelist
+    const allowedTypes = [
+      'fundRequest',
+      'withdrawal', 
+      'sponsor_income',
+      'sales_bonus',
+      'sales_incentive',
+      'consistency_bonus',
+      'franchise_income',
+      'car_fund',
+      'travel_fund',
+      'leadership_fund',
+      'house_fund',
+      'millionaire_club',
+      'royalty_income',
+      'purchaseProduct',
+      'admin_credit',
+      'admin_debit'
+    ];
+    
+    if (!allowedTypes.includes(type)) {
+      console.warn(`⚠️ Unknown transaction type: "${type}". Treating as admin operation. Allowed types: ${allowedTypes.join(', ')}`);
+      // Don't throw error, just log and continue with default behavior
+    }
 
-    // Update wallet balance
-    await db.update(walletBalances)
-      .set({ 
-        balance: newBalance.toString(),
-        totalEarnings: type === 'withdrawal' ? wallet.totalEarnings : (parseFloat(wallet.totalEarnings || '0') + Math.max(0, changeAmount)).toString(),
-        totalWithdrawals: type === 'withdrawal' ? (parseFloat(wallet.totalWithdrawals || '0') + Math.abs(changeAmount)).toString() : wallet.totalWithdrawals,
+    // DIRECT OPERATIONS IMPLEMENTATION (due to Neon HTTP driver limitations)
+    // TODO: Replace with transaction-based approach when switching to WebSocket driver
+    
+    try {
+      // Re-fetch wallet to get latest values (manual race condition mitigation)
+      const [latestWallet] = await db.select().from(walletBalances).where(eq(walletBalances.userId, userId)).limit(1);
+      
+      if (!latestWallet) {
+        throw new Error('Wallet not found for user: ' + userId);
+      }
+
+      const currentBalance = parseFloat(latestWallet.balance || '0');
+      const currentEarnings = parseFloat(latestWallet.totalEarnings || '0');
+      const currentWithdrawals = parseFloat(latestWallet.totalWithdrawals || '0');
+
+      // Additional validation for wallet data integrity
+      if (isNaN(currentBalance) || isNaN(currentEarnings) || isNaN(currentWithdrawals)) {
+        throw new Error('Invalid wallet data: corrupted balance values detected');
+      }
+
+      if (currentBalance < 0 || currentEarnings < 0 || currentWithdrawals < 0) {
+        throw new Error('Invalid wallet state: negative values detected');
+      }
+
+      // Prepare update data based on transaction type
+      const updateData: any = {
         updatedAt: new Date()
-      })
-      .where(eq(walletBalances.userId, userId));
+      };
 
-    // Create transaction record
-    const [transaction] = await db.insert(transactions).values({
-      userId,
-      type,
-      amount,
-      description,
-      balanceBefore: currentBalance.toString(),
-      balanceAfter: newBalance.toString(),
-    }).returning();
+    // Scenario 1: Fund Management (fundRequest) - Only affects balance (E-wallet)
+    if (type === 'fundRequest') {
+      const newBalance = currentBalance + changeAmount;
+      
+      // Check if user has sufficient balance for debit operations
+      if (newBalance < 0) {
+        throw new Error(`Insufficient balance. You have ₹${currentBalance} in E-wallet but trying to debit ₹${Math.abs(changeAmount)}`);
+      }
+      
+      updateData.balance = newBalance.toString();
+      // totalEarnings and totalWithdrawals remain unchanged
+      
+      console.log(`💰 Fund Request: Balance ${changeAmount >= 0 ? 'increased' : 'decreased'} by ₹${Math.abs(changeAmount)}`);
+    }
+    
+    // Scenario 2: Withdrawal Management - Only affects totalEarnings and totalWithdrawals
+    else if (type === 'withdrawal') {
+      const withdrawalAmount = Math.abs(changeAmount);
+      
+      // Check if user has sufficient earnings to withdraw
+      if (withdrawalAmount > currentEarnings) {
+        throw new Error(`Insufficient earnings. You have ₹${currentEarnings} in earnings but trying to withdraw ₹${withdrawalAmount}`);
+      }
+      
+      const newEarnings = currentEarnings - withdrawalAmount; // Deduct from income
+      const newWithdrawals = currentWithdrawals + withdrawalAmount; // Add to withdrawals
+      
+      updateData.totalEarnings = newEarnings.toString();
+      updateData.totalWithdrawals = newWithdrawals.toString();
+      // balance remains unchanged
+      
+      console.log(`💸 Withdrawal: Earnings decreased by ₹${withdrawalAmount}, Withdrawals increased by ₹${withdrawalAmount}`);
+    }
+    
+    // Scenario 3: MLM Income (sponsor_income, sales_bonus, etc.) - Only affects totalEarnings (Income)
+    else if (type === 'sponsor_income' || type === 'sales_bonus' || type === 'sales_incentive' || 
+             type === 'consistency_bonus' || type === 'franchise_income' || type === 'car_fund' || 
+             type === 'travel_fund' || type === 'leadership_fund' || type === 'house_fund' || 
+             type === 'millionaire_club' || type === 'royalty_income') {
+      const newEarnings = currentEarnings + Math.max(0, changeAmount); // Only positive amounts add to earnings
+      
+      updateData.totalEarnings = newEarnings.toString();
+      // balance and totalWithdrawals remain unchanged
+      
+      console.log(`💵 MLM Income (${type}): Earnings increased by ₹${Math.max(0, changeAmount)}`);
+    }
+    
+    // Scenario 4: Product Purchase - Only affects balance (E-wallet)
+    else if (type === 'purchaseProduct') {
+      const newBalance = currentBalance - changeAmount; // Deduct positive amount from balance
+      
+      // Check if user has sufficient balance for purchase
+      if (newBalance < 0) {
+        throw new Error(`Insufficient balance. You have ₹${currentBalance} in E-wallet but trying to purchase for ₹${changeAmount}`);
+      }
+      
+      updateData.balance = newBalance.toString();
+      // totalEarnings and totalWithdrawals remain unchanged
+      
+      console.log(`🛒 Product Purchase: Balance decreased by ₹${changeAmount}`);
+    }
+    
+    // Default case: Admin operations (admin_credit, admin_debit) - Only affects balance (E-wallet)
+    else {
+      const newBalance = currentBalance + changeAmount;
+      updateData.balance = newBalance.toString();
+      // totalEarnings and totalWithdrawals remain unchanged
+      
+      console.log(`⚙️ Admin Operation (${type}): Balance ${changeAmount >= 0 ? 'increased' : 'decreased'} by ₹${Math.abs(changeAmount)}`);
+    }
 
-    return transaction;
+      // Update wallet balance (direct operation)
+      const updateResult = await db.update(walletBalances)
+        .set(updateData)
+        .where(eq(walletBalances.userId, userId));
+
+      // Verify update was successful
+      if (!updateResult || updateResult.rowCount === 0) {
+        throw new Error('Failed to update wallet balance: no rows affected');
+      }
+
+      // Determine transaction type based on amount sign for fundRequest
+      const isCredit = parseFloat(amount) >= 0;
+      const dbType = type === 'fundRequest' ? (isCredit ? 'admin_credit' : 'admin_debit') :
+                     type === 'purchaseProduct' ? 'purchase' : 
+                     type as any;
+
+      // Create transaction record (direct operation)
+      const [transaction] = await db.insert(transactions).values({
+        userId,
+        type: dbType,
+        amount,
+        description,
+        balanceBefore: currentBalance.toString(),
+        balanceAfter: updateData.balance || currentBalance.toString(),
+      }).returning();
+
+      // Verify transaction record was created
+      if (!transaction) {
+        throw new Error('Failed to create transaction record');
+      }
+
+      console.log(`✅ Wallet operation completed successfully: ${type} for user ${userId}`);
+      return transaction;
+
+    } catch (error: any) {
+      // Comprehensive error handling and logging
+      console.error(`❌ Wallet operation failed: ${type} for user ${userId}`, {
+        error: error.message,
+        userId,
+        amount,
+        type,
+        description
+      });
+
+      // Re-throw with enhanced error message
+      if (error.message.includes('Invalid wallet data')) {
+        throw new Error(`Wallet data corruption detected for user ${userId}. Please contact support.`);
+      } else if (error.message.includes('Invalid wallet state')) {
+        throw new Error(`Invalid wallet state for user ${userId}. Please contact support.`);
+      } else if (error.message.includes('Failed to update')) {
+        throw new Error(`Database update failed for user ${userId}. Please try again.`);
+      } else if (error.message.includes('Failed to create transaction')) {
+        throw new Error(`Transaction record creation failed for user ${userId}. Please try again.`);
+      } else {
+        throw new Error(`Wallet operation failed: ${error.message}`);
+      }
+    }
   }
 
   async getUserTransactions(userId: string): Promise<Transaction[]> {
@@ -2811,54 +3057,32 @@ export class DatabaseStorage implements IStorage {
           return false;
         }
 
-        const currentBalance = parseFloat(wallet.balance || '0');
+        const currentEarnings = parseFloat(wallet.totalEarnings || '0');
         const withdrawalAmount = parseFloat(withdrawalRequest.amount);
-        const currentTotalWithdrawals = parseFloat(wallet.totalWithdrawals || '0');
 
         console.log('Wallet details:', {
-          currentBalance,
-          withdrawalAmount,
-          currentTotalWithdrawals
+          currentEarnings,
+          withdrawalAmount
         });
 
-        // Check if user has sufficient balance
-        if (currentBalance < withdrawalAmount) {
-          console.log('Insufficient balance for withdrawal');
-          throw new Error(`Insufficient balance. User has ${currentBalance} but withdrawal is for ${withdrawalAmount}`);
+        // Check if user has sufficient earnings (not balance)
+        if (currentEarnings < withdrawalAmount) {
+          console.log('Insufficient earnings for withdrawal');
+          throw new Error(`Insufficient earnings. User has ₹${currentEarnings} in earnings but withdrawal is for ₹${withdrawalAmount}`);
         }
 
-        // Calculate new balances
-        const newBalance = currentBalance - withdrawalAmount;
-        const newTotalWithdrawals = currentTotalWithdrawals + withdrawalAmount;
+        console.log('Processing withdrawal using updateWalletBalance function...');
 
-        console.log('New wallet balances:', {
-          newBalance,
-          newTotalWithdrawals
-        });
+        // Use our secure updateWalletBalance function for withdrawal
+        // Pass negative amount to record as deduction in transaction
+        await this.updateWalletBalance(
+          withdrawalRequest.userId,
+          (-withdrawalAmount).toString(), // Negative amount for transaction record
+          `Withdrawal approved - ${withdrawalRequest.withdrawalType}`,
+          'withdrawal'
+        );
 
-        // Update wallet balance
-        await db
-          .update(walletBalances)
-          .set({
-            balance: newBalance.toString(),
-            totalWithdrawals: newTotalWithdrawals.toString(),
-            updatedAt: new Date()
-          })
-          .where(eq(walletBalances.userId, withdrawalRequest.userId));
-
-        console.log('Wallet balance updated successfully');
-
-        // Create transaction record for the withdrawal
-        await db.insert(transactions).values({
-          userId: withdrawalRequest.userId,
-          type: 'withdrawal',
-          amount: (-withdrawalAmount).toString(), // Negative amount for withdrawal
-          description: `Withdrawal approved - ${withdrawalRequest.withdrawalType}`,
-          balanceBefore: currentBalance.toString(),
-          balanceAfter: newBalance.toString(),
-        });
-
-        console.log('Transaction record created');
+        console.log('Withdrawal processed successfully using updateWalletBalance');
       }
 
       // Update withdrawal request status
@@ -3621,7 +3845,7 @@ export class DatabaseStorage implements IStorage {
 
     // Credit rank achievement bonus
     if (bonus > 0) {
-      await this.updateWalletBalance(userId, bonus.toString(), `Rank Achievement Bonus - ${rank}`, 'admin_credit');
+      await this.updateWalletBalance(userId, bonus.toString(), `Rank Achievement Bonus - ${rank}`, 'sales_bonus'); // earlier: 'admin_credit'
     }
 
     return achievement;

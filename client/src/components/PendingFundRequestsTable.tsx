@@ -89,9 +89,9 @@ export default function FundRequestsTable({
         };
       case 'approved':
         return {
-          showApprove: true,
+          showApprove: false,
           showReject: false,
-          showCancel: true,
+          showCancel: false,
           approveText: 'Update Transaction',
           rejectText: 'Reject'
         };
@@ -146,10 +146,20 @@ export default function FundRequestsTable({
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/fund-requests"] });
-      toast({
-        title: "Success",
-        description: result.message,
-      });
+      
+      // Show enhanced success message for approved requests with wallet credit info
+      if (result.data?.walletCredit) {
+        toast({
+          title: "Fund Request Approved & Wallet Credited!",
+          description: `₹${result.data.walletCredit.amount} credited to user's wallet. New balance: ₹${result.data.walletCredit.newBalance}`,
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: result.message,
+        });
+      }
+      
       setIsViewDialogOpen(false);
       setSelectedRequest(null);
       setEditableAmount('');
@@ -159,11 +169,22 @@ export default function FundRequestsTable({
     },
     onError: (error: any) => {
       console.error('Error updating fund request:', error);
+      
+      // Enhanced error handling for wallet credit failures
+      let errorTitle = "Error";
+      let errorDescription = error.message || "Failed to update fund request";
+      
+      if (error.message?.includes('Failed to credit wallet')) {
+        errorTitle = "Wallet Credit Failed";
+        errorDescription = "Fund request approval cancelled due to wallet credit failure. Please check user wallet status and try again.";
+      }
+      
       toast({
-        title: "Error",
-        description: error.message || "Failed to update fund request",
+        title: errorTitle,
+        description: errorDescription,
         variant: "destructive",
       });
+      
       setIsApproving(false);
       setIsRejecting(false);
     },
@@ -374,7 +395,9 @@ export default function FundRequestsTable({
                   <th className="text-left p-3 font-medium text-gray-700 min-w-[200px]">Transaction ID</th>
                   <th className="text-left p-3 font-medium text-gray-700 min-w-[300px]">Remark</th>
                   <th className="text-left p-3 font-medium text-gray-700 min-w-[200px]">Date</th>
-                  <th className="text-left p-3 font-medium text-gray-700 min-w-[100px]">Action</th>
+                  {statusFilter !== 'approved' && (
+                    <th className="text-left p-3 font-medium text-gray-700 min-w-[100px]">Action</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -440,16 +463,18 @@ export default function FundRequestsTable({
                         {formatDate(request.createdAt)}
                       </div>
                     </td>
-                    <td className="p-3 min-w-[100px]">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleView(request)}
-                      >
-                        <Eye className="mr-1 h-4 w-4" />
-                        View
-                      </Button>
-                    </td>
+                    {statusFilter !== 'approved' && (
+                      <td className="p-3 min-w-[100px]">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleView(request)}
+                        >
+                          <Eye className="mr-1 h-4 w-4" />
+                          View
+                        </Button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -542,56 +567,68 @@ export default function FundRequestsTable({
             </div>
           </div>
           
-          <DialogFooter className="flex justify-between">
-            {buttonConfig.showCancel && (
+          {statusFilter !== 'approved' && (
+            <DialogFooter className="flex justify-between">
+              {buttonConfig.showCancel && (
+                <Button
+                  variant="outline"
+                  onClick={handleCancel}
+                >
+                  Cancel
+                </Button>
+              )}
+              <div className="flex space-x-2">
+                {buttonConfig.showReject && (
+                  <Button
+                    onClick={handleReject}
+                    disabled={isRejecting || isApproving}
+                    variant="destructive"
+                  >
+                    {isRejecting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Rejecting...
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="mr-2 h-4 w-4" />
+                        {buttonConfig.rejectText}
+                      </>
+                    )}
+                  </Button>
+                )}
+                {buttonConfig.showApprove && (
+                  <Button
+                    onClick={handleApprove}
+                    disabled={isApproving || isRejecting}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {isApproving ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Approving...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        {buttonConfig.approveText}
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </DialogFooter>
+          )}
+          {statusFilter === 'approved' && (
+            <DialogFooter>
               <Button
                 variant="outline"
                 onClick={handleCancel}
               >
-                Cancel
+                Close
               </Button>
-            )}
-            <div className="flex space-x-2">
-              {buttonConfig.showReject && (
-                <Button
-                  onClick={handleReject}
-                  disabled={isRejecting || isApproving}
-                  variant="destructive"
-                >
-                  {isRejecting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Rejecting...
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="mr-2 h-4 w-4" />
-                      {buttonConfig.rejectText}
-                    </>
-                  )}
-                </Button>
-              )}
-              {buttonConfig.showApprove && (
-                <Button
-                  onClick={handleApprove}
-                  disabled={isApproving || isRejecting}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {isApproving ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Approving...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      {buttonConfig.approveText}
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-          </DialogFooter>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
     </Card>

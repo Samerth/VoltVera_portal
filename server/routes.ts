@@ -2221,7 +2221,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Update wallet balance and create transaction
-      const transactionType = option === 'Credit' ? 'admin_credit' : 'admin_debit';
+      const transactionType = 'fundRequest'; // Fund management operations
       const description = `${option} by Admin: ${remarks}`;
       
       await storage.updateWalletBalance(
@@ -2350,7 +2350,8 @@ app.get('/api/admin/fund-requests', isAuthenticated, isAdmin, async (req, res) =
   }
 });
 
-// Update fund request status (approve/reject)
+
+// Update fund request status (approve/reject) with automatic wallet credit
 app.put('/api/admin/fund-requests/:id', isAuthenticated, isAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -2383,8 +2384,25 @@ app.put('/api/admin/fund-requests/:id', isAuthenticated, isAdmin, async (req, re
     }
 
     const { db } = await import("./db");
-    const { fundRequests } = await import("@shared/schema");
+    const { fundRequests, users } = await import("@shared/schema");
     const { eq } = await import("drizzle-orm");
+
+    // First, get the current fund request to get user info
+    const currentRequest = await db
+      .select()
+      .from(fundRequests)
+      .where(eq(fundRequests.id, id))
+      .limit(1);
+
+    if (!currentRequest.length) {
+      return res.status(404).json({ 
+        message: 'Fund request not found' 
+      });
+    }
+
+    const fundRequest = currentRequest[0];
+    const finalAmount = amount !== undefined ? amount : fundRequest.amount;
+    const amountNum = parseFloat(finalAmount);
 
     // Prepare update data
     const updateData: any = {
@@ -2405,31 +2423,102 @@ app.put('/api/admin/fund-requests/:id', isAuthenticated, isAdmin, async (req, re
     
     console.log('📥 Backend: Final updateData:', updateData);
 
-    // Update the fund request
-    const updatedRequest = await db
-      .update(fundRequests)
-      .set(updateData)
-      .where(eq(fundRequests.id, id))
-      .returning();
+    // If status is 'approved', we need to credit the wallet FIRST before updating the fund request
+    if (status === 'approved') {
+      console.log('💰 Processing wallet credit for fund request approval');
+      
+      try {
+        // Get user details - fundRequest.userId contains display ID (VV0001), not UUID
+        const user = await db.select().from(users).where(eq(users.userId, fundRequest.userId)).limit(1);
+        if (!user.length) {
+          console.error('❌ User not found for fund request:', fundRequest.userId);
+          return res.status(500).json({ 
+            message: 'User not found for fund request' 
+          });
+        }
 
-    if (!updatedRequest.length) {
-      return res.status(404).json({ 
-        message: 'Fund request not found' 
+        const userData = user[0];
+        console.log('Found user:', userData.email, userData.firstName, userData.lastName);
+        console.log('User UUID:', userData.id, 'User Display ID:', userData.userId);
+
+        // Get or create wallet balance using the Display ID (users.userId)
+        let wallet = await storage.getWalletBalance(userData.userId || '');
+        if (!wallet) {
+          wallet = await storage.createWalletBalance(userData.userId || '');
+          console.log('Created new wallet for user Display ID:', userData.userId);
+        }
+
+        const currentBalance = parseFloat(wallet.balance || '0');
+        const newBalance = currentBalance + amountNum;
+
+        console.log('Wallet transaction:', {
+          currentBalance,
+          amountToCredit: amountNum,
+          newBalance
+        });
+
+        // Update ONLY the balance (E-wallet) for fund approval - NOT total_earnings (income)
+        const transactionType = 'fundRequest';
+        const description = `Fund Request Approved: ${adminNotes || 'Fund request approved'}`;
+        
+        // Update wallet balance only (not totalEarnings) for fund approvals
+        await storage.updateWalletBalance(
+          userData.userId || '',
+          amountNum.toString(),
+          description,
+          transactionType
+        );
+
+        console.log('✅ Wallet credited successfully');
+
+        // Only NOW update the fund request status to approved
+        const updatedRequest = await db
+          .update(fundRequests)
+          .set(updateData)
+          .where(eq(fundRequests.id, id))
+          .returning();
+
+        console.log('✅ Fund request approved successfully');
+
+        res.json({
+          message: `Fund request approved and wallet credited successfully`,
+          data: {
+            fundRequest: updatedRequest[0],
+            walletCredit: {
+              userId: userData.userId, // Display ID like VV0001
+              userUuid: userData.id,   // UUID for reference
+              amount: amountNum,
+              previousBalance: currentBalance,
+              newBalance: newBalance,
+              description
+            }
+          }
+        });
+
+      } catch (walletError: any) {
+        console.error('❌ Error crediting wallet:', walletError);
+        // If wallet credit fails, DO NOT approve the fund request
+        return res.status(500).json({
+          message: 'Failed to credit wallet. Fund request approval cancelled.',
+          error: walletError.message || 'Wallet credit failed',
+          details: 'Please check user wallet status and try again'
+        });
+      }
+    } else {
+      // For rejected or other statuses, just update the fund request
+      const updatedRequest = await db
+        .update(fundRequests)
+        .set(updateData)
+        .where(eq(fundRequests.id, id))
+        .returning();
+
+      console.log('✅ Fund request updated successfully');
+
+      res.json({
+        message: `Fund request ${status} successfully`,
+        data: updatedRequest[0]
       });
     }
-
-    console.log('✅ Fund request updated successfully');
-    console.log('📊 Updated record:', {
-      id: updatedRequest[0].id,
-      amount: updatedRequest[0].amount,
-      status: updatedRequest[0].status,
-      adminNotes: updatedRequest[0].adminNotes
-    });
-
-    res.json({
-      message: `Fund request ${status} successfully`,
-      data: updatedRequest[0]
-    });
 
   } catch (error) {
     console.error('Error updating fund request:', error);
@@ -2483,9 +2572,30 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
       } else {
         res.status(404).json({ message: 'Withdrawal request not found' });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error approving withdrawal request:', error);
-      res.status(500).json({ message: 'Failed to approve withdrawal request' });
+      
+      // Return specific error message for insufficient earnings
+      if (error.message?.includes('Insufficient earnings')) {
+        return res.status(400).json({ 
+          message: error.message,
+          error: 'INSUFFICIENT_EARNINGS'
+        });
+      }
+      
+      // Return specific error message for other validation errors
+      if (error.message?.includes('Insufficient balance')) {
+        return res.status(400).json({ 
+          message: error.message,
+          error: 'INSUFFICIENT_BALANCE'
+        });
+      }
+      
+      // Generic error for other cases
+      res.status(500).json({ 
+        message: error.message || 'Failed to approve withdrawal request',
+        error: 'WITHDRAWAL_APPROVAL_FAILED'
+      });
     }
   });
 

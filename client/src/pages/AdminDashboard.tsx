@@ -218,7 +218,10 @@ export default function AdminDashboard() {
   // Fetch wallet data for all users
   const { data: walletBalances = [] } = useQuery({
     queryKey: ["/api/admin/wallet-balances"],
-    queryFn: () => apiRequest('GET', '/api/admin/wallet-balances'),
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/admin/wallet-balances');
+      return await response.json();
+    },
     enabled: isAuthenticated && user?.role === 'admin',
   });
 
@@ -326,7 +329,10 @@ export default function AdminDashboard() {
   // Fetch withdrawal data for all users
   const { data: withdrawalRequests = [] } = useQuery({
     queryKey: ["/api/admin/withdrawals"],
-    queryFn: () => apiRequest('GET', '/api/admin/withdrawals'),
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/admin/withdrawals');
+      return await response.json();
+    },
     enabled: isAuthenticated && user?.role === 'admin',
   });
 

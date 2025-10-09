@@ -232,7 +232,7 @@ export default function FreeUsersTable({ users, walletData = {}, withdrawalData 
               </TableHeader>
               <TableBody>
                 {filteredUsers.map((user) => {
-                  const wallet = walletData[user.id];
+                  const wallet = walletData[user.userId];
                   return (
                     <TableRow key={user.id} className="hover:bg-gray-50">
                       <TableCell className="font-medium">

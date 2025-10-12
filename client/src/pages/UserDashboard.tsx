@@ -179,91 +179,123 @@ function UserKYCSection() {
         {/* Individual Documents */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* PAN Card */}
-          <div className="p-4 border rounded-lg">
+          <div className="p-4 border rounded-lg min-h-[120px] flex flex-col">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium text-gray-800">PAN Card</h4>
               {getStatusBadge(kycInfo?.documents?.panCard?.status || 'pending')}
             </div>
-            {(kycInfo?.documents?.panCard?.url || kycInfo?.documents?.panCard?.documentData) && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleViewDocument(kycInfo.documents.panCard, 'PAN Card')}
-                className="text-blue-600 border-blue-600 hover:bg-blue-50"
-              >
-                <Eye className="w-4 h-4 mr-1" />
-                View Document
-              </Button>
-            )}
-            {kycInfo?.documents?.panCard?.reason && (
-              <p className="text-xs text-red-600 mt-2">{kycInfo.documents.panCard.reason}</p>
-            )}
+            <div className="mt-auto">
+              {(kycInfo?.documents?.panCard?.url || kycInfo?.documents?.panCard?.documentData) && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleViewDocument(kycInfo.documents.panCard, 'PAN Card')}
+                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                >
+                  <Eye className="w-4 h-4 mr-1" />
+                  View Document
+                </Button>
+              )}
+              {kycInfo?.documents?.panCard?.reason && (
+                <p className="text-xs text-red-600 mt-2">{kycInfo.documents.panCard.reason}</p>
+              )}
+            </div>
           </div>
 
-          {/* Aadhaar Card */}
-          <div className="p-4 border rounded-lg">
+          {/* Aadhaar Front */}
+          <div className="p-4 border rounded-lg min-h-[120px] flex flex-col">
             <div className="flex items-center justify-between mb-2">
-              <h4 className="font-medium text-gray-800">Aadhaar Card</h4>
-              {getStatusBadge(kycInfo?.documents?.aadhaarCard?.status || 'pending')}
+              <h4 className="font-medium text-gray-800">Aadhaar Front</h4>
+              {getStatusBadge(kycInfo?.documents?.aadhaarFront?.status || 'pending')}
             </div>
-            {(kycInfo?.documents?.aadhaarCard?.url || kycInfo?.documents?.aadhaarCard?.documentData) && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleViewDocument(kycInfo.documents.aadhaarCard, 'Aadhaar Card')}
-                className="text-blue-600 border-blue-600 hover:bg-blue-50"
-              >
-                <Eye className="w-4 h-4 mr-1" />
-                View Document
-              </Button>
-            )}
-            {kycInfo?.documents?.aadhaarCard?.reason && (
-              <p className="text-xs text-red-600 mt-2">{kycInfo.documents.aadhaarCard.reason}</p>
-            )}
+            <div className="mt-auto">
+              {(kycInfo?.documents?.aadhaarFront?.url || kycInfo?.documents?.aadhaarFront?.documentData) && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleViewDocument(kycInfo.documents.aadhaarFront, 'Aadhaar Front')}
+                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                >
+                  <Eye className="w-4 h-4 mr-1" />
+                  View Document
+                </Button>
+              )}
+              {kycInfo?.documents?.aadhaarFront?.reason && (
+                <p className="text-xs text-red-600 mt-2">{kycInfo.documents.aadhaarFront.reason}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Aadhaar Back */}
+          <div className="p-4 border rounded-lg min-h-[120px] flex flex-col">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium text-gray-800">Aadhaar Back</h4>
+              {getStatusBadge(kycInfo?.documents?.aadhaarBack?.status || 'pending')}
+            </div>
+            <div className="mt-auto">
+              {(kycInfo?.documents?.aadhaarBack?.url || kycInfo?.documents?.aadhaarBack?.documentData) && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleViewDocument(kycInfo.documents.aadhaarBack, 'Aadhaar Back')}
+                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                >
+                  <Eye className="w-4 h-4 mr-1" />
+                  View Document
+                </Button>
+              )}
+              {kycInfo?.documents?.aadhaarBack?.reason && (
+                <p className="text-xs text-red-600 mt-2">{kycInfo.documents.aadhaarBack.reason}</p>
+              )}
+            </div>
           </div>
 
           {/* Bank Statement */}
-          <div className="p-4 border rounded-lg">
+          <div className="p-4 border rounded-lg min-h-[120px] flex flex-col">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium text-gray-800">Bank Statement</h4>
               {getStatusBadge(kycInfo?.documents?.bankStatement?.status || 'pending')}
             </div>
-            {(kycInfo?.documents?.bankStatement?.url || kycInfo?.documents?.bankStatement?.documentData) && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleViewDocument(kycInfo.documents.bankStatement, 'Bank Statement')}
-                className="text-blue-600 border-blue-600 hover:bg-blue-50"
-              >
-                <Eye className="w-4 h-4 mr-1" />
-                View Document
-              </Button>
-            )}
-            {kycInfo?.documents?.bankStatement?.reason && (
-              <p className="text-xs text-red-600 mt-2">{kycInfo.documents.bankStatement.reason}</p>
-            )}
+            <div className="mt-auto">
+              {(kycInfo?.documents?.bankStatement?.url || kycInfo?.documents?.bankStatement?.documentData) && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleViewDocument(kycInfo.documents.bankStatement, 'Bank Statement')}
+                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                >
+                  <Eye className="w-4 h-4 mr-1" />
+                  View Document
+                </Button>
+              )}
+              {kycInfo?.documents?.bankStatement?.reason && (
+                <p className="text-xs text-red-600 mt-2">{kycInfo.documents.bankStatement.reason}</p>
+              )}
+            </div>
           </div>
 
           {/* Photo */}
-          <div className="p-4 border rounded-lg">
+          <div className="p-4 border rounded-lg min-h-[120px] flex flex-col">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium text-gray-800">Profile Photo</h4>
               {getStatusBadge(kycInfo?.documents?.photo?.status || 'pending')}
             </div>
-            {(kycInfo?.documents?.photo?.url || kycInfo?.documents?.photo?.documentData) && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleViewDocument(kycInfo.documents.photo, 'Profile Photo')}
-                className="text-blue-600 border-blue-600 hover:bg-blue-50"
-              >
-                <Eye className="w-4 h-4 mr-1" />
-                View Photo
-              </Button>
-            )}
-            {kycInfo?.documents?.photo?.reason && (
-              <p className="text-xs text-red-600 mt-2">{kycInfo.documents.photo.reason}</p>
-            )}
+            <div className="mt-auto">
+              {(kycInfo?.documents?.photo?.url || kycInfo?.documents?.photo?.documentData) && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleViewDocument(kycInfo.documents.photo, 'Profile Photo')}
+                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                >
+                  <Eye className="w-4 h-4 mr-1" />
+                  View Document
+                </Button>
+              )}
+              {kycInfo?.documents?.photo?.reason && (
+                <p className="text-xs text-red-600 mt-2">{kycInfo.documents.photo.reason}</p>
+              )}
+            </div>
           </div>
         </div>
 

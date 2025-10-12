@@ -339,7 +339,7 @@ export const fundRequests = pgTable("fund_requests", {
 export const kycDocuments = pgTable("kyc_documents", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
-  documentType: varchar("document_type").notNull(), // 'pan', 'aadhaar', 'bank_statement', 'photo'
+  documentType: varchar("document_type").notNull(), // 'pan_card', 'aadhaar_front', 'aadhaar_back', 'bank_details', 'photo'
   documentUrl: varchar("document_url").notNull(), // Legacy URL field - required for now due to DB constraint
   documentData: text("document_data"), // Base64 encoded document data
   documentContentType: varchar("document_content_type"), // MIME type like 'image/jpeg', 'application/pdf'
@@ -647,7 +647,7 @@ export const createKYCSchema = createInsertSchema(kycDocuments).pick({
   documentUrl: true,
   documentNumber: true,
 }).extend({
-  documentType: z.enum(['pan', 'aadhaar', 'bank_statement', 'photo']),
+  documentType: z.enum(['pan_card', 'aadhaar_front', 'aadhaar_back', 'bank_details', 'photo']),
   documentUrl: z.string().url("Valid document URL is required"),
   documentNumber: z.string().optional(),
 });

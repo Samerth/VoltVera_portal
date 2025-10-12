@@ -207,7 +207,7 @@ KYC & Document Management
 CREATE TABLE kyc_documents (
   id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id VARCHAR NOT NULL,
-  document_type VARCHAR NOT NULL,           -- 'pan', 'aadhaar', 'bank_statement', 'photo'
+  document_type VARCHAR NOT NULL,           -- 'pan_card', 'aadhaar', 'bank_details', 'photo'
   document_url VARCHAR,                     -- Legacy URL field (optional)
   document_data TEXT,                       -- Base64 encoded document (NEW: Database storage)
   document_content_type VARCHAR,            -- MIME type (image/jpeg, application/pdf)

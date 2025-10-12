@@ -1627,7 +1627,7 @@ export class DatabaseStorage implements IStorage {
       if (pendingRecruit.panCardUrl) {
         await db.insert(kycDocuments).values({
           userId: newUser.id,
-          documentType: 'pan',
+          documentType: 'pan_card',
           documentUrl: pendingRecruit.panCardUrl,
           documentNumber: pendingRecruit.panNumber,
           status: 'pending'
@@ -1660,7 +1660,7 @@ export class DatabaseStorage implements IStorage {
       if (pendingRecruit.bankCancelledChequeUrl) {
         await db.insert(kycDocuments).values({
           userId: newUser.id,
-          documentType: 'bank_cancelled_cheque',
+          documentType: 'bank_details',
           documentUrl: pendingRecruit.bankCancelledChequeUrl,
           status: 'pending'
         });
@@ -1720,11 +1720,11 @@ export class DatabaseStorage implements IStorage {
         console.log('🔍 No KYC decision provided, using default pending status');
       }
       
-      // Create single KYC profile record
+      // Create single KYC profile record (status tracker)
       await db.insert(kycDocuments).values({
         userId: newUser.id,
         documentType: 'kyc_profile',
-        documentUrl: pendingRecruit.profileImageUrl || '',
+        documentUrl: '', // Always empty - this is just a status tracker, not a viewable document
         documentNumber: '',
         status: initialStatus,
         rejectionReason: initialStatus === 'rejected' ? initialReason : null,
@@ -1733,7 +1733,6 @@ export class DatabaseStorage implements IStorage {
         createdAt: new Date(),
         updatedAt: new Date()
       });
-      
       console.log(`✅ Created KYC profile record for user ${newUser.email} with status: ${initialStatus}`);
       console.log('🔍 KYC record details:', {
         userId: newUser.id,
@@ -3208,8 +3207,8 @@ export class DatabaseStorage implements IStorage {
       updateData.documentContentType = data.documentContentType;
       updateData.documentFilename = data.documentFilename;
       updateData.documentSize = data.documentSize;
-      // Clear URL when using binary data
-      updateData.documentUrl = null;
+      // Keep placeholder URL when using binary data (required by DB constraint)
+      updateData.documentUrl = `data:${data.documentContentType};base64,placeholder`;
     }
 
     // Handle URL data update (legacy)
@@ -3426,7 +3425,7 @@ export class DatabaseStorage implements IStorage {
           or(
             eq(kycDocuments.documentType, 'aadhaar_front'),
             eq(kycDocuments.documentType, 'aadhaar_back'),
-            eq(kycDocuments.documentType, 'bank_cancelled_cheque'),
+            eq(kycDocuments.documentType, 'bank_details'),
             eq(kycDocuments.documentType, 'kyc_profile')
           )
         );
@@ -3437,10 +3436,12 @@ export class DatabaseStorage implements IStorage {
         let newType = doc.documentType;
         
         // Map to standard types
-        if (doc.documentType === 'aadhaar_front' || doc.documentType === 'aadhaar_back') {
-          newType = 'aadhaar';
-        } else if (doc.documentType === 'bank_cancelled_cheque') {
-          newType = 'bank_statement';
+        if (doc.documentType === 'aadhaar_front') {
+          newType = 'aadhaar_front';
+        } else if (doc.documentType === 'aadhaar_back') {
+          newType = 'aadhaar_back';
+        } else if (doc.documentType === 'bank_details') {
+          newType = 'bank_details';
         } else if (doc.documentType === 'kyc_profile') {
           newType = 'photo';
         }
@@ -3527,27 +3528,34 @@ export class DatabaseStorage implements IStorage {
             createdAt: doc.createdAt,
             updatedAt: doc.updatedAt,
             documents: {
-              panCard: { url: doc.documentType === 'pan' ? doc.documentUrl : '', number: doc.panNumber || '', status: doc.documentType === 'pan' ? doc.status : 'pending' },
-              aadhaarCard: { url: doc.documentType === 'aadhaar' ? doc.documentUrl : '', number: doc.aadhaarNumber || '', status: doc.documentType === 'aadhaar' ? doc.status : 'pending' },
-              bankStatement: { url: doc.documentType === 'bank_statement' ? doc.documentUrl : '', status: doc.documentType === 'bank_statement' ? doc.status : 'pending' },
+              panCard: { url: doc.documentType === 'pan_card' ? doc.documentUrl : '', number: doc.panNumber || '', status: doc.documentType === 'pan_card' ? doc.status : 'pending' },
+              aadhaarFront: { url: doc.documentType === 'aadhaar_front' ? doc.documentUrl : '', number: doc.aadhaarNumber || '', status: doc.documentType === 'aadhaar_front' ? doc.status : 'pending' },
+              aadhaarBack: { url: doc.documentType === 'aadhaar_back' ? doc.documentUrl : '', number: doc.aadhaarNumber || '', status: doc.documentType === 'aadhaar_back' ? doc.status : 'pending' },
+              bankStatement: { url: doc.documentType === 'bank_details' ? doc.documentUrl : '', status: doc.documentType === 'bank_details' ? doc.status : 'pending' },
               photo: { url: doc.documentType === 'photo' ? doc.documentUrl : (doc.profileImageUrl || ''), status: doc.documentType === 'photo' ? doc.status : 'pending' }
             }
           };
         } else {
           // Update documents with the latest status for each document type
-          if (doc.documentType === 'pan') {
+          if (doc.documentType === 'pan_card') {
             userKYCData[userId].documents.panCard = { 
               url: doc.documentUrl, 
               number: doc.documentNumber || doc.panNumber || '', 
               status: doc.status 
             };
-          } else if (doc.documentType === 'aadhaar') {
-            userKYCData[userId].documents.aadhaarCard = { 
+          } else if (doc.documentType === 'aadhaar_front') {
+            userKYCData[userId].documents.aadhaarFront = { 
               url: doc.documentUrl, 
               number: doc.documentNumber || doc.aadhaarNumber || '', 
               status: doc.status 
             };
-          } else if (doc.documentType === 'bank_statement') {
+          } else if (doc.documentType === 'aadhaar_back') {
+            userKYCData[userId].documents.aadhaarBack = { 
+              url: doc.documentUrl, 
+              number: doc.documentNumber || doc.aadhaarNumber || '', 
+              status: doc.status 
+            };
+          } else if (doc.documentType === 'bank_details') {
             userKYCData[userId].documents.bankStatement = { 
               url: doc.documentUrl, 
               status: doc.status 
@@ -3682,7 +3690,7 @@ export class DatabaseStorage implements IStorage {
       if (userData.panCardUrl) {
         kycRecords.push({
           userId: userId,
-          documentType: 'pan',
+          documentType: 'pan_card',
           documentUrl: userData.panCardUrl,
           documentNumber: userData.panNumber || '',
           status: 'pending' as const,
@@ -3695,11 +3703,26 @@ export class DatabaseStorage implements IStorage {
       }
       
       // Aadhaar Card
-      if (userData.aadhaarCardUrl) {
+      if (userData.aadhaarFrontUrl) {
         kycRecords.push({
           userId: userId,
-          documentType: 'aadhaar',
-          documentUrl: userData.aadhaarCardUrl,
+          documentType: 'aadhaar_front',
+          documentUrl: userData.aadhaarFrontUrl,
+          documentNumber: userData.aadhaarNumber || '',
+          status: 'pending' as const,
+          rejectionReason: null,
+          reviewedBy: null,
+          reviewedAt: null,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+      }
+      
+      if (userData.aadhaarBackUrl) {
+        kycRecords.push({
+          userId: userId,
+          documentType: 'aadhaar_back',
+          documentUrl: userData.aadhaarBackUrl,
           documentNumber: userData.aadhaarNumber || '',
           status: 'pending' as const,
           rejectionReason: null,
@@ -3714,7 +3737,7 @@ export class DatabaseStorage implements IStorage {
       if (userData.bankStatementUrl) {
         kycRecords.push({
           userId: userId,
-          documentType: 'bankStatement',
+          documentType: 'bank_details',
           documentUrl: userData.bankStatementUrl,
           documentNumber: '',
           status: 'pending' as const,
@@ -3767,9 +3790,10 @@ export class DatabaseStorage implements IStorage {
       const kycProfile = documents.find(doc => doc.documentType === 'kyc_profile');
       
       // Get individual document statuses
-      const panCard = documents.find(doc => doc.documentType === 'pan');
-      const aadhaarCard = documents.find(doc => doc.documentType === 'aadhaar');
-      const bankStatement = documents.find(doc => doc.documentType === 'bank_statement');
+      const panCard = documents.find(doc => doc.documentType === 'pan_card');
+      const aadhaarFront = documents.find(doc => doc.documentType === 'aadhaar_front');
+      const aadhaarBack = documents.find(doc => doc.documentType === 'aadhaar_back');
+      const bankStatement = documents.find(doc => doc.documentType === 'bank_details');
       const photo = documents.find(doc => doc.documentType === 'photo');
       
       return {
@@ -3783,12 +3807,19 @@ export class DatabaseStorage implements IStorage {
             documentType: panCard?.documentContentType || '',
             reason: panCard?.rejectionReason || ''
           },
-          aadhaarCard: {
-            status: aadhaarCard?.status || 'pending',
-            url: aadhaarCard?.documentUrl || '',
-            documentData: aadhaarCard?.documentData || '', // ✅ Added documentData
-            documentType: aadhaarCard?.documentContentType || '',
-            reason: aadhaarCard?.rejectionReason || ''
+          aadhaarFront: {
+            status: aadhaarFront?.status || 'pending',
+            url: aadhaarFront?.documentUrl || '',
+            documentData: aadhaarFront?.documentData || '', // ✅ Added documentData
+            documentType: aadhaarFront?.documentContentType || '',
+            reason: aadhaarFront?.rejectionReason || ''
+          },
+          aadhaarBack: {
+            status: aadhaarBack?.status || 'pending',
+            url: aadhaarBack?.documentUrl || '',
+            documentData: aadhaarBack?.documentData || '', // ✅ Added documentData
+            documentType: aadhaarBack?.documentContentType || '',
+            reason: aadhaarBack?.rejectionReason || ''
           },
           bankStatement: {
             status: bankStatement?.status || 'pending',

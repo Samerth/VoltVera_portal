@@ -3289,7 +3289,7 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
         
         try {
           const panDoc = await storage.createKYCDocumentBinary(tempUserId, {
-            documentType: 'panCard',
+            documentType: 'pan_card',
             documentData: base64Data,
             documentContentType: contentType,
             documentFilename: 'pan_card.jpg',
@@ -3297,7 +3297,7 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
             documentNumber: data.panNumber,
           });
           console.log('  ✅ PAN Card document created with ID:', panDoc.id);
-          documentUploads.push({ type: 'panCard', id: panDoc.id });
+          documentUploads.push({ type: 'pan_card', id: panDoc.id });
         } catch (error) {
           console.error('  ❌ Error creating PAN Card document:', error);
         }
@@ -3361,14 +3361,14 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
         
         try {
           const bankDoc = await storage.createKYCDocumentBinary(tempUserId, {
-            documentType: 'bank_cancelled_cheque',
+            documentType: 'bank_details',
             documentData: base64Data,
             documentContentType: contentType,
             documentFilename: 'bank_cancelled_cheque.jpg',
             documentSize: Math.round((base64Data.length * 3) / 4),
           });
           console.log('  ✅ Bank/Cancelled Cheque document created with ID:', bankDoc.id);
-          documentUploads.push({ type: 'bank_cancelled_cheque', id: bankDoc.id });
+          documentUploads.push({ type: 'bank_details', id: bankDoc.id });
         } catch (error) {
           console.error('  ❌ Error creating Bank/Cancelled Cheque document:', error);
         }

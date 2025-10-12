@@ -42,7 +42,8 @@ interface PendingRecruit {
   bankName?: string;
   bankAccountHolderName?: string;
   panCardUrl?: string;
-  aadhaarCardUrl?: string;
+  aadhaarFrontUrl?: string;
+  aadhaarBackUrl?: string;
   bankStatementUrl?: string;
   profileImageUrl?: string;
 }
@@ -475,13 +476,13 @@ export function AdminPendingRecruits() {
                         <Label className="text-sm font-medium text-gray-500">PAN Number</Label>
                         <p className="font-medium">{detailsRecruit.panNumber || 'Not provided'}</p>
                         {/* Display PAN Card document if available */}
-                        {documents.find(doc => doc.documentType === 'panCard') && (
+                        {documents.find(doc => doc.documentType === 'pan_card') && (
                           <div className="mt-2">
                             <Button 
                               variant="outline" 
                               size="sm" 
                                                              onClick={() => {
-                                 const doc = documents.find(doc => doc.documentType === 'panCard');
+                                 const doc = documents.find(doc => doc.documentType === 'pan_card');
                                  if (doc) {
                                    // Create a blob URL instead of data URL for better compatibility
                                    const byteCharacters = atob(doc.documentData);
@@ -506,14 +507,14 @@ export function AdminPendingRecruits() {
                       <div>
                         <Label className="text-sm font-medium text-gray-500">Aadhaar Number</Label>
                         <p className="font-medium">{detailsRecruit.aadhaarNumber || 'Not provided'}</p>
-                        {/* Display Aadhaar Card document if available */}
-                        {documents.find(doc => doc.documentType === 'aadhaarCard') && (
+                        {/* Display Aadhaar Front document if available */}
+                        {documents.find(doc => doc.documentType === 'aadhaar_front') && (
                           <div className="mt-2">
                             <Button 
                               variant="outline" 
                               size="sm" 
                               onClick={() => {
-                                const doc = documents.find(doc => doc.documentType === 'aadhaarCard');
+                                const doc = documents.find(doc => doc.documentType === 'aadhaar_front');
                                 if (doc) {
                                   // Create a blob URL instead of data URL for better compatibility
                                   const byteCharacters = atob(doc.documentData);
@@ -530,7 +531,35 @@ export function AdminPendingRecruits() {
                               className="text-orange-600 hover:text-orange-700"
                             >
                               <FileText className="h-4 w-4 mr-1" />
-                              View Aadhaar Card
+                              View Aadhaar Front
+                            </Button>
+                          </div>
+                        )}
+                        {/* Display Aadhaar Back document if available */}
+                        {documents.find(doc => doc.documentType === 'aadhaar_back') && (
+                          <div className="mt-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => {
+                                const doc = documents.find(doc => doc.documentType === 'aadhaar_back');
+                                if (doc) {
+                                  // Create a blob URL instead of data URL for better compatibility
+                                  const byteCharacters = atob(doc.documentData);
+                                  const byteNumbers = new Array(byteCharacters.length);
+                                  for (let i = 0; i < byteCharacters.length; i++) {
+                                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                                  }
+                                  const byteArray = new Uint8Array(byteNumbers);
+                                  const blob = new Blob([byteArray], { type: doc.documentContentType });
+                                  const blobUrl = URL.createObjectURL(blob);
+                                  window.open(blobUrl, '_blank');
+                                }
+                              }}
+                              className="text-orange-600 hover:text-orange-700"
+                            >
+                              <FileText className="h-4 w-4 mr-1" />
+                              View Aadhaar Back
                             </Button>
                           </div>
                         )}
@@ -636,7 +665,7 @@ export function AdminPendingRecruits() {
                       <p className="font-medium">{detailsRecruit.bankIFSC || 'Not provided'}</p>
                     </div>
                     {/* Display Bank Statement document if available */}
-                    {documents.find(doc => doc.documentType === 'bankStatement') && (
+                    {documents.find(doc => doc.documentType === 'bank_details') && (
                       <div className="md:col-span-3">
                         <Label className="text-sm font-medium text-gray-500">Bank Statement</Label>
                         <div className="mt-2">
@@ -644,7 +673,7 @@ export function AdminPendingRecruits() {
                             variant="outline" 
                             size="sm" 
                                                          onClick={() => {
-                               const doc = documents.find(doc => doc.documentType === 'bankStatement');
+                               const doc = documents.find(doc => doc.documentType === 'bank_details');
                                if (doc) {
                                  // Create a blob URL instead of data URL for better compatibility
                                  const byteCharacters = atob(doc.documentData);

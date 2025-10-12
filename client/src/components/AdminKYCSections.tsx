@@ -20,7 +20,8 @@ interface UserKYCData {
   updatedAt: string;
   documents: {
     panCard: { url: string; number: string; status: string };
-    aadhaarCard: { url: string; number: string; status: string };
+    aadhaarFront: { url: string; number: string; status: string };
+    aadhaarBack: { url: string; number: string; status: string };
     bankStatement: { url: string; status: string };
     photo: { url: string; status: string };
   };
@@ -41,6 +42,25 @@ interface KYCDocument {
   createdAt: string;
   updatedAt: string;
 }
+
+// Helper function to filter viewable documents
+const filterViewableDocuments = (userDocs: any[]) => {
+  return userDocs.filter((doc: any) => {
+    // Skip kyc_profile documents as they're just status trackers
+    if (doc.documentType === 'kyc_profile') {
+      console.log(`⚠️ Skipping kyc_profile document - not viewable`);
+      return false;
+    }
+    
+    // Skip documents with no data or URL
+    if (!doc.documentData && (!doc.documentUrl || doc.documentUrl.trim() === '')) {
+      console.log(`⚠️ Skipping ${doc.documentType} document - no data or URL`);
+      return false;
+    }
+    
+    return true;
+  });
+};
 
 
 
@@ -157,7 +177,7 @@ export const PendingKYCSection: React.FC = () => {
           }
         } catch (docError) {
           console.error(`❌ Error updating document ${doc.id}:`, docError);
-          errors.push(`${doc.documentType}: ${docError.message}`);
+          errors.push(`${doc.documentType}: ${docError instanceof Error ? docError.message : 'Unknown error'}`);
         }
       }
       
@@ -176,7 +196,7 @@ export const PendingKYCSection: React.FC = () => {
       }
     } catch (error) {
       console.error('Error updating KYC status:', error);
-      alert(`Error updating KYC status: ${error.message}`);
+      alert(`Error updating KYC status: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -235,11 +255,18 @@ export const PendingKYCSection: React.FC = () => {
                         <span className="text-xs text-gray-500">({userData.documents.panCard.url && userData.documents.panCard.url.includes('data:') ? 'Embedded' : 'URL'})</span>
                       </div>
                     )}
-                    {userData.documents.aadhaarCard.url && (
+                    {userData.documents.aadhaarFront.url && (
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">Aadhaar:</span>
-                        <span className="text-gray-600">{userData.documents.aadhaarCard.number}</span>
-                        <span className="text-xs text-gray-500">({userData.documents.aadhaarCard.url && userData.documents.aadhaarCard.url.includes('data:') ? 'Embedded' : 'URL'})</span>
+                        <span className="font-medium">Aadhaar Front:</span>
+                        <span className="text-gray-600">{userData.documents.aadhaarFront.number}</span>
+                        <span className="text-xs text-gray-500">({userData.documents.aadhaarFront.url && userData.documents.aadhaarFront.url.includes('data:') ? 'Embedded' : 'URL'})</span>
+                      </div>
+                    )}
+                    {userData.documents.aadhaarBack.url && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">Aadhaar Back:</span>
+                        <span className="text-gray-600">{userData.documents.aadhaarBack.number}</span>
+                        <span className="text-xs text-gray-500">({userData.documents.aadhaarBack.url && userData.documents.aadhaarBack.url.includes('data:') ? 'Embedded' : 'URL'})</span>
                       </div>
                     )}
                     {userData.documents.bankStatement.url && (
@@ -295,12 +322,21 @@ export const PendingKYCSection: React.FC = () => {
                             return;
                           }
                           
+                          // Filter out kyc_profile documents and empty documents
+                          const viewableDocs = filterViewableDocuments(userDocs);
+                          console.log(`📄 Found ${viewableDocs.length} viewable documents out of ${userDocs.length} total`);
+                          
+                          if (viewableDocs.length === 0) {
+                            alert('No viewable documents found for this user.');
+                            return;
+                          }
+                          
                           // Open each document in a new tab
                           let documentsOpened = 0;
                           let documentsWithData = 0;
                           let documentsWithUrl = 0;
                           
-                          userDocs.forEach(async (doc: any, index: number) => {
+                          viewableDocs.forEach(async (doc: any, index: number) => {
                             console.log(`📄 Processing document ${doc.documentType}:`, {
                               hasDocumentData: !!doc.documentData,
                               hasDocumentUrl: !!doc.documentUrl,
@@ -417,11 +453,13 @@ export const PendingKYCSection: React.FC = () => {
                               alert('⚠️ No document data or URLs available for viewing. These KYC records may be incomplete.');
                             } else if (documentsWithData > 0 || documentsWithUrl > 0) {
                               const totalViewable = documentsWithData + documentsWithUrl;
-                              if (totalViewable < userDocs.length) {
-                                alert(`📄 Opened ${totalViewable} of ${userDocs.length} documents. Some documents may not be viewable.`);
+                              if (totalViewable < viewableDocs.length) {
+                                alert(`📄 Opened ${totalViewable} of ${viewableDocs.length} documents. Some documents may not be viewable.`);
+                              } else {
+                                alert(`📄 Successfully opened all viewable documents: ${totalViewable}`);
                               }
                             }
-                          }, userDocs.length * 100 + 500);
+                          }, viewableDocs.length * 100 + 500);
                           
                           // Update the documents state for future use
                           setDocuments(prev => ({ ...prev, [userData.userId]: userDocs }));
@@ -649,11 +687,18 @@ export const ApprovedKYCSection: React.FC = () => {
                         <span className="text-xs text-gray-500">({userData.documents.panCard.url && userData.documents.panCard.url.includes('data:') ? 'Embedded' : 'URL'})</span>
                       </div>
                     )}
-                    {userData.documents.aadhaarCard.url && (
+                    {userData.documents.aadhaarFront.url && (
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">Aadhaar:</span>
-                        <span className="text-gray-600">{userData.documents.aadhaarCard.number}</span>
-                        <span className="text-xs text-gray-500">({userData.documents.aadhaarCard.url && userData.documents.aadhaarCard.url.includes('data:') ? 'Embedded' : 'URL'})</span>
+                        <span className="font-medium">Aadhaar Front:</span>
+                        <span className="text-gray-600">{userData.documents.aadhaarFront.number}</span>
+                        <span className="text-xs text-gray-500">({userData.documents.aadhaarFront.url && userData.documents.aadhaarFront.url.includes('data:') ? 'Embedded' : 'URL'})</span>
+                      </div>
+                    )}
+                    {userData.documents.aadhaarBack.url && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">Aadhaar Back:</span>
+                        <span className="text-gray-600">{userData.documents.aadhaarBack.number}</span>
+                        <span className="text-xs text-gray-500">({userData.documents.aadhaarBack.url && userData.documents.aadhaarBack.url.includes('data:') ? 'Embedded' : 'URL'})</span>
                       </div>
                     )}
                     {userData.documents.bankStatement.url && (
@@ -713,12 +758,21 @@ export const ApprovedKYCSection: React.FC = () => {
                             return;
                           }
                           
+                          // Filter out kyc_profile documents and empty documents
+                          const viewableDocs = filterViewableDocuments(userDocs);
+                          console.log(`📄 Found ${viewableDocs.length} viewable documents out of ${userDocs.length} total`);
+                          
+                          if (viewableDocs.length === 0) {
+                            alert('No viewable documents found for this user.');
+                            return;
+                          }
+                          
                           // Open each document in a new tab
                           let documentsOpened = 0;
                           let documentsWithData = 0;
                           let documentsWithUrl = 0;
                           
-                          userDocs.forEach(async (doc: any, index: number) => {
+                          viewableDocs.forEach(async (doc: any, index: number) => {
                             console.log(`📄 Processing document ${doc.documentType}:`, {
                               hasDocumentData: !!doc.documentData,
                               hasDocumentUrl: !!doc.documentUrl,
@@ -835,11 +889,13 @@ export const ApprovedKYCSection: React.FC = () => {
                               alert('⚠️ No document data or URLs available for viewing. These KYC records may be incomplete.');
                             } else if (documentsWithData > 0 || documentsWithUrl > 0) {
                               const totalViewable = documentsWithData + documentsWithUrl;
-                              if (totalViewable < userDocs.length) {
-                                alert(`📄 Opened ${totalViewable} of ${userDocs.length} documents. Some documents may not be viewable.`);
+                              if (totalViewable < viewableDocs.length) {
+                                alert(`📄 Opened ${totalViewable} of ${viewableDocs.length} documents. Some documents may not be viewable.`);
+                              } else {
+                                alert(`📄 Successfully opened all ${totalViewable} viewable documents.`);
                               }
                             }
-                          }, userDocs.length * 100 + 500);
+                          }, viewableDocs.length * 100 + 500);
                           
                           // Update the documents state for future use
                           setDocuments(prev => ({ ...prev, [userData.userId]: userDocs }));
@@ -1028,11 +1084,18 @@ export const RejectedKYCSection: React.FC = () => {
                         <span className="text-xs text-gray-500">({userData.documents.panCard.url && userData.documents.panCard.url.includes('data:') ? 'Embedded' : 'URL'})</span>
                       </div>
                     )}
-                    {userData.documents.aadhaarCard.url && (
+                    {userData.documents.aadhaarFront.url && (
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">Aadhaar:</span>
-                        <span className="text-gray-600">{userData.documents.aadhaarCard.number}</span>
-                        <span className="text-xs text-gray-500">({userData.documents.aadhaarCard.url && userData.documents.aadhaarCard.url.includes('data:') ? 'Embedded' : 'URL'})</span>
+                        <span className="font-medium">Aadhaar Front:</span>
+                        <span className="text-gray-600">{userData.documents.aadhaarFront.number}</span>
+                        <span className="text-xs text-gray-500">({userData.documents.aadhaarFront.url && userData.documents.aadhaarFront.url.includes('data:') ? 'Embedded' : 'URL'})</span>
+                      </div>
+                    )}
+                    {userData.documents.aadhaarBack.url && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">Aadhaar Back:</span>
+                        <span className="text-gray-600">{userData.documents.aadhaarBack.number}</span>
+                        <span className="text-xs text-gray-500">({userData.documents.aadhaarBack.url && userData.documents.aadhaarBack.url.includes('data:') ? 'Embedded' : 'URL'})</span>
                       </div>
                     )}
                     {userData.documents.bankStatement.url && (
@@ -1095,12 +1158,21 @@ export const RejectedKYCSection: React.FC = () => {
                             return;
                           }
                           
+                          // Filter out kyc_profile documents and empty documents
+                          const viewableDocs = filterViewableDocuments(userDocs);
+                          console.log(`📄 Found ${viewableDocs.length} viewable documents out of ${userDocs.length} total`);
+                          
+                          if (viewableDocs.length === 0) {
+                            alert('No viewable documents found for this user.');
+                            return;
+                          }
+                          
                           // Open each document in a new tab
                           let documentsOpened = 0;
                           let documentsWithData = 0;
                           let documentsWithUrl = 0;
                           
-                          userDocs.forEach(async (doc: any, index: number) => {
+                          viewableDocs.forEach(async (doc: any, index: number) => {
                             console.log(`📄 Processing document ${doc.documentType}:`, {
                               hasDocumentData: !!doc.documentData,
                               hasDocumentUrl: !!doc.documentUrl,
@@ -1217,11 +1289,13 @@ export const RejectedKYCSection: React.FC = () => {
                               alert('⚠️ No document data or URLs available for viewing. These KYC records may be incomplete.');
                             } else if (documentsWithData > 0 || documentsWithUrl > 0) {
                               const totalViewable = documentsWithData + documentsWithUrl;
-                              if (totalViewable < userDocs.length) {
-                                alert(`📄 Opened ${totalViewable} of ${userDocs.length} documents. Some documents may not be viewable.`);
+                              if (totalViewable < viewableDocs.length) {
+                                alert(`📄 Opened ${totalViewable} of ${viewableDocs.length} documents. Some documents may not be viewable.`);
+                              } else {
+                                alert(`📄 Successfully opened all viewable documents: ${totalViewable}`);
                               }
                             }
-                          }, userDocs.length * 100 + 500);
+                          }, viewableDocs.length * 100 + 500);
                           
                           // Update the documents state for future use
                           setDocuments(prev => ({ ...prev, [userData.userId]: userDocs }));

@@ -1618,6 +1618,11 @@ export class DatabaseStorage implements IStorage {
     // Create wallet balance for the new user
     await this.createWalletBalance(userId);
 
+    // ===== LEGACY URL DOCUMENT TRANSFER (COMMENTED OUT TO PREVENT DUPLICATES) =====
+    // This code was creating duplicate documents during approval process
+    // Documents are now stored as binary data during registration and transferred via the binary transfer process below
+    
+    /*
     // Transfer KYC documents if available from comprehensive registration
     if (pendingRecruit.panCardUrl || pendingRecruit.aadhaarFrontUrl || 
         pendingRecruit.bankCancelledChequeUrl || pendingRecruit.profileImageUrl) {
@@ -1678,6 +1683,7 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`KYC documents transferred for user ${newUser.email}`);
     }
+    */
 
     // Transfer KYC documents from temp user ID to real user ID (for binary documents)
     try {
@@ -3300,7 +3306,6 @@ export class DatabaseStorage implements IStorage {
     
     return updatedDoc!;
   }
-
 
   // Fix existing KYC data where users have mixed document statuses
   async fixExistingKYCStatuses(): Promise<void> {

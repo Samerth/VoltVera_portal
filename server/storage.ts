@@ -51,7 +51,7 @@ import {
   type CreateNews,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, ilike, or, desc, and, sql, gte, lte } from "drizzle-orm";
+import { eq, ilike, or, desc, and, sql, gte, lte, asc } from "drizzle-orm";
 
 import { nanoid } from "nanoid";
 
@@ -117,10 +117,15 @@ export interface IStorage {
     activeMembers: number;
   }>;
   
-  // Binary MLM Tree operations
-  getBinaryTreeData(userId: string): Promise<any>;
-  getDirectRecruits(userId: string): Promise<User[]>;
+  // Binary MLM Tree operations (LEGACY)
+  getBinaryTreeData_legacy(userId: string): Promise<any>;
+  getDirectRecruits_legacy(userId: string): Promise<User[]>;
   placeUserInBinaryTree(userId: string, sponsorId: string): Promise<void>;
+  
+  // Multi-Child MLM Tree operations (NEW)
+  getMultiChildTreeData(userId: string): Promise<any>;
+  getMultiChildDirectRecruits(userId: string): Promise<User[]>;
+  placeUserInMultiChildTree(userId: string, sponsorId: string, desiredPosition?: 'left' | 'right'): Promise<void>;
   
   // Pending recruits operations (new workflow)
   createPendingRecruit(data: RecruitUser, recruiterId: string): Promise<PendingRecruit>;
@@ -150,6 +155,7 @@ export interface IStorage {
   
   // Withdrawal operations
   createWithdrawalRequest(userId: string, data: CreateWithdrawal): Promise<WithdrawalRequest>;
+  createUserWithdrawalRequest(data: { userId: string; withdrawalType: 'INR' | 'USD'; amount: string; remarks: string }): Promise<WithdrawalRequest>;
   createAdminWithdrawalRequest(data: { userId: string; withdrawalType: 'INR' | 'USD'; amount: string; remarks: string }): Promise<WithdrawalRequest>;
   getUserWithdrawals(userId: string): Promise<WithdrawalRequest[]>;
   getAllWithdrawals(): Promise<WithdrawalRequest[]>;
@@ -1497,7 +1503,7 @@ export class DatabaseStorage implements IStorage {
     // Check if recruit is ready for admin approval
     // Special case: If recruiter is admin, allow direct approval
     // We need to check the recruiter's role from the users table
-    const recruiter = await this.getUser(pendingRecruit.recruiterId);
+    const recruiter = await this.getUser(pendingRecruit.recruiterId); // recruiterId is always null as per new code for multi-child tree
     const isAdminGenerated = recruiter?.role === 'admin' || recruiter?.role === 'founder';
     
     if (isAdminGenerated) {
@@ -1594,12 +1600,29 @@ export class DatabaseStorage implements IStorage {
       profileImageUrl: pendingRecruit.profileImageUrl,
     }).returning();
 
-    // Place user in binary tree at the final position
+    // Place user in tree (LEGACY - commented out)
+    // if (!pendingRecruit.uplineId) {
+    //   throw new Error('Upline ID is required for position placement');
+    // }
+    // await this.placeUserInBinaryTreeAtSpecificPosition(newUser.id, pendingRecruit.uplineId, finalPosition as 'left' | 'right', pendingRecruit.recruiterId);
+
+    // Place user in multi-child tree at the final position (NEW)
     if (!pendingRecruit.uplineId) {
       throw new Error('Upline ID is required for position placement');
     }
-    await this.placeUserInBinaryTreeAtSpecificPosition(newUser.id, pendingRecruit.uplineId, finalPosition as 'left' | 'right', pendingRecruit.recruiterId);
+    
+    // Use the position from pending recruit (set during referral link registration)
+    const placementPosition = finalPosition as 'left' | 'right';
+    await this.placeUserInMultiChildTree(newUser.id, pendingRecruit.recruiterId, placementPosition);
 
+    // Create wallet balance for the new user
+    await this.createWalletBalance(userId);
+
+    // ===== LEGACY URL DOCUMENT TRANSFER (COMMENTED OUT TO PREVENT DUPLICATES) =====
+    // This code was creating duplicate documents during approval process
+    // Documents are now stored as binary data during registration and transferred via the binary transfer process below
+    
+    /*
     // Transfer KYC documents if available from comprehensive registration
     if (pendingRecruit.panCardUrl || pendingRecruit.aadhaarFrontUrl || 
         pendingRecruit.bankCancelledChequeUrl || pendingRecruit.profileImageUrl) {
@@ -1609,7 +1632,7 @@ export class DatabaseStorage implements IStorage {
       if (pendingRecruit.panCardUrl) {
         await db.insert(kycDocuments).values({
           userId: newUser.id,
-          documentType: 'pan',
+          documentType: 'pan_card',
           documentUrl: pendingRecruit.panCardUrl,
           documentNumber: pendingRecruit.panNumber,
           status: 'pending'
@@ -1642,7 +1665,7 @@ export class DatabaseStorage implements IStorage {
       if (pendingRecruit.bankCancelledChequeUrl) {
         await db.insert(kycDocuments).values({
           userId: newUser.id,
-          documentType: 'bank_cancelled_cheque',
+          documentType: 'bank_details',
           documentUrl: pendingRecruit.bankCancelledChequeUrl,
           status: 'pending'
         });
@@ -1660,6 +1683,7 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`KYC documents transferred for user ${newUser.email}`);
     }
+    */
 
     // Transfer KYC documents from temp user ID to real user ID (for binary documents)
     try {
@@ -1702,11 +1726,11 @@ export class DatabaseStorage implements IStorage {
         console.log('🔍 No KYC decision provided, using default pending status');
       }
       
-      // Create single KYC profile record
+      // Create single KYC profile record (status tracker)
       await db.insert(kycDocuments).values({
         userId: newUser.id,
         documentType: 'kyc_profile',
-        documentUrl: pendingRecruit.profileImageUrl || '',
+        documentUrl: '', // Always empty - this is just a status tracker, not a viewable document
         documentNumber: '',
         status: initialStatus,
         rejectionReason: initialStatus === 'rejected' ? initialReason : null,
@@ -1715,7 +1739,6 @@ export class DatabaseStorage implements IStorage {
         createdAt: new Date(),
         updatedAt: new Date()
       });
-      
       console.log(`✅ Created KYC profile record for user ${newUser.email} with status: ${initialStatus}`);
       console.log('🔍 KYC record details:', {
         userId: newUser.id,
@@ -1902,20 +1925,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Binary MLM Tree operations
-  async getBinaryTreeData(userId: string): Promise<any> {
+  async getBinaryTreeData_legacy(userId: string): Promise<any> {
     // Import and use binary tree service
-    const { binaryTreeService } = await import('./binaryTreeService');
+    const { binaryTreeService } = await import('./binaryTreeService_legacy');
     // Increase depth to 10 to show complete tree including grandchildren
     const treeData = await binaryTreeService.getBinaryTree(userId, 10);
-    console.log('=== BINARY TREE DATA ===');
+    console.log('=== BINARY TREE DATA (LEGACY) ===');
     console.log('Root user:', userId);
     console.log('Tree structure:', JSON.stringify(treeData, null, 2));
     return treeData;
   }
 
-  async getDirectRecruits(userId: string): Promise<User[]> {
+  async getDirectRecruits_legacy(userId: string): Promise<User[]> {
     // Import and use binary tree service
-    const { binaryTreeService } = await import('./binaryTreeService');
+    const { binaryTreeService } = await import('./binaryTreeService_legacy');
     const binaryUsers = await binaryTreeService.getDirectRecruits(userId);
     
     // Convert BinaryTreeUser to User format
@@ -1976,18 +1999,19 @@ export class DatabaseStorage implements IStorage {
       kycDeadline: null,
       kycLocked: false,
       lastLoginAt: null,
+      order: 0, // Default order for legacy binary tree users
     }));
   }
 
   async placeUserInBinaryTree(userId: string, sponsorId: string): Promise<void> {
-    const { binaryTreeService } = await import('./binaryTreeService');
+    const { binaryTreeService } = await import('./binaryTreeService_legacy');
     const position = await binaryTreeService.findNextAvailablePosition(sponsorId);
     await binaryTreeService.placeUserInTree(userId, position.parentId, position.position, sponsorId);
   }
 
   // Place user at specific position decided by upline (with intelligent spillover)
   async placeUserInBinaryTreeAtSpecificPosition(userId: string, uplineId: string, desiredPosition: 'left' | 'right', sponsorId: string): Promise<void> {
-    const { binaryTreeService } = await import('./binaryTreeService');
+    const { binaryTreeService } = await import('./binaryTreeService_legacy');
     
     // Get the upline who made the strategic decision
     const upline = await this.getUser(uplineId);
@@ -2011,6 +2035,149 @@ export class DatabaseStorage implements IStorage {
     } else {
       // Strategic spillover placement in the chosen direction
       await binaryTreeService.placeUserInDirectionalSpillover(userId, uplineId, desiredPosition, sponsorId);
+    }
+  }
+
+  // ===== MULTI-CHILD MLM TREE OPERATIONS (NEW) =====
+  async getMultiChildTreeData(userId: string): Promise<any> {
+    // Get user data
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Get direct children
+    const children = await this.getMultiChildDirectRecruits(userId);
+    
+    // Get grandchildren (up to 2 levels deep)
+    const grandchildren = [];
+    for (const child of children) {
+      const childChildren = await this.getMultiChildDirectRecruits(child.id);
+      grandchildren.push(...childChildren);
+    }
+
+    return {
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        position: user.position,
+        order: user.order,
+        status: user.status,
+        packageAmount: user.packageAmount,
+        totalBV: user.totalBV,
+        leftBV: user.leftBV,
+        rightBV: user.rightBV,
+        totalDirects: user.totalDirects,
+        leftDirects: user.leftDirects,
+        rightDirects: user.rightDirects,
+      },
+      children: children.map(child => ({
+        id: child.id,
+        firstName: child.firstName,
+        lastName: child.lastName,
+        email: child.email,
+        position: child.position,
+        order: child.order,
+        status: child.status,
+        packageAmount: child.packageAmount,
+        totalBV: child.totalBV,
+        leftBV: child.leftBV,
+        rightBV: child.rightBV,
+        totalDirects: child.totalDirects,
+        leftDirects: child.leftDirects,
+        rightDirects: child.rightDirects,
+      })),
+      grandchildren: grandchildren.map(grandchild => ({
+        id: grandchild.id,
+        firstName: grandchild.firstName,
+        lastName: grandchild.lastName,
+        email: grandchild.email,
+        position: grandchild.position,
+        order: grandchild.order,
+        status: grandchild.status,
+        packageAmount: grandchild.packageAmount,
+        totalBV: grandchild.totalBV,
+        leftBV: grandchild.leftBV,
+        rightBV: grandchild.rightBV,
+        totalDirects: grandchild.totalDirects,
+        leftDirects: grandchild.leftDirects,
+        rightDirects: grandchild.rightDirects,
+      }))
+    };
+  }
+
+  async getMultiChildDirectRecruits(userId: string): Promise<User[]> {
+    // Get all direct children of the user
+    const directChildren = await db.select()
+      .from(users)
+      .where(eq(users.parentId, userId))
+      .orderBy(asc(users.position), asc(users.order));
+
+    return directChildren;
+  }
+
+  async placeUserInMultiChildTree(userId: string, sponsorId: string, desiredPosition?: 'left' | 'right'): Promise<void> {
+    let position: 'left' | 'right';
+    let order: number;
+
+    if (desiredPosition) {
+      // Use the desired position from referral link
+      position = desiredPosition;
+      
+      // Get count for the desired position to determine order
+      const countResult = await db.select({ count: sql`count(*)` })
+        .from(users)
+        .where(and(eq(users.parentId, sponsorId), eq(users.position, desiredPosition)));
+      
+      order = parseInt(countResult[0]?.count as string) || 0;
+    } else {
+      // Fallback to auto-balancing if no position specified
+      const leftCount = await db.select({ count: sql`count(*)` })
+        .from(users)
+        .where(and(eq(users.parentId, sponsorId), eq(users.position, 'left')));
+      
+      const rightCount = await db.select({ count: sql`count(*)` })
+        .from(users)
+        .where(and(eq(users.parentId, sponsorId), eq(users.position, 'right')));
+
+      const leftChildrenCount = parseInt(leftCount[0]?.count as string) || 0;
+      const rightChildrenCount = parseInt(rightCount[0]?.count as string) || 0;
+
+      // Choose side with fewer children (left if equal)
+      position = leftChildrenCount <= rightChildrenCount ? 'left' : 'right';
+      order = position === 'left' ? leftChildrenCount : rightChildrenCount;
+    }
+
+    // Update user with tree position
+    await db.update(users)
+      .set({
+        sponsorId: sponsorId,
+        parentId: sponsorId,
+        position: position,
+        order: order,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId));
+
+    // Update parent's direct counts
+    if (position === 'left') {
+      await db.update(users)
+        .set({ 
+          leftDirects: sql`left_directs + 1`,
+          totalDirects: sql`total_directs + 1`,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, sponsorId));
+    } else {
+      await db.update(users)
+        .set({ 
+          rightDirects: sql`right_directs + 1`,
+          totalDirects: sql`total_directs + 1`,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, sponsorId));
     }
   }
 
@@ -2107,37 +2274,283 @@ export class DatabaseStorage implements IStorage {
     return wallet;
   }
 
+  /**
+   * Updates wallet balance with comprehensive validation and error handling.
+   * 
+   * FUTURE TRANSACTION IMPLEMENTATION:
+   * When switching to a database driver that supports transactions (e.g., Neon WebSocket, PostgreSQL),
+   * replace the direct operations below with the following transaction-based approach:
+   * 
+   * ```typescript
+   * return await db.transaction(async (tx) => {
+   *   // Re-fetch wallet within transaction to get latest values (prevents race conditions)
+   *   const [latestWallet] = await tx.select().from(walletBalances).where(eq(walletBalances.userId, userId)).limit(1);
+   *   
+   *   if (!latestWallet) {
+   *     throw new Error('Wallet not found during transaction');
+   *   }
+   * 
+   *   const currentBalance = parseFloat(latestWallet.balance || '0');
+   *   const currentEarnings = parseFloat(latestWallet.totalEarnings || '0');
+   *   const currentWithdrawals = parseFloat(latestWallet.totalWithdrawals || '0');
+   * 
+   *   // ... business logic calculations ...
+   * 
+   *   // Update wallet balance within transaction
+   *   await tx.update(walletBalances)
+   *     .set(updateData)
+   *     .where(eq(walletBalances.userId, userId));
+   * 
+   *   // Create transaction record within transaction
+   *   const [transaction] = await tx.insert(transactions).values({
+   *     userId,
+   *     type: type as any,
+   *     amount,
+   *     description,
+   *     balanceBefore: currentBalance.toString(),
+   *     balanceAfter: updateData.balance || currentBalance.toString(),
+   *   }).returning();
+   * 
+   *   return transaction;
+   * });
+   * ```
+   * 
+   * BENEFITS OF TRANSACTION IMPLEMENTATION:
+   * - Atomic operations (all succeed or all fail)
+   * - Race condition prevention
+   * - Data consistency guarantees
+   * - Proper isolation levels
+   * - Rollback capability on errors
+   * 
+   * CURRENT IMPLEMENTATION:
+   * Uses direct operations with manual validation due to Neon HTTP driver limitations.
+   * Includes comprehensive error handling and input validation.
+   */
   async updateWalletBalance(userId: string, amount: string, description: string, type: any): Promise<Transaction> {
+    // Input validation and sanitization
+    if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+      throw new Error('Invalid userId: must be a non-empty string');
+    }
+    
+    if (!amount || typeof amount !== 'string' || amount.trim().length === 0) {
+      throw new Error('Invalid amount: must be a non-empty string');
+    }
+    
+    if (!description || typeof description !== 'string' || description.trim().length === 0) {
+      throw new Error('Invalid description: must be a non-empty string');
+    }
+    
+    if (!type || typeof type !== 'string' || type.trim().length === 0) {
+      throw new Error('Invalid type: must be a non-empty string');
+    }
+
+    // Sanitize and validate amount
+    const sanitizedAmount = amount.trim();
+    const changeAmount = parseFloat(sanitizedAmount);
+    
+    // Validate numeric amount
+    if (isNaN(changeAmount) || !isFinite(changeAmount)) {
+      throw new Error(`Invalid amount format: "${amount}" is not a valid number`);
+    }
+    
+    // Validate amount range (prevent extremely large values)
+    if (Math.abs(changeAmount) > 999999999) { // 999 million limit
+      throw new Error('Amount exceeds maximum limit of ₹999,999,999');
+    }
+    
+    // Validate amount precision (max 2 decimal places)
+    const decimalPlaces = (sanitizedAmount.split('.')[1] || '').length;
+    if (decimalPlaces > 2) {
+      throw new Error('Amount cannot have more than 2 decimal places');
+    }
+
     let wallet = await this.getWalletBalance(userId);
     if (!wallet) {
       wallet = await this.createWalletBalance(userId);
     }
 
-    const currentBalance = parseFloat(wallet.balance || '0');
-    const changeAmount = parseFloat(amount);
-    const newBalance = currentBalance + changeAmount;
+    // Validate transaction type against whitelist
+    const allowedTypes = [
+      'fundRequest',
+      'withdrawal', 
+      'sponsor_income',
+      'sales_bonus',
+      'sales_incentive',
+      'consistency_bonus',
+      'franchise_income',
+      'car_fund',
+      'travel_fund',
+      'leadership_fund',
+      'house_fund',
+      'millionaire_club',
+      'royalty_income',
+      'purchaseProduct',
+      'admin_credit',
+      'admin_debit'
+    ];
+    
+    if (!allowedTypes.includes(type)) {
+      console.warn(`⚠️ Unknown transaction type: "${type}". Treating as admin operation. Allowed types: ${allowedTypes.join(', ')}`);
+      // Don't throw error, just log and continue with default behavior
+    }
 
-    // Update wallet balance
-    await db.update(walletBalances)
-      .set({ 
-        balance: newBalance.toString(),
-        totalEarnings: type === 'withdrawal' ? wallet.totalEarnings : (parseFloat(wallet.totalEarnings || '0') + Math.max(0, changeAmount)).toString(),
-        totalWithdrawals: type === 'withdrawal' ? (parseFloat(wallet.totalWithdrawals || '0') + Math.abs(changeAmount)).toString() : wallet.totalWithdrawals,
+    // DIRECT OPERATIONS IMPLEMENTATION (due to Neon HTTP driver limitations)
+    // TODO: Replace with transaction-based approach when switching to WebSocket driver
+    
+    try {
+      // Re-fetch wallet to get latest values (manual race condition mitigation)
+      const [latestWallet] = await db.select().from(walletBalances).where(eq(walletBalances.userId, userId)).limit(1);
+      
+      if (!latestWallet) {
+        throw new Error('Wallet not found for user: ' + userId);
+      }
+
+      const currentBalance = parseFloat(latestWallet.balance || '0');
+      const currentEarnings = parseFloat(latestWallet.totalEarnings || '0');
+      const currentWithdrawals = parseFloat(latestWallet.totalWithdrawals || '0');
+
+      // Additional validation for wallet data integrity
+      if (isNaN(currentBalance) || isNaN(currentEarnings) || isNaN(currentWithdrawals)) {
+        throw new Error('Invalid wallet data: corrupted balance values detected');
+      }
+
+      if (currentBalance < 0 || currentEarnings < 0 || currentWithdrawals < 0) {
+        throw new Error('Invalid wallet state: negative values detected');
+      }
+
+      // Prepare update data based on transaction type
+      const updateData: any = {
         updatedAt: new Date()
-      })
-      .where(eq(walletBalances.userId, userId));
+      };
 
-    // Create transaction record
-    const [transaction] = await db.insert(transactions).values({
-      userId,
-      type,
-      amount,
-      description,
-      balanceBefore: currentBalance.toString(),
-      balanceAfter: newBalance.toString(),
-    }).returning();
+    // Scenario 1: Fund Management (fundRequest) - Only affects balance (E-wallet)
+    if (type === 'fundRequest') {
+      const newBalance = currentBalance + changeAmount;
+      
+      // Check if user has sufficient balance for debit operations
+      if (newBalance < 0) {
+        throw new Error(`Insufficient balance. You have ₹${currentBalance} in E-wallet but trying to debit ₹${Math.abs(changeAmount)}`);
+      }
+      
+      updateData.balance = newBalance.toString();
+      // totalEarnings and totalWithdrawals remain unchanged
+      
+      console.log(`💰 Fund Request: Balance ${changeAmount >= 0 ? 'increased' : 'decreased'} by ₹${Math.abs(changeAmount)}`);
+    }
+    
+    // Scenario 2: Withdrawal Management - Only affects totalEarnings and totalWithdrawals
+    else if (type === 'withdrawal') {
+      const withdrawalAmount = Math.abs(changeAmount);
+      
+      // Check if user has sufficient earnings to withdraw
+      if (withdrawalAmount > currentEarnings) {
+        throw new Error(`Insufficient earnings. You have ₹${currentEarnings} in earnings but trying to withdraw ₹${withdrawalAmount}`);
+      }
+      
+      const newEarnings = currentEarnings - withdrawalAmount; // Deduct from income
+      const newWithdrawals = currentWithdrawals + withdrawalAmount; // Add to withdrawals
+      
+      updateData.totalEarnings = newEarnings.toString();
+      updateData.totalWithdrawals = newWithdrawals.toString();
+      // balance remains unchanged
+      
+      console.log(`💸 Withdrawal: Earnings decreased by ₹${withdrawalAmount}, Withdrawals increased by ₹${withdrawalAmount}`);
+    }
+    
+    // Scenario 3: MLM Income (sponsor_income, sales_bonus, etc.) - Only affects totalEarnings (Income)
+    else if (type === 'sponsor_income' || type === 'sales_bonus' || type === 'sales_incentive' || 
+             type === 'consistency_bonus' || type === 'franchise_income' || type === 'car_fund' || 
+             type === 'travel_fund' || type === 'leadership_fund' || type === 'house_fund' || 
+             type === 'millionaire_club' || type === 'royalty_income') {
+      const newEarnings = currentEarnings + Math.max(0, changeAmount); // Only positive amounts add to earnings
+      
+      updateData.totalEarnings = newEarnings.toString();
+      // balance and totalWithdrawals remain unchanged
+      
+      console.log(`💵 MLM Income (${type}): Earnings increased by ₹${Math.max(0, changeAmount)}`);
+    }
+    
+    // Scenario 4: Product Purchase - Only affects balance (E-wallet)
+    else if (type === 'purchaseProduct') {
+      const newBalance = currentBalance - changeAmount; // Deduct positive amount from balance
+      
+      // Check if user has sufficient balance for purchase
+      if (newBalance < 0) {
+        throw new Error(`Insufficient balance. You have ₹${currentBalance} in E-wallet but trying to purchase for ₹${changeAmount}`);
+      }
+      
+      updateData.balance = newBalance.toString();
+      // totalEarnings and totalWithdrawals remain unchanged
+      
+      console.log(`🛒 Product Purchase: Balance decreased by ₹${changeAmount}`);
+    }
+    
+    // Default case: Admin operations (admin_credit, admin_debit) - Only affects balance (E-wallet)
+    else {
+      const newBalance = currentBalance + changeAmount;
+      updateData.balance = newBalance.toString();
+      // totalEarnings and totalWithdrawals remain unchanged
+      
+      console.log(`⚙️ Admin Operation (${type}): Balance ${changeAmount >= 0 ? 'increased' : 'decreased'} by ₹${Math.abs(changeAmount)}`);
+    }
 
-    return transaction;
+      // Update wallet balance (direct operation)
+      const updateResult = await db.update(walletBalances)
+        .set(updateData)
+        .where(eq(walletBalances.userId, userId));
+
+      // Verify update was successful
+      if (!updateResult || updateResult.rowCount === 0) {
+        throw new Error('Failed to update wallet balance: no rows affected');
+      }
+
+      // Determine transaction type based on amount sign for fundRequest
+      const isCredit = parseFloat(amount) >= 0;
+      const dbType = type === 'fundRequest' ? (isCredit ? 'admin_credit' : 'admin_debit') :
+                     type === 'purchaseProduct' ? 'purchase' : 
+                     type as any;
+
+      // Create transaction record (direct operation)
+      const [transaction] = await db.insert(transactions).values({
+        userId,
+        type: dbType,
+        amount,
+        description,
+        balanceBefore: currentBalance.toString(),
+        balanceAfter: updateData.balance || currentBalance.toString(),
+      }).returning();
+
+      // Verify transaction record was created
+      if (!transaction) {
+        throw new Error('Failed to create transaction record');
+      }
+
+      console.log(`✅ Wallet operation completed successfully: ${type} for user ${userId}`);
+      return transaction;
+
+    } catch (error: any) {
+      // Comprehensive error handling and logging
+      console.error(`❌ Wallet operation failed: ${type} for user ${userId}`, {
+        error: error.message,
+        userId,
+        amount,
+        type,
+        description
+      });
+
+      // Re-throw with enhanced error message
+      if (error.message.includes('Invalid wallet data')) {
+        throw new Error(`Wallet data corruption detected for user ${userId}. Please contact support.`);
+      } else if (error.message.includes('Invalid wallet state')) {
+        throw new Error(`Invalid wallet state for user ${userId}. Please contact support.`);
+      } else if (error.message.includes('Failed to update')) {
+        throw new Error(`Database update failed for user ${userId}. Please try again.`);
+      } else if (error.message.includes('Failed to create transaction')) {
+        throw new Error(`Transaction record creation failed for user ${userId}. Please try again.`);
+      } else {
+        throw new Error(`Wallet operation failed: ${error.message}`);
+      }
+    }
   }
 
   async getUserTransactions(userId: string): Promise<Transaction[]> {
@@ -2167,6 +2580,94 @@ export class DatabaseStorage implements IStorage {
     }
 
     const [withdrawal] = await db.insert(withdrawalRequests).values(withdrawalData).returning();
+    return withdrawal;
+  }
+
+  async createUserWithdrawalRequest(data: { userId: string; withdrawalType: 'INR' | 'USD'; amount: string; remarks: string }): Promise<WithdrawalRequest> {
+    console.log('=== CREATING USER WITHDRAWAL REQUEST ===');
+    console.log('Data received:', data);
+
+    // Find user by display ID (VV0007)
+    const user = await db.select().from(users).where(eq(users.userId, data.userId)).limit(1);
+    if (!user.length) {
+      throw new Error(`User not found with ID: ${data.userId}`);
+    }
+
+    const userData = user[0];
+    console.log('Found user:', userData.email, userData.firstName, userData.lastName);
+    console.log('User internal ID:', userData.id);
+    console.log('User display ID:', userData.userId);
+
+    // Check if user has approved KYC
+    if (userData.kycStatus !== 'approved') {
+      throw new Error(`User KYC is not approved. Current status: ${userData.kycStatus}. User must have approved KYC to create withdrawal requests.`);
+    }
+    console.log('User KYC status:', userData.kycStatus);
+
+    // Check if user has sufficient balance
+    console.log('Looking up wallet for display user ID:', userData.userId);
+    
+    const wallet = await this.getWalletBalance(userData.userId || '');
+    console.log('Wallet lookup result:', wallet);
+    
+    if (!wallet) {
+      throw new Error(`User does not have a wallet. Please create a wallet balance record first.`);
+    }
+    console.log('Found wallet:', wallet);
+    
+    const currentBalance = parseFloat(wallet.balance || '0');
+    const requestedAmount = parseFloat(data.amount);
+    
+    if (currentBalance < requestedAmount) {
+      throw new Error(`Insufficient balance. User has ${currentBalance} but requested ${requestedAmount}`);
+    }
+    console.log('User wallet balance:', currentBalance, 'Requested amount:', requestedAmount);
+
+    // Prepare withdrawal data
+    const withdrawalData: any = {
+      userId: userData.userId, // Use the display user ID (VV0002)
+      amount: data.amount,
+      withdrawalType: data.withdrawalType, // Store 'INR' or 'USD' directly
+      status: 'pending',
+      adminNotes: data.remarks,
+      processedBy: null, // Will be set when admin processes the request
+      processedAt: null, // Will be set when admin processes the request
+      transactionId: null, // Will be set when admin processes the request
+    };
+
+    // Handle bank details for INR withdrawals
+    if (data.withdrawalType === 'INR') {
+      // Fetch bank details from users table
+      const bankDetails = {
+        bankAccountNumber: userData.bankAccountNumber || '',
+        bankIFSC: userData.bankIFSC || '',
+        bankName: userData.bankName || '',
+        bankAccountHolderName: userData.bankAccountHolderName || ''
+      };
+
+      // Validate that all required bank details are present
+      if (!bankDetails.bankAccountNumber || !bankDetails.bankIFSC || 
+          !bankDetails.bankName || !bankDetails.bankAccountHolderName) {
+        throw new Error('User does not have complete bank details. Please ensure the user has filled all bank information.');
+      }
+
+      withdrawalData.bankDetails = bankDetails;
+      console.log('Bank details set for INR withdrawal:', bankDetails);
+    } else if (data.withdrawalType === 'USD') {
+      // For USD withdrawals, we'll leave space for future logic
+      if (userData.cryptoWalletAddress) {
+        withdrawalData.usdtWalletAddress = userData.cryptoWalletAddress;
+        withdrawalData.networkType = 'TRC20'; // Default network
+        console.log('USD withdrawal - using crypto wallet:', userData.cryptoWalletAddress);
+      } else {
+        throw new Error('User does not have a crypto wallet address configured for USD withdrawals.');
+      }
+    }
+
+    // Create the withdrawal request
+    const [withdrawal] = await db.insert(withdrawalRequests).values(withdrawalData).returning();
+    
+    console.log('User withdrawal request created successfully:', withdrawal.id);
     return withdrawal;
   }
 
@@ -2561,54 +3062,32 @@ export class DatabaseStorage implements IStorage {
           return false;
         }
 
-        const currentBalance = parseFloat(wallet.balance || '0');
+        const currentEarnings = parseFloat(wallet.totalEarnings || '0');
         const withdrawalAmount = parseFloat(withdrawalRequest.amount);
-        const currentTotalWithdrawals = parseFloat(wallet.totalWithdrawals || '0');
 
         console.log('Wallet details:', {
-          currentBalance,
-          withdrawalAmount,
-          currentTotalWithdrawals
+          currentEarnings,
+          withdrawalAmount
         });
 
-        // Check if user has sufficient balance
-        if (currentBalance < withdrawalAmount) {
-          console.log('Insufficient balance for withdrawal');
-          throw new Error(`Insufficient balance. User has ${currentBalance} but withdrawal is for ${withdrawalAmount}`);
+        // Check if user has sufficient earnings (not balance)
+        if (currentEarnings < withdrawalAmount) {
+          console.log('Insufficient earnings for withdrawal');
+          throw new Error(`Insufficient earnings. User has ₹${currentEarnings} in earnings but withdrawal is for ₹${withdrawalAmount}`);
         }
 
-        // Calculate new balances
-        const newBalance = currentBalance - withdrawalAmount;
-        const newTotalWithdrawals = currentTotalWithdrawals + withdrawalAmount;
+        console.log('Processing withdrawal using updateWalletBalance function...');
 
-        console.log('New wallet balances:', {
-          newBalance,
-          newTotalWithdrawals
-        });
+        // Use our secure updateWalletBalance function for withdrawal
+        // Pass negative amount to record as deduction in transaction
+        await this.updateWalletBalance(
+          withdrawalRequest.userId,
+          (-withdrawalAmount).toString(), // Negative amount for transaction record
+          `Withdrawal approved - ${withdrawalRequest.withdrawalType}`,
+          'withdrawal'
+        );
 
-        // Update wallet balance
-        await db
-          .update(walletBalances)
-          .set({
-            balance: newBalance.toString(),
-            totalWithdrawals: newTotalWithdrawals.toString(),
-            updatedAt: new Date()
-          })
-          .where(eq(walletBalances.userId, withdrawalRequest.userId));
-
-        console.log('Wallet balance updated successfully');
-
-        // Create transaction record for the withdrawal
-        await db.insert(transactions).values({
-          userId: withdrawalRequest.userId,
-          type: 'withdrawal',
-          amount: (-withdrawalAmount).toString(), // Negative amount for withdrawal
-          description: `Withdrawal approved - ${withdrawalRequest.withdrawalType}`,
-          balanceBefore: currentBalance.toString(),
-          balanceAfter: newBalance.toString(),
-        });
-
-        console.log('Transaction record created');
+        console.log('Withdrawal processed successfully using updateWalletBalance');
       }
 
       // Update withdrawal request status
@@ -2734,8 +3213,8 @@ export class DatabaseStorage implements IStorage {
       updateData.documentContentType = data.documentContentType;
       updateData.documentFilename = data.documentFilename;
       updateData.documentSize = data.documentSize;
-      // Clear URL when using binary data
-      updateData.documentUrl = null;
+      // Keep placeholder URL when using binary data (required by DB constraint)
+      updateData.documentUrl = `data:${data.documentContentType};base64,placeholder`;
     }
 
     // Handle URL data update (legacy)
@@ -2827,7 +3306,6 @@ export class DatabaseStorage implements IStorage {
     
     return updatedDoc!;
   }
-
 
   // Fix existing KYC data where users have mixed document statuses
   async fixExistingKYCStatuses(): Promise<void> {
@@ -2952,7 +3430,7 @@ export class DatabaseStorage implements IStorage {
           or(
             eq(kycDocuments.documentType, 'aadhaar_front'),
             eq(kycDocuments.documentType, 'aadhaar_back'),
-            eq(kycDocuments.documentType, 'bank_cancelled_cheque'),
+            eq(kycDocuments.documentType, 'bank_details'),
             eq(kycDocuments.documentType, 'kyc_profile')
           )
         );
@@ -2963,10 +3441,12 @@ export class DatabaseStorage implements IStorage {
         let newType = doc.documentType;
         
         // Map to standard types
-        if (doc.documentType === 'aadhaar_front' || doc.documentType === 'aadhaar_back') {
-          newType = 'aadhaar';
-        } else if (doc.documentType === 'bank_cancelled_cheque') {
-          newType = 'bank_statement';
+        if (doc.documentType === 'aadhaar_front') {
+          newType = 'aadhaar_front';
+        } else if (doc.documentType === 'aadhaar_back') {
+          newType = 'aadhaar_back';
+        } else if (doc.documentType === 'bank_details') {
+          newType = 'bank_details';
         } else if (doc.documentType === 'kyc_profile') {
           newType = 'photo';
         }
@@ -3053,27 +3533,34 @@ export class DatabaseStorage implements IStorage {
             createdAt: doc.createdAt,
             updatedAt: doc.updatedAt,
             documents: {
-              panCard: { url: doc.documentType === 'pan' ? doc.documentUrl : '', number: doc.panNumber || '', status: doc.documentType === 'pan' ? doc.status : 'pending' },
-              aadhaarCard: { url: doc.documentType === 'aadhaar' ? doc.documentUrl : '', number: doc.aadhaarNumber || '', status: doc.documentType === 'aadhaar' ? doc.status : 'pending' },
-              bankStatement: { url: doc.documentType === 'bank_statement' ? doc.documentUrl : '', status: doc.documentType === 'bank_statement' ? doc.status : 'pending' },
+              panCard: { url: doc.documentType === 'pan_card' ? doc.documentUrl : '', number: doc.panNumber || '', status: doc.documentType === 'pan_card' ? doc.status : 'pending' },
+              aadhaarFront: { url: doc.documentType === 'aadhaar_front' ? doc.documentUrl : '', number: doc.aadhaarNumber || '', status: doc.documentType === 'aadhaar_front' ? doc.status : 'pending' },
+              aadhaarBack: { url: doc.documentType === 'aadhaar_back' ? doc.documentUrl : '', number: doc.aadhaarNumber || '', status: doc.documentType === 'aadhaar_back' ? doc.status : 'pending' },
+              bankStatement: { url: doc.documentType === 'bank_details' ? doc.documentUrl : '', status: doc.documentType === 'bank_details' ? doc.status : 'pending' },
               photo: { url: doc.documentType === 'photo' ? doc.documentUrl : (doc.profileImageUrl || ''), status: doc.documentType === 'photo' ? doc.status : 'pending' }
             }
           };
         } else {
           // Update documents with the latest status for each document type
-          if (doc.documentType === 'pan') {
+          if (doc.documentType === 'pan_card') {
             userKYCData[userId].documents.panCard = { 
               url: doc.documentUrl, 
               number: doc.documentNumber || doc.panNumber || '', 
               status: doc.status 
             };
-          } else if (doc.documentType === 'aadhaar') {
-            userKYCData[userId].documents.aadhaarCard = { 
+          } else if (doc.documentType === 'aadhaar_front') {
+            userKYCData[userId].documents.aadhaarFront = { 
               url: doc.documentUrl, 
               number: doc.documentNumber || doc.aadhaarNumber || '', 
               status: doc.status 
             };
-          } else if (doc.documentType === 'bank_statement') {
+          } else if (doc.documentType === 'aadhaar_back') {
+            userKYCData[userId].documents.aadhaarBack = { 
+              url: doc.documentUrl, 
+              number: doc.documentNumber || doc.aadhaarNumber || '', 
+              status: doc.status 
+            };
+          } else if (doc.documentType === 'bank_details') {
             userKYCData[userId].documents.bankStatement = { 
               url: doc.documentUrl, 
               status: doc.status 
@@ -3208,7 +3695,7 @@ export class DatabaseStorage implements IStorage {
       if (userData.panCardUrl) {
         kycRecords.push({
           userId: userId,
-          documentType: 'pan',
+          documentType: 'pan_card',
           documentUrl: userData.panCardUrl,
           documentNumber: userData.panNumber || '',
           status: 'pending' as const,
@@ -3221,11 +3708,26 @@ export class DatabaseStorage implements IStorage {
       }
       
       // Aadhaar Card
-      if (userData.aadhaarCardUrl) {
+      if (userData.aadhaarFrontUrl) {
         kycRecords.push({
           userId: userId,
-          documentType: 'aadhaar',
-          documentUrl: userData.aadhaarCardUrl,
+          documentType: 'aadhaar_front',
+          documentUrl: userData.aadhaarFrontUrl,
+          documentNumber: userData.aadhaarNumber || '',
+          status: 'pending' as const,
+          rejectionReason: null,
+          reviewedBy: null,
+          reviewedAt: null,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+      }
+      
+      if (userData.aadhaarBackUrl) {
+        kycRecords.push({
+          userId: userId,
+          documentType: 'aadhaar_back',
+          documentUrl: userData.aadhaarBackUrl,
           documentNumber: userData.aadhaarNumber || '',
           status: 'pending' as const,
           rejectionReason: null,
@@ -3240,7 +3742,7 @@ export class DatabaseStorage implements IStorage {
       if (userData.bankStatementUrl) {
         kycRecords.push({
           userId: userId,
-          documentType: 'bankStatement',
+          documentType: 'bank_details',
           documentUrl: userData.bankStatementUrl,
           documentNumber: '',
           status: 'pending' as const,
@@ -3293,9 +3795,10 @@ export class DatabaseStorage implements IStorage {
       const kycProfile = documents.find(doc => doc.documentType === 'kyc_profile');
       
       // Get individual document statuses
-      const panCard = documents.find(doc => doc.documentType === 'pan');
-      const aadhaarCard = documents.find(doc => doc.documentType === 'aadhaar');
-      const bankStatement = documents.find(doc => doc.documentType === 'bank_statement');
+      const panCard = documents.find(doc => doc.documentType === 'pan_card');
+      const aadhaarFront = documents.find(doc => doc.documentType === 'aadhaar_front');
+      const aadhaarBack = documents.find(doc => doc.documentType === 'aadhaar_back');
+      const bankStatement = documents.find(doc => doc.documentType === 'bank_details');
       const photo = documents.find(doc => doc.documentType === 'photo');
       
       return {
@@ -3309,12 +3812,19 @@ export class DatabaseStorage implements IStorage {
             documentType: panCard?.documentContentType || '',
             reason: panCard?.rejectionReason || ''
           },
-          aadhaarCard: {
-            status: aadhaarCard?.status || 'pending',
-            url: aadhaarCard?.documentUrl || '',
-            documentData: aadhaarCard?.documentData || '', // ✅ Added documentData
-            documentType: aadhaarCard?.documentContentType || '',
-            reason: aadhaarCard?.rejectionReason || ''
+          aadhaarFront: {
+            status: aadhaarFront?.status || 'pending',
+            url: aadhaarFront?.documentUrl || '',
+            documentData: aadhaarFront?.documentData || '', // ✅ Added documentData
+            documentType: aadhaarFront?.documentContentType || '',
+            reason: aadhaarFront?.rejectionReason || ''
+          },
+          aadhaarBack: {
+            status: aadhaarBack?.status || 'pending',
+            url: aadhaarBack?.documentUrl || '',
+            documentData: aadhaarBack?.documentData || '', // ✅ Added documentData
+            documentType: aadhaarBack?.documentContentType || '',
+            reason: aadhaarBack?.rejectionReason || ''
           },
           bankStatement: {
             status: bankStatement?.status || 'pending',
@@ -3371,7 +3881,7 @@ export class DatabaseStorage implements IStorage {
 
     // Credit rank achievement bonus
     if (bonus > 0) {
-      await this.updateWalletBalance(userId, bonus.toString(), `Rank Achievement Bonus - ${rank}`, 'admin_credit');
+      await this.updateWalletBalance(userId, bonus.toString(), `Rank Achievement Bonus - ${rank}`, 'sales_bonus'); // earlier: 'admin_credit'
     }
 
     return achievement;
@@ -3978,16 +4488,22 @@ export class DatabaseStorage implements IStorage {
       
       console.log('✅ Strategic user created, originalPassword in result:', newUser.originalPassword);
       
-      // Update parent's child reference
-      if (data.position === 'left') {
-        await db.update(users)
-          .set({ leftChildId: newUser.id })
-          .where(eq(users.id, data.parentId));
-      } else {
-        await db.update(users)
-          .set({ rightChildId: newUser.id })
-          .where(eq(users.id, data.parentId));
-      }
+      // Update parent's child reference (LEGACY - commented out)
+      // if (data.position === 'left') {
+      //   await db.update(users)
+      //     .set({ leftChildId: newUser.id })
+      //     .where(eq(users.id, data.parentId));
+      // } else {
+      //   await db.update(users)
+      //     .set({ rightChildId: newUser.id })
+      //     .where(eq(users.id, data.parentId));
+      // }
+
+      // Place user in multi-child tree (NEW)
+      await this.placeUserInMultiChildTree(newUser.id, data.sponsorId, data.position as 'left' | 'right');
+      
+      // Create wallet balance for the new user
+      await this.createWalletBalance(userId);
       
       console.log(`User created with strategic placement: ${newUser.email} under ${data.parentId} at ${data.position} position`);
       

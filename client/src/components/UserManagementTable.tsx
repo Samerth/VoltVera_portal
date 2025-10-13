@@ -245,8 +245,8 @@ export default function UserManagementTable({ users, walletData, withdrawalData 
               </TableHeader>
               <TableBody>
                 {filteredUsers.map((user) => {
-                  const wallet = walletData[user.id];
-                  const withdrawal = withdrawalData[user.id];
+                  const wallet = walletData[user.userId];
+                  const withdrawal = withdrawalData[user.userId];
                   
                   return (
                     <TableRow key={user.id} className="hover:bg-gray-50">
@@ -400,7 +400,7 @@ export default function UserManagementTable({ users, walletData, withdrawalData 
 
                       {/* Total Package */}
                       <TableCell>
-                        <span className="font-medium">₹{parseFloat(user.packageAmount).toLocaleString()}</span>
+                        <span className="font-medium">₹{parseFloat(user.packageAmount || '0').toLocaleString()}</span>
                       </TableCell>
 
                       {/* Wallet Address */}

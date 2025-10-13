@@ -16,7 +16,7 @@ ALTER TABLE pending_recruits ADD COLUMN bank_account_holder_name varchar;
 -- Update KYC document types to support new document types
 -- Note: This is a schema change that affects the application logic
 -- The documentType field in kyc_documents table will now support:
--- 'pan', 'aadhaar_front', 'aadhaar_back', 'bank_cancelled_cheque', 'photo'
+-- 'panpan_card', 'aadhaar_front', 'aadhaar_back', 'bank_details', 'photo'
 
 -- Add comments to document the changes
 COMMENT ON COLUMN users.nominee IS 'Nominee name - replaces dateOfBirth field in registration';

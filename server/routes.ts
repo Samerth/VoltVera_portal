@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { createUserSchema, updateUserSchema, signupUserSchema, passwordResetSchema, recruitUserSchema, completeUserRegistrationSchema, users, pendingRecruits, referralLinks, kycDocuments } from "@shared/schema";
+import { createUserSchema, updateUserSchema, signupUserSchema, passwordResetSchema, recruitUserSchema, completeUserRegistrationSchema, users, pendingRecruits, referralLinks, kycDocuments, fundRequests, withdrawalRequests } from "@shared/schema";
 import { z } from "zod";
 import session from "express-session";
 import ConnectPgSimple from "connect-pg-simple";
@@ -10,7 +10,7 @@ import { nanoid } from "nanoid";
 
 import mlmRoutes from "./mlmRoutes";
 import { db } from "./db";
-import { eq, lt, and, sql } from "drizzle-orm";
+import { eq, lt, and, sql, desc } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint for deployment
@@ -666,7 +666,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!emailSent) {
         // For development, still allow signup but show different message
         console.log(`Development mode: Verification token for ${userData.email!}: ${token}`);
-        console.log(`Verification URL: http://localhost:5000/verify-email?token=${token}`);
+        console.log(`Verification URL: http://localhost:${process.env.PORT || 5000}/verify-email?token=${token}`);
         return res.status(201).json({ 
           message: "Account created! Email service needs configuration. Use verification URL from server logs.",
           userId: user.id,
@@ -1039,7 +1039,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
              // Generate referral link with correct pattern for user recruits
        let baseUrl;
        if (process.env.NODE_ENV === 'development') {
-         baseUrl = 'http://localhost:5000';
+         baseUrl = `http://localhost:${process.env.PORT}`;
        } else if (req.get('host')?.includes('replit.dev')) {
          baseUrl = `https://${req.get('host')}`;
        } else {
@@ -1139,23 +1139,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Binary MLM Tree routes
-  app.get("/api/binary-tree", isAuthenticated, async (req: any, res) => {
+  // Binary MLM Tree routes (LEGACY - commented out)
+  // app.get("/api/binary-tree", isAuthenticated, async (req: any, res) => {
+  //   try {
+  //     const userId = req.user.id;
+  //     const treeData = await storage.getBinaryTreeData_legacy(userId);
+  //     res.json(treeData);
+  //   } catch (error) {
+  //     console.error("Error fetching binary tree data:", error);
+  //     res.status(500).json({ message: "Failed to fetch binary tree data" });
+  //   }
+  // });
+
+  // Multi-Child MLM Tree routes (NEW)
+  app.get("/api/multi-tree", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
-      const treeData = await storage.getBinaryTreeData(userId);
+      // Use userId from query params if provided, otherwise use authenticated user's ID
+      const userId = req.query.userId || req.user.id;
+      const treeData = await storage.getMultiChildTreeData(userId);
       res.json(treeData);
     } catch (error) {
-      console.error("Error fetching binary tree data:", error);
-      res.status(500).json({ message: "Failed to fetch binary tree data" });
+      console.error("Error fetching multi-child tree data:", error);
+      res.status(500).json({ message: "Failed to fetch tree data" });
     }
   });
 
-  // Direct recruits only (left and right positions in binary tree)
+  // Direct recruits only (LEGACY - commented out)
+  // app.get("/api/direct-recruits", isAuthenticated, async (req: any, res) => {
+  //   try {
+  //     const userId = req.user.id;
+  //     const directRecruits = await storage.getDirectRecruits_legacy(userId);
+  //     res.json(directRecruits);
+  //   } catch (error) {
+  //     console.error("Error fetching direct recruits:", error);
+  //     res.status(500).json({ message: "Failed to fetch direct recruits" });
+  //   }
+  // });
+
+  // Direct recruits only (left and right positions in multi-child tree) (NEW)
   app.get("/api/direct-recruits", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const directRecruits = await storage.getDirectRecruits(userId);
+      const directRecruits = await storage.getMultiChildDirectRecruits(userId);
       res.json(directRecruits);
     } catch (error) {
       console.error("Error fetching direct recruits:", error);
@@ -1379,7 +1404,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const baseUrl = process.env.NODE_ENV === 'production' 
           ? 'https://voltveratech.com' 
-          : `http://localhost:5173`;
+          : `http://localhost:${process.env.PORT || 5000}`;
         const fullUrl = `${baseUrl}/referral-register?token=${token}`;
         
         // Update the pending recruit with link generation step
@@ -1465,7 +1490,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Referral link endpoints
-  app.post('/api/referral/generate', isAuthenticated, async (req: any, res) => {
+  // ====================================================================================
+  // LEGACY ROUTE - ORIGINALLY FOR BINARY MLM WITH COMPLEX TEMPORARY RECORDS
+  // ====================================================================================
+  // This route was designed for binary MLM with complex temporary pending_recruits
+  // entries to store strategic placement information. It creates fake records with
+  // names like 'STRATEGIC_PLACEMENT_TEMP' and emails like 'temp_123@strategic.local'
+  // to store placement information until someone uses the referral link.
+  // 
+  // PROBLEMS WITH THIS APPROACH:
+  // - Creates unnecessary temporary records in pending_recruits table
+  // - Complex logic to manage and clean up temporary records
+  // - Admin becomes generatedBy instead of selected parent
+  // - Requires additional database queries and updates
+  // 
+  // NEW SIMPLIFIED APPROACH:
+  // - No temporary records needed
+  // - Direct storage of placement info in referral_links table
+  // - Selected parent becomes generatedBy (like user portal)
+  // - Much simpler and cleaner code
+  // ====================================================================================
+  app.post('/api/referral/generate_legacy_for_binary', isAuthenticated, async (req: any, res) => {
     try {
       const { placementType, placementSide, parentId } = req.body; // Placement type, side, and optional parent ID
       const userId = req.user.id;
@@ -1550,7 +1595,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const baseUrl = process.env.NODE_ENV === 'production' 
         ? 'https://voltveratech.com' 
-        : 'http://localhost:5000';
+        : `http://localhost:${process.env.PORT || 5000}`;
       const fullUrl = `${baseUrl}/recruit?ref=${token}`;
       
       res.json({
@@ -1561,6 +1606,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
         parentId: parentId || null,
         placementSide: placementSide,
         message: `${placementType === 'strategic' ? 'Strategic' : placementType === 'auto' ? 'Auto' : 'Root'} referral link generated. User will complete registration through the link.`
+      });
+    } catch (error) {
+      console.error('Error generating referral link:', error);
+      res.status(500).json({ message: 'Failed to generate referral link' });
+    }
+  });
+
+  // ====================================================================================
+  // NEW SIMPLIFIED ROUTE - WORKS LIKE USER PORTAL (NO TEMPORARY RECORDS)
+  // ====================================================================================
+  // This route follows the same pattern as /api/team/recruit (user portal):
+  // - No temporary pending_recruits entries
+  // - Direct storage of placement info in referral_links table
+  // - Selected parent becomes generatedBy (sponsor)
+  // - Much simpler and cleaner code
+  // 
+  // STRATEGIC PLACEMENT:
+  // - parentId = selected parent (VV0025)
+  // - sponsorId = selected parent (VV0025) 
+  // - generatedBy = selected parent (VV0025)
+  // - generatedByRole = 'user' (role of selected parent)
+  // 
+  // ROOT PLACEMENT:
+  // - parentId = 'admin-demo'
+  // - sponsorId = 'admin-demo'
+  // - generatedBy = 'admin-demo'
+  // - generatedByRole = 'admin'
+  // ====================================================================================
+  app.post('/api/referral/generate', isAuthenticated, async (req: any, res) => {
+    try {
+      const { placementType, placementSide, parentId } = req.body;
+      const userId = req.user.id;
+      const userRole = req.user.role;
+      
+      if (!placementType || !placementSide || !['left', 'right'].includes(placementSide)) {
+        return res.status(400).json({ message: 'Valid placement type and side (left/right) are required' });
+      }
+      
+      // Validate parentId requirement for strategic placement
+      if (placementType === 'strategic' && !parentId) {
+        return res.status(400).json({ message: 'Parent ID is required for strategic placement' });
+      }
+      
+      const token = nanoid(32);
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 48); // 48 hours expiry
+      
+      // Determine generatedBy and generatedByRole based on placement type
+      let generatedBy: string;
+      let generatedByRole: string;
+      
+      console.log(`Admin ${userId} generating ${placementType} referral link`);
+      
+      if (placementType === 'strategic') {
+        // Strategic placement: selected parent becomes the sponsor
+        generatedBy = parentId;
+        
+        // Get the role of the selected parent
+        const parentUser = await storage.getUser(parentId);
+        generatedByRole = parentUser?.role || 'user';
+        
+        console.log(`Strategic placement: User will be placed under ${parentUser?.userId || parentId} (${generatedByRole}) on ${placementSide} side`);
+      } else if (placementType === 'root') {
+        // Root placement: current admin becomes the sponsor
+        generatedBy = userId;  // Use the actual admin ID who generated the link
+        generatedByRole = userRole;  // Use the actual admin role
+        
+        console.log(`Root placement: User will be placed under admin ${userId} (${userRole}) on ${placementSide} side`);
+      } else {
+        return res.status(400).json({ message: 'Only strategic and root placement types are supported' });
+      }
+      
+      // Create referral link with placement information (NO temporary records)
+      const referralLink = await storage.createReferralLink({
+        token,
+        generatedBy: generatedBy,        // Selected parent for strategic, admin-demo for root
+        generatedByRole: generatedByRole, // Role of selected parent for strategic, admin for root
+        placementSide,
+        pendingRecruitId: null,         // No temporary records needed
+        expiresAt
+      });
+      
+      console.log(`Referral link created successfully: ${token.substring(0, 8)}... (expires in 48h)`);
+      
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://voltveratech.com' 
+        : `http://localhost:${process.env.PORT || 5000}`;
+      const fullUrl = `${baseUrl}/recruit?ref=${token}`;
+      
+      res.json({
+        referralLink,
+        url: fullUrl,
+        expiresIn: '48 hours',
+        placementType: placementType,
+        parentId: parentId || null,
+        placementSide: placementSide,
+        message: `${placementType === 'strategic' ? 'Strategic' : 'Root'} referral link generated. User will complete registration through the link.`
       });
     } catch (error) {
       console.error('Error generating referral link:', error);
@@ -1613,7 +1755,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Recruitment registration endpoint (when new user fills details via referral link)
-  app.post('/api/recruitment/register', async (req, res) => {
+  // ====================================================================================
+  // DEPRECATED ROUTE - ORIGINALLY USED BY ReferralRegistration.tsx (NOW UNUSED)
+  // ====================================================================================
+  // This route was originally called by ReferralRegistration.tsx which has been renamed
+  // to ReferralRegistration_backup_unused.tsx because it's not used anywhere in the app.
+  // 
+  // CURRENT ACTIVE FLOW:
+  // - Admin Strategic Placement: /api/referral/generate → /api/referral/complete-registration
+  // - User Recruitment: /api/team/recruit → /api/referral/complete-registration
+  // 
+  // This route is kept for reference but should not be used in new implementations.
+  // If you need similar functionality, use /api/referral/complete-registration instead.
+  // ====================================================================================
+  app.post('/api/recruitment/register_referralregistration_file_route', async (req, res) => {
     try {
       const { token, recruiteeName, recruiteeEmail } = req.body;
       
@@ -1704,6 +1859,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (strategicRecruit.length > 0 && strategicRecruit[0].fullName === 'STRATEGIC_PLACEMENT_TEMP') {
             await db.update(pendingRecruits)
               .set({ 
+                // recruiterId: strategicRecruit[0].recruiterId || referralLink.generatedBy, // COMMENTED FOR FUTURE REFERENCE
                 uplineId: strategicRecruit[0].uplineId || referralLink.generatedBy,
                 position: strategicRecruit[0].position || 'left',
                 updatedAt: new Date()
@@ -2065,7 +2221,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Update wallet balance and create transaction
-      const transactionType = option === 'Credit' ? 'admin_credit' : 'admin_debit';
+      const transactionType = 'fundRequest'; // Fund management operations
       const description = `${option} by Admin: ${remarks}`;
       
       await storage.updateWalletBalance(
@@ -2151,6 +2307,225 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+// Get all fund requests with user details
+app.get('/api/admin/fund-requests', isAuthenticated, isAdmin, async (req, res) => {
+  try {
+    console.log('=== FETCHING FUND REQUESTS ===');
+    
+    const { db } = await import("./db");
+    const { fundRequests, users } = await import("@shared/schema");
+    const { desc, eq } = await import("drizzle-orm");
+
+    // Fetch all fund requests with user details, sorted by created_at descending
+    const allFundRequests = await db
+      .select({
+        id: fundRequests.id,
+        userId: fundRequests.userId,
+        amount: fundRequests.amount,
+        receiptUrl: fundRequests.receiptUrl,
+        status: fundRequests.status,
+        paymentMethod: fundRequests.paymentMethod,
+        transactionId: fundRequests.transactionId,
+        adminNotes: fundRequests.adminNotes,
+        processedBy: fundRequests.processedBy,
+        processedAt: fundRequests.processedAt,
+        createdAt: fundRequests.createdAt,
+        updatedAt: fundRequests.updatedAt,
+        // User details (joined from users table)
+        userName: users.firstName,
+        userLastName: users.lastName,
+        userEmail: users.email,
+        userDisplayId: users.userId,
+      })
+      .from(fundRequests)
+      .leftJoin(users, eq(fundRequests.userId, users.userId))
+      .orderBy(desc(fundRequests.createdAt));
+
+    console.log(`Found ${allFundRequests.length} fund requests`);
+
+    res.json(allFundRequests);
+  } catch (error) {
+    console.error('Error fetching fund requests:', error);
+    res.status(500).json({ message: 'Failed to fetch fund requests' });
+  }
+});
+
+
+// Update fund request status (approve/reject) with automatic wallet credit
+app.put('/api/admin/fund-requests/:id', isAuthenticated, isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, adminNotes, amount } = req.body;
+    const adminId = (req as any).user?.id;
+
+    console.log('=== UPDATING FUND REQUEST ===');
+    console.log('Request ID:', id);
+    console.log('Status:', status);
+    console.log('Admin Notes:', adminNotes);
+    console.log('Amount received:', amount);
+    console.log('Amount type:', typeof amount);
+    console.log('Amount undefined?', amount === undefined);
+
+    // Validate status
+    if (!['pending', 'approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ 
+        message: 'Status must be pending, approved, or rejected' 
+      });
+    }
+
+    // Validate amount if provided
+    if (amount !== undefined) {
+      const amountNum = parseFloat(amount);
+      if (isNaN(amountNum) || amountNum <= 0) {
+        return res.status(400).json({ 
+          message: 'Amount must be a positive number' 
+        });
+      }
+    }
+
+    const { db } = await import("./db");
+    const { fundRequests, users } = await import("@shared/schema");
+    const { eq } = await import("drizzle-orm");
+
+    // First, get the current fund request to get user info
+    const currentRequest = await db
+      .select()
+      .from(fundRequests)
+      .where(eq(fundRequests.id, id))
+      .limit(1);
+
+    if (!currentRequest.length) {
+      return res.status(404).json({ 
+        message: 'Fund request not found' 
+      });
+    }
+
+    const fundRequest = currentRequest[0];
+    const finalAmount = amount !== undefined ? amount : fundRequest.amount;
+    const amountNum = parseFloat(finalAmount);
+
+    // Prepare update data
+    const updateData: any = {
+      status,
+      adminNotes,
+      processedBy: adminId,
+      processedAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    // Add amount to update if provided
+    if (amount !== undefined && amount !== null && amount !== '') {
+      updateData.amount = amount;
+      console.log('🔄 Updating amount to:', amount);
+    } else {
+      console.log('⚠️ No amount provided, keeping existing amount');
+    }
+    
+    console.log('📥 Backend: Final updateData:', updateData);
+
+    // If status is 'approved', we need to credit the wallet FIRST before updating the fund request
+    if (status === 'approved') {
+      console.log('💰 Processing wallet credit for fund request approval');
+      
+      try {
+        // Get user details - fundRequest.userId contains display ID (VV0001), not UUID
+        const user = await db.select().from(users).where(eq(users.userId, fundRequest.userId)).limit(1);
+        if (!user.length) {
+          console.error('❌ User not found for fund request:', fundRequest.userId);
+          return res.status(500).json({ 
+            message: 'User not found for fund request' 
+          });
+        }
+
+        const userData = user[0];
+        console.log('Found user:', userData.email, userData.firstName, userData.lastName);
+        console.log('User UUID:', userData.id, 'User Display ID:', userData.userId);
+
+        // Get or create wallet balance using the Display ID (users.userId)
+        let wallet = await storage.getWalletBalance(userData.userId || '');
+        if (!wallet) {
+          wallet = await storage.createWalletBalance(userData.userId || '');
+          console.log('Created new wallet for user Display ID:', userData.userId);
+        }
+
+        const currentBalance = parseFloat(wallet.balance || '0');
+        const newBalance = currentBalance + amountNum;
+
+        console.log('Wallet transaction:', {
+          currentBalance,
+          amountToCredit: amountNum,
+          newBalance
+        });
+
+        // Update ONLY the balance (E-wallet) for fund approval - NOT total_earnings (income)
+        const transactionType = 'fundRequest';
+        const description = `Fund Request Approved: ${adminNotes || 'Fund request approved'}`;
+        
+        // Update wallet balance only (not totalEarnings) for fund approvals
+        await storage.updateWalletBalance(
+          userData.userId || '',
+          amountNum.toString(),
+          description,
+          transactionType
+        );
+
+        console.log('✅ Wallet credited successfully');
+
+        // Only NOW update the fund request status to approved
+        const updatedRequest = await db
+          .update(fundRequests)
+          .set(updateData)
+          .where(eq(fundRequests.id, id))
+          .returning();
+
+        console.log('✅ Fund request approved successfully');
+
+        res.json({
+          message: `Fund request approved and wallet credited successfully`,
+          data: {
+            fundRequest: updatedRequest[0],
+            walletCredit: {
+              userId: userData.userId, // Display ID like VV0001
+              userUuid: userData.id,   // UUID for reference
+              amount: amountNum,
+              previousBalance: currentBalance,
+              newBalance: newBalance,
+              description
+            }
+          }
+        });
+
+      } catch (walletError: any) {
+        console.error('❌ Error crediting wallet:', walletError);
+        // If wallet credit fails, DO NOT approve the fund request
+        return res.status(500).json({
+          message: 'Failed to credit wallet. Fund request approval cancelled.',
+          error: walletError.message || 'Wallet credit failed',
+          details: 'Please check user wallet status and try again'
+        });
+      }
+    } else {
+      // For rejected or other statuses, just update the fund request
+      const updatedRequest = await db
+        .update(fundRequests)
+        .set(updateData)
+        .where(eq(fundRequests.id, id))
+        .returning();
+
+      console.log('✅ Fund request updated successfully');
+
+      res.json({
+        message: `Fund request ${status} successfully`,
+        data: updatedRequest[0]
+      });
+    }
+
+  } catch (error) {
+    console.error('Error updating fund request:', error);
+    res.status(500).json({ message: 'Failed to update fund request' });
+  }
+});
+
 // Get pending withdrawal requests with user details
 app.get('/api/admin/pending-withdrawals', isAuthenticated, isAdmin, async (req, res) => {
   try {
@@ -2197,9 +2572,30 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
       } else {
         res.status(404).json({ message: 'Withdrawal request not found' });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error approving withdrawal request:', error);
-      res.status(500).json({ message: 'Failed to approve withdrawal request' });
+      
+      // Return specific error message for insufficient earnings
+      if (error.message?.includes('Insufficient earnings')) {
+        return res.status(400).json({ 
+          message: error.message,
+          error: 'INSUFFICIENT_EARNINGS'
+        });
+      }
+      
+      // Return specific error message for other validation errors
+      if (error.message?.includes('Insufficient balance')) {
+        return res.status(400).json({ 
+          message: error.message,
+          error: 'INSUFFICIENT_BALANCE'
+        });
+      }
+      
+      // Generic error for other cases
+      res.status(500).json({ 
+        message: error.message || 'Failed to approve withdrawal request',
+        error: 'WITHDRAWAL_APPROVAL_FAILED'
+      });
     }
   });
 
@@ -2893,7 +3289,7 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
         
         try {
           const panDoc = await storage.createKYCDocumentBinary(tempUserId, {
-            documentType: 'panCard',
+            documentType: 'pan_card',
             documentData: base64Data,
             documentContentType: contentType,
             documentFilename: 'pan_card.jpg',
@@ -2901,7 +3297,7 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
             documentNumber: data.panNumber,
           });
           console.log('  ✅ PAN Card document created with ID:', panDoc.id);
-          documentUploads.push({ type: 'panCard', id: panDoc.id });
+          documentUploads.push({ type: 'pan_card', id: panDoc.id });
         } catch (error) {
           console.error('  ❌ Error creating PAN Card document:', error);
         }
@@ -2965,14 +3361,14 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
         
         try {
           const bankDoc = await storage.createKYCDocumentBinary(tempUserId, {
-            documentType: 'bank_cancelled_cheque',
+            documentType: 'bank_details',
             documentData: base64Data,
             documentContentType: contentType,
             documentFilename: 'bank_cancelled_cheque.jpg',
             documentSize: Math.round((base64Data.length * 3) / 4),
           });
           console.log('  ✅ Bank/Cancelled Cheque document created with ID:', bankDoc.id);
-          documentUploads.push({ type: 'bank_cancelled_cheque', id: bankDoc.id });
+          documentUploads.push({ type: 'bank_details', id: bankDoc.id });
         } catch (error) {
           console.error('  ❌ Error creating Bank/Cancelled Cheque document:', error);
         }
@@ -3105,6 +3501,174 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
     } catch (error) {
       console.error('Error updating profile:', error);
       res.status(500).json({ message: 'Failed to update profile' });
+    }
+  });
+
+  // User fund request creation endpoint
+  app.post('/api/user/fund-requests', isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const { amount, transactionId, paymentMethod, receiptUrl } = req.body;
+
+      // Validation
+      if (!amount || !transactionId || !paymentMethod) {
+        return res.status(400).json({ 
+          message: 'Missing required fields: amount, transactionId, paymentMethod' 
+        });
+      }
+
+      const amountNum = parseFloat(amount);
+      if (isNaN(amountNum) || amountNum <= 0) {
+        return res.status(400).json({ 
+          message: 'Invalid amount. Must be a positive number.' 
+        });
+      }
+
+      // Create fund request
+      const fundRequest = await db.insert(fundRequests).values({
+        userId,
+        amount: amountNum.toString(),
+        transactionId,
+        paymentMethod,
+        receiptUrl: receiptUrl || null,
+        status: 'pending'
+      }).returning();
+
+      console.log('✅ Fund request created:', fundRequest[0].id);
+      res.status(201).json({
+        message: 'Fund request submitted successfully',
+        requestId: fundRequest[0].id
+      });
+    } catch (error) {
+      console.error('Error creating fund request:', error);
+      res.status(500).json({ message: 'Failed to create fund request' });
+    }
+  });
+
+  // User fund requests history endpoint
+  app.get('/api/user/fund-requests', isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      // Get user's fund requests
+      const userFundRequests = await db
+        .select()
+        .from(fundRequests)
+        .where(eq(fundRequests.userId, userId))
+        .orderBy(desc(fundRequests.createdAt));
+
+      res.json(userFundRequests);
+    } catch (error) {
+      console.error('Error fetching user fund requests:', error);
+      res.status(500).json({ message: 'Failed to fetch fund requests' });
+    }
+  });
+
+  // User withdrawal request creation endpoint
+  app.post('/api/user/withdrawal-requests', isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const { amount, remarks } = req.body;
+
+      console.log('=== USER WITHDRAWAL CREATION ===');
+      console.log('User ID:', userId);
+      console.log('Amount:', amount);
+      console.log('Remarks:', remarks);
+
+      // Validation
+      if (!amount) {
+        return res.status(400).json({ 
+          message: 'Missing required field: amount' 
+        });
+      }
+
+      const amountNum = parseFloat(amount);
+      if (isNaN(amountNum) || amountNum <= 0) {
+        return res.status(400).json({ 
+          message: 'Amount must be a positive number' 
+        });
+      }
+
+      // Create withdrawal request using storage method (similar to admin but for user)
+      const withdrawalRequest = await storage.createUserWithdrawalRequest({
+        userId,
+        withdrawalType: 'INR', // Always INR for user withdrawals
+        amount: amountNum.toString(),
+        remarks: remarks || ''
+      });
+
+      console.log('✅ User withdrawal request created:', withdrawalRequest.id);
+      res.status(201).json({
+        message: 'Withdrawal request submitted successfully',
+        requestId: withdrawalRequest.id
+      });
+    } catch (error) {
+      console.error('Error creating user withdrawal request:', error);
+      
+      // Determine appropriate status code based on error type
+      let statusCode = 500;
+      let errorMessage = 'Failed to create withdrawal request';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Set appropriate status codes for different error types
+        if (errorMessage.includes('User not found')) {
+          statusCode = 404;
+        } else if (errorMessage.includes('KYC is not approved') || 
+                   errorMessage.includes('Insufficient balance') ||
+                   errorMessage.includes('does not have a wallet')) {
+          statusCode = 400; // Bad Request
+        }
+      }
+      
+      res.status(statusCode).json({
+        message: errorMessage
+      });
+    }
+  });
+
+  // User withdrawal requests history endpoint
+  app.get('/api/user/withdrawal-requests', isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.userId;
+      console.log('🔍 GET /api/user/withdrawal-requests - User ID:', userId);
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      // Get user's withdrawal requests
+      const userWithdrawalRequests = await db
+        .select()
+        .from(withdrawalRequests)
+        .where(eq(withdrawalRequests.userId, userId))
+        .orderBy(desc(withdrawalRequests.createdAt));
+
+      console.log('🔍 Found withdrawal requests:', userWithdrawalRequests.length);
+      console.log('🔍 Withdrawal requests data:', userWithdrawalRequests);
+
+      // Debug: Check all withdrawal requests in database
+      const allWithdrawalRequests = await db
+        .select()
+        .from(withdrawalRequests)
+        .orderBy(desc(withdrawalRequests.createdAt));
+      console.log('🔍 ALL withdrawal requests in database:', allWithdrawalRequests.length);
+      console.log('🔍 ALL withdrawal requests data:', allWithdrawalRequests);
+      res.json(userWithdrawalRequests);
+    } catch (error) {
+      console.error('Error fetching user withdrawal requests:', error);
+      res.status(500).json({ message: 'Failed to fetch withdrawal requests' });
     }
   });
 
@@ -3248,7 +3812,7 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
         placement: {
           parentId,
           position,
-          level: newUser.level
+          level: newUser.level || '0'
         }
       });
 

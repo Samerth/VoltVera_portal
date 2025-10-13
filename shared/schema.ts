@@ -75,6 +75,9 @@ export const users = pgTable("users", {
   position: varchar("position"), // 'left' or 'right' position under parent
   level: varchar("level").default('0'), // Depth in the binary tree
   
+  // Multi-Child MLM Structure (NEW)
+  order: integer("order").default(0), // Order within position (0, 1, 2...N)
+  
   // Team Management Fields
   packageAmount: decimal("package_amount", { precision: 10, scale: 2 }).default('0.00'),
   registrationDate: timestamp("registration_date").defaultNow(),
@@ -316,11 +319,27 @@ export const withdrawalRequests = pgTable("withdrawal_requests", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Fund requests table for pending fund requests
+export const fundRequests = pgTable("fund_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  receiptUrl: varchar("receipt_url"), // Link to uploaded receipt image/PDF
+  status: varchar("status").default('pending'), // 'pending', 'approved', 'rejected'
+  paymentMethod: varchar("payment_method"), // 'bank_transfer', 'upi', 'cash', 'cheque', etc.
+  transactionId: varchar("transaction_id"),
+  adminNotes: text("admin_notes"),
+  processedBy: varchar("processed_by"),
+  processedAt: timestamp("processed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // KYC documents table
 export const kycDocuments = pgTable("kyc_documents", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
-  documentType: varchar("document_type").notNull(), // 'pan', 'aadhaar', 'bank_statement', 'photo'
+  documentType: varchar("document_type").notNull(), // 'pan_card', 'aadhaar_front', 'aadhaar_back', 'bank_details', 'photo'
   documentUrl: varchar("document_url").notNull(), // Legacy URL field - required for now due to DB constraint
   documentData: text("document_data"), // Base64 encoded document data
   documentContentType: varchar("document_content_type"), // MIME type like 'image/jpeg', 'application/pdf'
@@ -628,7 +647,7 @@ export const createKYCSchema = createInsertSchema(kycDocuments).pick({
   documentUrl: true,
   documentNumber: true,
 }).extend({
-  documentType: z.enum(['pan', 'aadhaar', 'bank_statement', 'photo']),
+  documentType: z.enum(['pan_card', 'aadhaar_front', 'aadhaar_back', 'bank_details', 'photo']),
   documentUrl: z.string().url("Valid document URL is required"),
   documentNumber: z.string().optional(),
 });
@@ -732,6 +751,7 @@ export type Purchase = typeof purchases.$inferSelect;
 export type WalletBalance = typeof walletBalances.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type WithdrawalRequest = typeof withdrawalRequests.$inferSelect;
+export type FundRequest = typeof fundRequests.$inferSelect;
 export type KYCDocument = typeof kycDocuments.$inferSelect;
 export type RankAchievement = typeof rankAchievements.$inferSelect;
 export type FranchiseRequest = typeof franchiseRequests.$inferSelect;

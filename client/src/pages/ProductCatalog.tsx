@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+// import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // DISABLED: Removed purchase type tabs
 import { useToast } from "@/hooks/use-toast";
 import { ShoppingCart, Package, Zap, Tv, Fan, Droplets, IndianRupee, Star } from "lucide-react";
 
@@ -62,7 +62,7 @@ const formatPrice = (price: string) => {
 
 export default function ProductCatalog() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedPurchaseType, setSelectedPurchaseType] = useState<string>('all');
+  // const [selectedPurchaseType, setSelectedPurchaseType] = useState<string>('all'); // DISABLED: Removed purchase type filtering
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [purchaseForm, setPurchaseForm] = useState<PurchaseData>({
@@ -119,11 +119,11 @@ export default function ProductCatalog() {
     },
   });
 
-  // Filter products based on selected category and purchase type
+  // Filter products based on selected category
   const filteredProducts = products.filter(product => {
     const categoryMatch = selectedCategory === 'all' || product.category === selectedCategory;
-    const typeMatch = selectedPurchaseType === 'all' || product.purchaseType === selectedPurchaseType;
-    return categoryMatch && typeMatch && product.isActive;
+    // const typeMatch = selectedPurchaseType === 'all' || product.purchaseType === selectedPurchaseType; // DISABLED: Removed purchase type filtering
+    return categoryMatch && product.isActive; // && typeMatch removed
   });
 
   // Get unique categories from products
@@ -204,13 +204,14 @@ export default function ProductCatalog() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4 mb-6">
-        <Tabs value={selectedPurchaseType} onValueChange={setSelectedPurchaseType} className="w-auto">
+        {/* DISABLED: Purchase type tabs removed */}
+        {/* <Tabs value={selectedPurchaseType} onValueChange={setSelectedPurchaseType} className="w-auto">
           <TabsList>
             <TabsTrigger value="all" data-testid="filter-all">All Products</TabsTrigger>
             <TabsTrigger value="first_purchase" data-testid="filter-first">First Purchase</TabsTrigger>
             <TabsTrigger value="second_purchase" data-testid="filter-second">Second Purchase</TabsTrigger>
           </TabsList>
-        </Tabs>
+        </Tabs> */}
 
         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
           <SelectTrigger className="w-48" data-testid="category-filter">
@@ -233,35 +234,66 @@ export default function ProductCatalog() {
       {/* Product Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredProducts.map(product => {
-          const total = calculateTotal();
-          
           return (
-            <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow" data-testid={`product-card-${product.id}`}>
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg line-clamp-2" data-testid={`product-name-${product.id}`}>
-                      {product.name}
-                    </CardTitle>
-                    <CardDescription className="mt-1 line-clamp-2">
-                      {product.description}
-                    </CardDescription>
+            <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col" data-testid={`product-card-${product.id}`}>
+              {/* Product Image */}
+              <div className="relative h-48 bg-gray-100">
+                {product.imageUrl ? (
+                  <img 
+                    src={product.imageUrl} 
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    onLoad={() => {
+                      console.log('Image loaded successfully:', product.name);
+                    }}
+                    onError={(e) => {
+                      console.log('Image failed to load:', product.imageUrl);
+                      // Hide the broken image
+                      e.currentTarget.style.display = 'none';
+                      // Show placeholder
+                      const placeholder = e.currentTarget.parentElement?.querySelector('.image-placeholder') as HTMLElement;
+                      if (placeholder) {
+                        placeholder.style.display = 'flex';
+                      }
+                    }}
+                  />
+                ) : null}
+                
+                {/* Placeholder - hidden by default when imageUrl exists */}
+                <div 
+                  className={`image-placeholder w-full h-full flex items-center justify-center bg-gray-100 ${product.imageUrl ? 'hidden' : 'flex'}`}
+                  style={{ display: product.imageUrl ? 'none' : 'flex' }}
+                >
+                  <div className="text-center">
+                    <Package className="h-16 w-16 text-gray-400 mx-auto mb-2" />
+                    <p className="text-xs text-gray-500">
+                      {product.imageUrl ? 'Loading...' : 'No image'}
+                    </p>
                   </div>
                 </div>
+              </div>
+
+              <CardHeader className="pb-3">
+                <div className="space-y-2">
+                  <CardTitle className="text-lg line-clamp-2" data-testid={`product-name-${product.id}`}>
+                    {product.name}
+                  </CardTitle>
+                  <CardDescription className="line-clamp-2 text-sm">
+                    {product.description}
+                  </CardDescription>
+                </div>
                 
-                <div className="flex flex-wrap gap-2 mt-2">
+                <div className="flex flex-wrap gap-2 mt-3">
                   <Badge className={getCategoryColor(product.category)} data-testid={`product-category-${product.id}`}>
                     {getCategoryIcon(product.category)}
                     <span className="ml-1">{product.category.replace('_', ' ')}</span>
                   </Badge>
-                  <Badge variant={product.purchaseType === 'first_purchase' ? 'default' : 'secondary'}>
-                    {product.purchaseType === 'first_purchase' ? '1st Purchase' : '2nd Purchase'}
-                  </Badge>
                 </div>
               </CardHeader>
 
-              <CardContent className="pb-3">
-                <div className="space-y-2">
+              <CardContent className="pb-3 flex-1">
+                <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Price:</span>
                     <span className="font-semibold text-lg text-green-600" data-testid={`product-price-${product.id}`}>
@@ -283,7 +315,7 @@ export default function ProductCatalog() {
                 </div>
               </CardContent>
 
-              <CardFooter>
+              <CardFooter className="pt-0">
                 <Button 
                   onClick={() => handlePurchase(product)}
                   className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
@@ -308,112 +340,117 @@ export default function ProductCatalog() {
 
       {/* Purchase Modal */}
       <Dialog open={isPurchaseModalOpen} onOpenChange={setIsPurchaseModalOpen}>
-        <DialogContent className="sm:max-w-md" data-testid="purchase-modal">
-          <DialogHeader>
+        <DialogContent className="max-w-md max-h-[90vh] flex flex-col" data-testid="purchase-modal">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>Purchase Product</DialogTitle>
             <DialogDescription>
               Complete your purchase for {selectedProduct?.name}
             </DialogDescription>
           </DialogHeader>
 
-          {selectedProduct && (
-            <div className="space-y-4">
-              {/* Product Summary */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-medium mb-2">{selectedProduct.name}</h4>
-                <div className="text-sm space-y-1">
-                  <div className="flex justify-between">
-                    <span>Unit Price:</span>
-                    <span>{formatPrice(selectedProduct.price)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Unit BV:</span>
-                    <span>{parseFloat(selectedProduct.bv).toLocaleString()} BV</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>GST:</span>
-                    <span>{selectedProduct.gst}%</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Purchase Form */}
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto pr-2">
+            {selectedProduct && (
               <div className="space-y-4">
-                <div>
-                  <Label htmlFor="quantity">Quantity</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    min="1"
-                    value={purchaseForm.quantity}
-                    onChange={(e) => setPurchaseForm(prev => ({
-                      ...prev,
-                      quantity: parseInt(e.target.value) || 1
-                    }))}
-                    data-testid="purchase-quantity"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="paymentMethod">Payment Method *</Label>
-                  <Select value={purchaseForm.paymentMethod} onValueChange={(value) => 
-                    setPurchaseForm(prev => ({ ...prev, paymentMethod: value }))
-                  }>
-                    <SelectTrigger data-testid="payment-method">
-                      <SelectValue placeholder="Select payment method" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="upi">UPI</SelectItem>
-                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                      <SelectItem value="card">Credit/Debit Card</SelectItem>
-                      <SelectItem value="wallet">Wallet</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="deliveryAddress">Delivery Address *</Label>
-                  <Textarea
-                    id="deliveryAddress"
-                    placeholder="Enter complete delivery address..."
-                    value={purchaseForm.deliveryAddress}
-                    onChange={(e) => setPurchaseForm(prev => ({
-                      ...prev,
-                      deliveryAddress: e.target.value
-                    }))}
-                    data-testid="delivery-address"
-                  />
-                </div>
-
-                {/* Order Summary */}
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">Order Summary</h4>
+                {/* Product Summary */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium mb-2">{selectedProduct.name}</h4>
                   <div className="text-sm space-y-1">
                     <div className="flex justify-between">
-                      <span>Subtotal:</span>
-                      <span>{formatPrice((parseFloat(selectedProduct.price) * purchaseForm.quantity).toString())}</span>
+                      <span>Unit Price:</span>
+                      <span>{formatPrice(selectedProduct.price)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>GST ({selectedProduct.gst}%):</span>
-                      <span>{formatPrice(((parseFloat(selectedProduct.price) * purchaseForm.quantity * parseFloat(selectedProduct.gst)) / 100).toString())}</span>
+                      <span>Unit BV:</span>
+                      <span>{parseFloat(selectedProduct.bv).toLocaleString()} BV</span>
                     </div>
-                    <div className="flex justify-between font-medium text-lg">
-                      <span>Total:</span>
-                      <span className="text-green-600">
-                        {formatPrice(((parseFloat(selectedProduct.price) * purchaseForm.quantity) * (1 + parseFloat(selectedProduct.gst) / 100)).toString())}
-                      </span>
+                    <div className="flex justify-between">
+                      <span>GST:</span>
+                      <span>{selectedProduct.gst}%</span>
                     </div>
-                    <div className="flex justify-between text-blue-600 font-medium">
-                      <span>Total BV Earned:</span>
-                      <span>{(parseFloat(selectedProduct.bv) * purchaseForm.quantity).toLocaleString()} BV</span>
+                  </div>
+                </div>
+
+                {/* Purchase Form */}
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="quantity">Quantity</Label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      min="1"
+                      value={purchaseForm.quantity}
+                      onChange={(e) => setPurchaseForm(prev => ({
+                        ...prev,
+                        quantity: parseInt(e.target.value) || 1
+                      }))}
+                      data-testid="purchase-quantity"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="paymentMethod">Payment Method *</Label>
+                    <Select value={purchaseForm.paymentMethod} onValueChange={(value) => 
+                      setPurchaseForm(prev => ({ ...prev, paymentMethod: value }))
+                    }>
+                      <SelectTrigger data-testid="payment-method">
+                        <SelectValue placeholder="Select payment method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="upi">UPI</SelectItem>
+                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                        <SelectItem value="card">Credit/Debit Card</SelectItem>
+                        <SelectItem value="wallet">Wallet</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="deliveryAddress">Delivery Address *</Label>
+                    <Textarea
+                      id="deliveryAddress"
+                      placeholder="Enter complete delivery address..."
+                      value={purchaseForm.deliveryAddress}
+                      onChange={(e) => setPurchaseForm(prev => ({
+                        ...prev,
+                        deliveryAddress: e.target.value
+                      }))}
+                      data-testid="delivery-address"
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* Order Summary */}
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <h4 className="font-medium mb-2">Order Summary</h4>
+                    <div className="text-sm space-y-1">
+                      <div className="flex justify-between">
+                        <span>Subtotal:</span>
+                        <span>{formatPrice((parseFloat(selectedProduct.price) * purchaseForm.quantity).toString())}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>GST ({selectedProduct.gst}%):</span>
+                        <span>{formatPrice(((parseFloat(selectedProduct.price) * purchaseForm.quantity * parseFloat(selectedProduct.gst)) / 100).toString())}</span>
+                      </div>
+                      <div className="flex justify-between font-medium text-lg">
+                        <span>Total:</span>
+                        <span className="text-green-600">
+                          {formatPrice(((parseFloat(selectedProduct.price) * purchaseForm.quantity) * (1 + parseFloat(selectedProduct.gst) / 100)).toString())}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-blue-600 font-medium">
+                        <span>Total BV Earned:</span>
+                        <span>{(parseFloat(selectedProduct.bv) * purchaseForm.quantity).toLocaleString()} BV</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          <DialogFooter>
+          {/* Fixed Footer */}
+          <DialogFooter className="flex-shrink-0 border-t pt-4 mt-4">
             <Button variant="outline" onClick={() => setIsPurchaseModalOpen(false)}>
               Cancel
             </Button>

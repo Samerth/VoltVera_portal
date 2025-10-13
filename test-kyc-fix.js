@@ -22,7 +22,7 @@ async function testKYCFix() {
           console.log(`   ${index + 1}. ${user.firstName} ${user.lastName} (${user.userUserId})`);
           console.log(`      Status: ${user.kycStatus}`);
           console.log(`      Is Pending Recruit: ${user.isPendingRecruit || false}`);
-          console.log(`      Documents: PAN=${user.documents.panCard.url ? '✓' : '✗'}, Aadhaar=${user.documents.aadhaarCard.url ? '✓' : '✗'}`);
+          console.log(`      Documents: PAN=${user.documents.panCard.url ? '✓' : '✗'}, Aadhaar Front=${user.documents.aadhaarFront?.url ? '✓' : '✗'}, Aadhaar Back=${user.documents.aadhaarBack?.url ? '✓' : '✗'}`);
         });
       }
     }

@@ -16,7 +16,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { formatDistanceToNow } from "date-fns";
-import BinaryTreeView from "@/components/BinaryTreeView";
+// Legacy binary tree component (commented out)
+// import BinaryTreeView from "@/components/BinaryTreeView";
+import MultiChildTreeView from "@/components/MultiChildTreeView";
 import { UplineDecisions } from "@/components/UplineDecisions";
 import { DownlineView } from "@/components/DownlineView";
 import { TeamBusinessStages } from "@/components/TeamBusinessStages";
@@ -505,9 +507,9 @@ export default function MyTeam() {
             <DownlineView />
           </TabsContent>
 
-          {/* Binary Tree Tab */}
+          {/* Multi-Child Tree Tab */}
           <TabsContent value="tree">
-            <BinaryTreeView />
+            <MultiChildTreeView userId={user?.id || ''} />
           </TabsContent>
 
           {/* Team Business Stages Tab */}

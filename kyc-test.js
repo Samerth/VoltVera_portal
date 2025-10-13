@@ -56,7 +56,7 @@ async function testKYCList() {
     console.log(`   User: ${data[0].firstName} ${data[0].lastName} (${data[0].userUserId})`);
     console.log(`   Status: ${data[0].kycStatus}`);
     console.log(`   Created: ${data[0].createdAt}`);
-    console.log(`   Documents: PAN=${data[0].documents.panCard.url ? '✓' : '✗'}, Aadhaar=${data[0].documents.aadhaarCard.url ? '✓' : '✗'}, Bank=${data[0].documents.bankStatement.url ? '✓' : '✗'}, Photo=${data[0].documents.photo.url ? '✓' : '✗'}`);
+    console.log(`   Documents: PAN=${data[0].documents.panCard.url ? '✓' : '✗'}, Aadhaar Front=${data[0].documents.aadhaarFront?.url ? '✓' : '✗'}, Aadhaar Back=${data[0].documents.aadhaarBack?.url ? '✓' : '✗'}, Bank=${data[0].documents.bankStatement.url ? '✓' : '✗'}, Photo=${data[0].documents.photo.url ? '✓' : '✗'}`);
   }
   
   return data;

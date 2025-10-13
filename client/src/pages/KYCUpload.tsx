@@ -15,7 +15,7 @@ import { Upload, CheckCircle, Clock, XCircle, FileText, Camera, CreditCard, Buil
 import { useToast } from "@/hooks/use-toast";
 
 const kycSchema = z.object({
-  documentType: z.enum(['pan', 'aadhaar_front', 'aadhaar_back', 'bank_cancelled_cheque', 'photo'], {
+  documentType: z.enum(['pan_card', 'aadhaar_front', 'aadhaar_back', 'bank_details', 'photo'], {
     required_error: "Please select a document type"
   }),
   documentNumber: z.string().optional(),
@@ -36,10 +36,11 @@ interface KYCDocument {
 }
 
 const documentTypes = [
-  { value: 'pan', label: 'PAN Card', icon: CreditCard, description: 'Permanent Account Number Card' },
-  { value: 'aadhaar', label: 'Aadhaar Card', icon: FileText, description: 'Aadhaar Card (Front & Back)' },
-  { value: 'bank_statement', label: 'Bank Statement', icon: Building, description: 'Bank Statement or Cancelled Cheque' },
-  { value: 'photo', label: 'Photo ID', icon: Camera, description: 'Passport Photo or ID Photo' },
+  { value: 'pan_card', label: 'PAN Card', icon: CreditCard, description: 'Permanent Account Number Card' },
+  { value: 'aadhaar_front', label: 'Aadhaar Card (Front)', icon: FileText, description: 'Aadhaar Card Front Side' },
+  { value: 'aadhaar_back', label: 'Aadhaar Card (Back)', icon: FileText, description: 'Aadhaar Card Back Side' },
+  { value: 'bank_details', label: 'Bank Details', icon: Building, description: 'Bank Statement or Cancelled Cheque' },
+  { value: 'photo', label: 'Profile Photo', icon: Camera, description: 'Passport Photo or ID Photo' },
 ];
 
 export default function KYCUpload() {
@@ -50,7 +51,7 @@ export default function KYCUpload() {
   const form = useForm<KYCForm>({
     resolver: zodResolver(kycSchema),
     defaultValues: {
-      documentType: 'pan',
+      documentType: 'pan_card',
       documentNumber: "",
     },
   });
@@ -358,7 +359,7 @@ export default function KYCUpload() {
                         {...field}
                         onChange={(e) => {
                           // Convert to uppercase if document type is PAN
-                          const value = form.getValues('documentType') === 'pan' 
+                          const value = form.getValues('documentType') === 'pan_card' 
                             ? e.target.value.toUpperCase() 
                             : e.target.value;
                           field.onChange(value);

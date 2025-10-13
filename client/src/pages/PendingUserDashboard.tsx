@@ -449,10 +449,10 @@ export default function PendingUserDashboard() {
                 {kycDocuments.map((doc: any) => {
                   const getDocumentIcon = (type: string) => {
                     switch(type) {
-                      case 'pan': return CreditCard;
+                      case 'pan_card': return CreditCard;
                       case 'aadhaar_front': return FileText;
                       case 'aadhaar_back': return FileText;
-                      case 'bank_cancelled_cheque': return Building;
+                      case 'bank_details': return Building;
                       case 'photo': return Camera;
                       default: return FileText;
                     }
@@ -460,10 +460,10 @@ export default function PendingUserDashboard() {
 
                   const getDocumentLabel = (type: string) => {
                     switch(type) {
-                      case 'pan': return 'PAN Card';
+                      case 'pan_card': return 'PAN Card';
                       case 'aadhaar_front': return 'Aadhaar Front';
                       case 'aadhaar_back': return 'Aadhaar Back';
-                      case 'bank_cancelled_cheque': return 'Bank/Cancelled Cheque';
+                      case 'bank_details': return 'Bank Details';
                       case 'photo': return 'Photo ID';
                       default: return type;
                     }

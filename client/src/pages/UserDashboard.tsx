@@ -5,7 +5,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Zap, Leaf, BarChart3, Smartphone, Target, Bell, Lock, Users, Home, Settings, ShoppingCart, Package, Shield, Eye, CheckCircle, XCircle, Clock, Upload, Menu, X, DollarSign, ArrowUpRight } from "lucide-react";
+import { Zap, Leaf, BarChart3, Smartphone, Target, Bell, Lock, Users, Home, Settings, ShoppingCart, Package, Shield, Eye, CheckCircle, XCircle, Clock, Upload, Menu, X, DollarSign, ArrowUpRight, TrendingUp } from "lucide-react";
 import { Link } from "wouter";
 import VoltverashopLogo from "@/components/VoltverashopLogo";
 import MyTeam from "./MyTeam";
@@ -630,7 +630,7 @@ export default function UserDashboard() {
                   Access your sustainable energy solutions and track your impact with Voltverashop.
                 </p>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                   <div className="text-center p-6 bg-gray-50 rounded-xl">
                     <div className="w-16 h-16 volt-gradient rounded-full flex items-center justify-center text-white text-2xl mx-auto mb-4">
                       <Zap className="h-8 w-8" />
@@ -651,6 +651,18 @@ export default function UserDashboard() {
                     </div>
                     <h3 className="font-semibold text-gray-800 mb-2">Reports</h3>
                     <p className="text-gray-600 text-sm">View detailed analytics</p>
+                  </div>
+                  <div className="text-center p-6 bg-gray-50 rounded-xl">
+                    <div className="w-16 h-16 volt-gradient rounded-full flex items-center justify-center text-white text-2xl mx-auto mb-4">
+                      <TrendingUp className="h-8 w-8" />
+                    </div>
+                    <h3 className="font-semibold text-gray-800 mb-2">BV Matching</h3>
+                    <p className="text-gray-600 text-sm">Track your income</p>
+                    <Link href="/bv-calculations">
+                      <Button variant="ghost" size="sm" className="mt-2 text-volt-green hover:text-white hover:bg-volt-green">
+                        View Details
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </CardContent>

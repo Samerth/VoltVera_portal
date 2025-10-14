@@ -4061,18 +4061,29 @@ export class DatabaseStorage implements IStorage {
     if (!purchase) return;
 
     const buyer = await this.getUser(purchase.userId);
-    if (!buyer || !buyer.sponsorId) return;
+    if (!buyer) return;
 
-    // 10% sponsor income to direct sponsor
-    const sponsorIncome = parseFloat(purchase.totalBV) * 0.1;
-    await this.updateWalletBalance(
-      buyer.sponsorId,
-      sponsorIncome.toString(),
-      `Sponsor Income from ${buyer.firstName} ${buyer.lastName}`,
-      'sponsor_income'
-    );
+    console.log(`🔄 Processing income distribution for purchase: ${purchaseId}`);
 
-    // Update BV stats for the buyer and uplines
+    // Import production BV engine
+    const { productionBVEngine } = await import('./productionBVEngine');
+    
+    try {
+      // Process BV calculations using production engine
+      await productionBVEngine.processPurchase({
+        purchaseId: purchase.id,
+        userId: buyer.userId!, // Display ID (VV0001)
+        bvAmount: purchase.totalBV,
+        monthId: productionBVEngine.getCurrentMonthId()
+      });
+      
+      console.log(`✅ BV calculations completed for purchase: ${purchaseId}`);
+    } catch (error) {
+      console.error(`❌ Error in BV calculations for purchase ${purchaseId}:`, error);
+      // Continue with existing logic as fallback
+    }
+
+    // Update BV stats for the buyer and uplines (existing logic as backup)
     await this.updateUserBVStats(purchase.userId);
     
     // Update upline BV stats (recursive)

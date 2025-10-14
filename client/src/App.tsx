@@ -23,6 +23,7 @@ import ProductCatalog from "@/pages/ProductCatalog";
 import MyPurchases from "@/pages/MyPurchases";
 import PendingUserDashboard from "@/pages/PendingUserDashboard";
 import BVTestSimulation from "@/pages/BVTestSimulation";
+import BVCalculations from "@/pages/BVCalculations";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -86,6 +87,9 @@ function Router() {
           
           {/* BV Test Simulation - Available to all authenticated users for testing */}
           <Route path="/bv-test" component={BVTestSimulation} />
+          
+          {/* BV Calculations - Production BV dashboard for users */}
+          <Route path="/bv-calculations" component={BVCalculations} />
           
           {/* Role-based home routes */}
           {user?.role === 'founder' && <Route path="/" component={FounderDashboard} />}

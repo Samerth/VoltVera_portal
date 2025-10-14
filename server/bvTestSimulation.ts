@@ -1,5 +1,5 @@
 import { db } from './db';
-import { usersBvTest, walletBalancesBvTest, transactionsBvTest, productsBvTest, purchasesBvTest, lifetimeBvCalculationsBvTest, monthlyBvBvTest, bvTransactionsBvTest, rankConfigurations } from '../shared/schema';
+import { usersBvTest, walletBalancesBvTest, transactionsBvTest, productsBvTest, purchasesBvTest, lifetimeBvCalculations, monthlyBv, bvTransactions, rankConfigurations } from '../shared/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 
 // Test BV Calculation Engine
@@ -239,13 +239,13 @@ export class BVTestEngine {
 
     // Get or create lifetime BV calculation record
     let lifetimeRecord = await db.select()
-      .from(lifetimeBvCalculationsBvTest)
-      .where(eq(lifetimeBvCalculationsBvTest.userId, userId))
+      .from(lifetimeBvCalculations)
+      .where(eq(lifetimeBvCalculations.userId, userId))
       .limit(1);
 
     if (lifetimeRecord.length === 0) {
       // Create new lifetime record
-      const [newRecord] = await db.insert(lifetimeBvCalculationsBvTest).values({
+      const [newRecord] = await db.insert(lifetimeBvCalculations).values({
         userId: userId,
         parentId: user.parentId,
         userLevel: parseInt(user.level || '0'),
@@ -260,16 +260,16 @@ export class BVTestEngine {
 
     // Update lifetime BV calculation record
     const now = new Date();
-    await db.update(lifetimeBvCalculationsBvTest)
+    await db.update(lifetimeBvCalculations)
       .set({
         selfBv: newSelfBV.toString(),
         teamBv: (parseFloat(currentRecord.leftBv || '0') + parseFloat(currentRecord.rightBv || '0') + newSelfBV).toString(),
         updatedAt: now
       })
-      .where(eq(lifetimeBvCalculationsBvTest.userId, userId));
+      .where(eq(lifetimeBvCalculations.userId, userId));
 
     // Create BV transaction record for audit trail
-    await db.insert(bvTransactionsBvTest).values({
+    await db.insert(bvTransactions).values({
       userId: userId,
       parentId: user.parentId,
       purchaseId: purchaseId,
@@ -302,13 +302,13 @@ export class BVTestEngine {
 
     // Get or create lifetime BV calculation record
     let lifetimeRecord = await db.select()
-      .from(lifetimeBvCalculationsBvTest)
-      .where(eq(lifetimeBvCalculationsBvTest.userId, userId))
+      .from(lifetimeBvCalculations)
+      .where(eq(lifetimeBvCalculations.userId, userId))
       .limit(1);
 
     if (lifetimeRecord.length === 0) {
       // Create new lifetime record
-      const [newRecord] = await db.insert(lifetimeBvCalculationsBvTest).values({
+      const [newRecord] = await db.insert(lifetimeBvCalculations).values({
         userId: userId,
         parentId: user.parentId,
         userLevel: parseInt(user.level || '0'),
@@ -352,7 +352,7 @@ export class BVTestEngine {
 
     // Update lifetime BV calculation record
     const now = new Date();
-    await db.update(lifetimeBvCalculationsBvTest)
+    await db.update(lifetimeBvCalculations)
       .set({
         leftBv: newLeftBV.toString(),
         rightBv: newRightBV.toString(),
@@ -364,10 +364,10 @@ export class BVTestEngine {
         teamBv: (newLeftBV + newRightBV).toString(),
         updatedAt: now
       })
-      .where(eq(lifetimeBvCalculationsBvTest.userId, userId));
+      .where(eq(lifetimeBvCalculations.userId, userId));
 
     // Create BV transaction record for audit trail
-    await db.insert(bvTransactionsBvTest).values({
+    await db.insert(bvTransactions).values({
       userId: userId,
       parentId: user.parentId,
       purchaseId: purchaseId,
@@ -473,45 +473,45 @@ export class BVTestEngine {
     const allTransactions = await db.select().from(transactionsBvTest).orderBy(desc(transactionsBvTest.createdAt));
     
     // Get BV calculation data with error handling
-    let lifetimeBvCalculations = [];
-    let monthlyBv = [];
-    let bvTransactions = [];
-    let rankConfigs = [];
+    let allLifetimeBvCalculations = [];
+    let allMonthlyBv = [];
+    let allBvTransactions = [];
+    let allRankConfigs = [];
     
     try {
-      lifetimeBvCalculations = await db.select().from(lifetimeBvCalculationsBvTest).orderBy(lifetimeBvCalculationsBvTest.userId);
-      console.log('✅ Lifetime BV calculations fetched:', lifetimeBvCalculations.length);
+      allLifetimeBvCalculations = await db.select().from(lifetimeBvCalculations).orderBy(lifetimeBvCalculations.userId);
+      console.log('✅ Lifetime BV calculations fetched:', allLifetimeBvCalculations.length);
     } catch (error) {
       console.error('❌ Error fetching lifetime BV calculations:', error);
     }
     
     try {
-      monthlyBv = await db.select().from(monthlyBvBvTest).orderBy(monthlyBvBvTest.userId, monthlyBvBvTest.monthId);
-      console.log('✅ Monthly BV fetched:', monthlyBv.length);
+      allMonthlyBv = await db.select().from(monthlyBv).orderBy(monthlyBv.userId, monthlyBv.monthId);
+      console.log('✅ Monthly BV fetched:', allMonthlyBv.length);
     } catch (error) {
       console.error('❌ Error fetching monthly BV:', error);
     }
     
     try {
-      bvTransactions = await db.select().from(bvTransactionsBvTest).orderBy(desc(bvTransactionsBvTest.createdAt));
-      console.log('✅ BV transactions fetched:', bvTransactions.length);
+      allBvTransactions = await db.select().from(bvTransactions).orderBy(desc(bvTransactions.createdAt));
+      console.log('✅ BV transactions fetched:', allBvTransactions.length);
     } catch (error) {
       console.error('❌ Error fetching BV transactions:', error);
     }
     
     try {
-      rankConfigs = await db.select().from(rankConfigurations).orderBy(rankConfigurations.rankName);
-      console.log('✅ Rank configs fetched:', rankConfigs.length);
+      allRankConfigs = await db.select().from(rankConfigurations).orderBy(rankConfigurations.rankName);
+      console.log('✅ Rank configs fetched:', allRankConfigs.length);
     } catch (error) {
       console.error('❌ Error fetching rank configs:', error);
     }
 
     // Debug logging
     console.log('📊 BV Data being returned:', {
-      lifetimeBvCalculations: lifetimeBvCalculations.length,
-      monthlyBv: monthlyBv.length,
-      bvTransactions: bvTransactions.length,
-      rankConfigs: rankConfigs.length
+      lifetimeBvCalculations: allLifetimeBvCalculations.length,
+      monthlyBv: allMonthlyBv.length,
+      bvTransactions: allBvTransactions.length,
+      rankConfigs: allRankConfigs.length
     });
 
     return {
@@ -520,10 +520,10 @@ export class BVTestEngine {
       purchases: allPurchases,
       wallets: allWallets,
       transactions: allTransactions,
-      lifetimeBvCalculations,
-      monthlyBv,
-      bvTransactions,
-      rankConfigs
+      lifetimeBvCalculations: allLifetimeBvCalculations,
+      monthlyBv: allMonthlyBv,
+      bvTransactions: allBvTransactions,
+      rankConfigs: allRankConfigs
     };
   }
 
@@ -531,9 +531,9 @@ export class BVTestEngine {
   async clearAllTestData() {
     try {
       // Delete all test data from test tables (safe - these are separate tables)
-      await db.delete(bvTransactionsBvTest);
-      await db.delete(monthlyBvBvTest);
-      await db.delete(lifetimeBvCalculationsBvTest);
+      await db.delete(bvTransactions);
+      await db.delete(monthlyBv);
+      await db.delete(lifetimeBvCalculations);
       await db.delete(transactionsBvTest);
       await db.delete(purchasesBvTest);
       await db.delete(productsBvTest);
@@ -554,13 +554,13 @@ export class BVTestEngine {
       
       // Delete BV calculation data
       console.log('🗑️ Deleting BV transactions...');
-      await db.delete(bvTransactionsBvTest);
+      await db.delete(bvTransactions);
       
       console.log('🗑️ Deleting monthly BV...');
-      await db.delete(monthlyBvBvTest);
+      await db.delete(monthlyBv);
       
       console.log('🗑️ Deleting lifetime BV calculations...');
-      await db.delete(lifetimeBvCalculationsBvTest);
+      await db.delete(lifetimeBvCalculations);
       
       // Delete purchase and transaction data
       console.log('🗑️ Deleting transactions...');

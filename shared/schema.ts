@@ -749,66 +749,32 @@ export type CreateFranchiseRequest = z.infer<typeof createFranchiseRequestSchema
 export type CreateSupportTicket = z.infer<typeof createSupportTicketSchema>;
 export type CreateNews = z.infer<typeof createNewsSchema>;
 
-// BV Test Tables (Backup tables for testing)
-export const usersBvTest = pgTable("users_bvtest", {
+// BV Test Tables for simulation and testing BV calculations
+export const usersBvTest = pgTable("users_bv_test", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").unique(),
-  email: varchar("email").unique(),
+  userId: varchar("user_id").unique().notNull(),
+  email: varchar("email").notNull(),
   password: varchar("password").notNull(),
-  originalPassword: varchar("original_password"),
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
-  profileImageUrl: varchar("profile_image_url"),
-  role: userRoleEnum("role").default('user').notNull(),
-  status: userStatusEnum("status").default('pending').notNull(),
-  emailVerified: timestamp("email_verified"),
-  lastActiveAt: timestamp("last_active_at"),
-  sponsorId: varchar("sponsor_id"),
+  firstName: varchar("first_name").notNull(),
+  lastName: varchar("last_name").notNull(),
+  role: varchar("role").default('user').notNull(),
+  status: varchar("status").default('active').notNull(),
   parentId: varchar("parent_id"),
-  leftChildId: varchar("left_child_id"),
-  rightChildId: varchar("right_child_id"),
   position: varchar("position"),
   level: varchar("level").default('0'),
   order: integer("order").default(0),
-  packageAmount: decimal("package_amount", { precision: 10, scale: 2 }).default('0.00'),
-  registrationDate: timestamp("registration_date").defaultNow(),
-  activationDate: timestamp("activation_date"),
-  idStatus: varchar("id_status").default('Inactive'),
-  mobile: varchar("mobile"),
-  panNumber: varchar("pan_number"),
-  aadhaarNumber: varchar("aadhaar_number"),
-  bankAccountNumber: varchar("bank_account_number"),
-  bankIFSC: varchar("bank_ifsc"),
-  bankName: varchar("bank_name"),
-  bankAccountHolderName: varchar("bank_account_holder_name"),
-  address: text("address"),
-  city: varchar("city"),
-  state: varchar("state"),
-  pincode: varchar("pincode"),
-  dateOfBirth: timestamp("date_of_birth"),
-  nominee: varchar("nominee"),
   currentRank: rankEnum("current_rank").default('Executive'),
   totalBV: decimal("total_bv", { precision: 12, scale: 2 }).default('0.00'),
   leftBV: decimal("left_bv", { precision: 12, scale: 2 }).default('0.00'),
   rightBV: decimal("right_bv", { precision: 12, scale: 2 }).default('0.00'),
-  totalDirects: integer("total_directs").default(0),
-  leftDirects: integer("left_directs").default(0),
-  rightDirects: integer("right_directs").default(0),
-  kycStatus: kycStatusEnum("kyc_status").default('pending'),
-  kycSubmittedAt: timestamp("kyc_submitted_at"),
-  kycApprovedAt: timestamp("kyc_approved_at"),
-  txnPin: varchar("txn_pin"),
-  cryptoWalletAddress: varchar("crypto_wallet_address"),
-  firstLogin: boolean("first_login").default(true),
-  passwordChangedAt: timestamp("password_changed_at"),
-  isHiddenId: boolean("is_hidden_id").default(false),
-  kycDeadline: timestamp("kyc_deadline"),
-  kycLocked: boolean("kyc_locked").default(false),
+  registrationDate: timestamp("registration_date").defaultNow(),
+  activationDate: timestamp("activation_date"),
+  idStatus: varchar("id_status").default('Active'),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const productsBvTest = pgTable("products_bvtest", {
+export const productsBvTest = pgTable("products_bv_test", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
   description: text("description"),
@@ -816,14 +782,13 @@ export const productsBvTest = pgTable("products_bvtest", {
   bv: decimal("bv", { precision: 10, scale: 2 }).notNull(),
   gst: decimal("gst", { precision: 5, scale: 2 }).notNull(),
   category: varchar("category").notNull(),
-  purchaseType: purchaseTypeEnum("purchase_type").notNull(),
-  imageUrl: varchar("image_url"),
+  purchaseType: varchar("purchase_type").default('first_purchase'),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const purchasesBvTest = pgTable("purchases_bvtest", {
+export const purchasesBvTest = pgTable("purchases_bv_test", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
   productId: varchar("product_id").notNull(),
@@ -831,16 +796,14 @@ export const purchasesBvTest = pgTable("purchases_bvtest", {
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
   totalBV: decimal("total_bv", { precision: 10, scale: 2 }).notNull(),
   paymentMethod: varchar("payment_method"),
-  paymentStatus: varchar("payment_status").default('pending'),
-  transactionId: varchar("transaction_id"),
+  paymentStatus: varchar("payment_status").default('completed'),
   deliveryAddress: text("delivery_address"),
   deliveryStatus: varchar("delivery_status").default('pending'),
-  trackingId: varchar("tracking_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const walletBalancesBvTest = pgTable("walletbalances_bvtest", {
+export const walletBalancesBvTest = pgTable("wallet_balances_bv_test", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().unique(),
   balance: decimal("balance", { precision: 12, scale: 2 }).default('0.00'),
@@ -849,18 +812,20 @@ export const walletBalancesBvTest = pgTable("walletbalances_bvtest", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const transactionsBvTest = pgTable("transactions_bvtest", {
+export const transactionsBvTest = pgTable("transactions_bv_test", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
-  type: transactionTypeEnum("type").notNull(),
+  type: varchar("type").notNull(),
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
   description: text("description").notNull(),
   referenceId: varchar("reference_id"),
   balanceBefore: decimal("balance_before", { precision: 12, scale: 2 }).notNull(),
   balanceAfter: decimal("balance_after", { precision: 12, scale: 2 }).notNull(),
-  metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Note: BV test tables have been renamed to production tables and backup tables
+// The old test table definitions are removed as they are now production tables
 
 // Table select types
 export type User = typeof users.$inferSelect;
@@ -973,8 +938,8 @@ export type TicketCategory = typeof supportTickets.$inferSelect.category;
 //   createdAt: timestamp("created_at").defaultNow(),
 // });
 
-// BV Calculation Tables (for testing with _bvtest suffix)
-export const lifetimeBvCalculationsBvTest = pgTable("lifetime_bv_calculations_bvtest", {
+// Production BV Calculation Tables
+export const lifetimeBvCalculations = pgTable("lifetime_bv_calculations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
   parentId: varchar("parent_id"),
@@ -994,7 +959,7 @@ export const lifetimeBvCalculationsBvTest = pgTable("lifetime_bv_calculations_bv
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const monthlyBvBvTest = pgTable("monthly_bv_bvtest", {
+export const monthlyBv = pgTable("monthly_bv", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
   parentId: varchar("parent_id"),
@@ -1008,7 +973,7 @@ export const monthlyBvBvTest = pgTable("monthly_bv_bvtest", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const bvTransactionsBvTest = pgTable("bv_transactions_bvtest", {
+export const bvTransactions = pgTable("bv_transactions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
   parentId: varchar("parent_id"),

@@ -753,13 +753,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to get the actual user ID (supports both session and impersonation)
+  const getActualUserId = (req: any): string | null => {
+    // Priority 1: Impersonation token (req.user is set by bearer token auth)
+    if (req.user && req.user.id) {
+      return req.user.id;
+    }
+    // Priority 2: Session-based auth
+    if (req.session && req.session.userId) {
+      return req.session.userId;
+    }
+    return null;
+  };
+
   // Get user KYC documents
   app.get("/api/kyc", async (req, res) => {
-    if (!req.session.userId) {
+    const userId = getActualUserId(req);
+    if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
     try {
-      const documents = await storage.getUserKYCDocuments(req.session.userId!);
+      const documents = await storage.getUserKYCDocuments(userId);
       res.json(documents);
     } catch (error) {
       console.error("Error fetching KYC documents:", error);
@@ -770,7 +784,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Submit KYC document
   // Legacy KYC document upload with URL
   app.post("/api/kyc", async (req, res) => {
-    if (!req.session.userId) {
+    const userId = getActualUserId(req);
+    if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
     try {
@@ -781,7 +796,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if user already has a pending or approved document of this type
-      const existingDocs = await storage.getUserKYCDocuments(req.session.userId!);
+      const existingDocs = await storage.getUserKYCDocuments(userId);
       const existingDoc = existingDocs.find(doc => 
         doc.documentType === documentType && (doc.status === 'pending' || doc.status === 'approved')
       );
@@ -798,7 +813,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         documentNumber: documentNumber || undefined,
       };
       
-      const document = await storage.createKYCDocument(req.session.userId!, kycData);
+      const document = await storage.createKYCDocument(userId, kycData);
       res.status(201).json(document);
     } catch (error) {
       console.error("Error submitting KYC document:", error);
@@ -808,7 +823,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // New KYC document upload with Base64 binary data
   app.post("/api/kyc/upload", async (req, res) => {
-    if (!req.session.userId) {
+    const userId = getActualUserId(req);
+    if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
     try {
@@ -821,12 +837,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if user already has a document of this type
-      const existingDocs = await storage.getUserKYCDocuments(req.session.userId!);
+      const existingDocs = await storage.getUserKYCDocuments(userId);
       const existingDoc = existingDocs.find(doc => doc.documentType === documentType);
       
       if (existingDoc) {
         // If document exists, update it instead of creating a new one
-        console.log(`🔄 Updating existing document ${existingDoc.id} for user ${req.session.userId}`);
+        console.log(`🔄 Updating existing document ${existingDoc.id} for user ${userId}`);
         const updatedDocument = await storage.updateKYCDocument(existingDoc.id, {
           documentType,
           documentData,
@@ -865,7 +881,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         documentNumber: documentNumber || undefined,
       };
       
-      const document = await storage.createKYCDocumentBinary(req.session.userId!, kycData);
+      const document = await storage.createKYCDocumentBinary(userId, kycData);
       res.status(201).json(document);
     } catch (error) {
       console.error("Error uploading KYC document:", error);
@@ -875,7 +891,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Replace/Update KYC document with binary data
   app.put("/api/kyc/:documentId", async (req, res) => {
-    if (!req.session.userId) {
+    const userId = getActualUserId(req);
+    if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
     
@@ -908,7 +925,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if document exists and belongs to user
-      const existingDocs = await storage.getUserKYCDocuments(req.session.userId!);
+      const existingDocs = await storage.getUserKYCDocuments(userId);
       const existingDoc = existingDocs.find(doc => doc.id === documentId);
       
       if (!existingDoc) {
@@ -3465,7 +3482,7 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
   // Get user KYC information for profile
   app.get('/api/user/kyc-info', isAuthenticated, async (req, res) => {
     try {
-      const userId = (req.session as any)?.userId;
+      const userId = getActualUserId(req);
       if (!userId) {
         return res.status(401).json({ message: 'Unauthorized' });
       }

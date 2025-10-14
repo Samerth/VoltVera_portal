@@ -8,6 +8,7 @@ import {
   varchar,
   pgEnum,
   boolean,
+  date,
   decimal,
   integer,
 } from "drizzle-orm/pg-core";
@@ -748,6 +749,119 @@ export type CreateFranchiseRequest = z.infer<typeof createFranchiseRequestSchema
 export type CreateSupportTicket = z.infer<typeof createSupportTicketSchema>;
 export type CreateNews = z.infer<typeof createNewsSchema>;
 
+// BV Test Tables (Backup tables for testing)
+export const usersBvTest = pgTable("users_bvtest", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").unique(),
+  email: varchar("email").unique(),
+  password: varchar("password").notNull(),
+  originalPassword: varchar("original_password"),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  role: userRoleEnum("role").default('user').notNull(),
+  status: userStatusEnum("status").default('pending').notNull(),
+  emailVerified: timestamp("email_verified"),
+  lastActiveAt: timestamp("last_active_at"),
+  sponsorId: varchar("sponsor_id"),
+  parentId: varchar("parent_id"),
+  leftChildId: varchar("left_child_id"),
+  rightChildId: varchar("right_child_id"),
+  position: varchar("position"),
+  level: varchar("level").default('0'),
+  order: integer("order").default(0),
+  packageAmount: decimal("package_amount", { precision: 10, scale: 2 }).default('0.00'),
+  registrationDate: timestamp("registration_date").defaultNow(),
+  activationDate: timestamp("activation_date"),
+  idStatus: varchar("id_status").default('Inactive'),
+  mobile: varchar("mobile"),
+  panNumber: varchar("pan_number"),
+  aadhaarNumber: varchar("aadhaar_number"),
+  bankAccountNumber: varchar("bank_account_number"),
+  bankIFSC: varchar("bank_ifsc"),
+  bankName: varchar("bank_name"),
+  bankAccountHolderName: varchar("bank_account_holder_name"),
+  address: text("address"),
+  city: varchar("city"),
+  state: varchar("state"),
+  pincode: varchar("pincode"),
+  dateOfBirth: timestamp("date_of_birth"),
+  nominee: varchar("nominee"),
+  currentRank: rankEnum("current_rank").default('Executive'),
+  totalBV: decimal("total_bv", { precision: 12, scale: 2 }).default('0.00'),
+  leftBV: decimal("left_bv", { precision: 12, scale: 2 }).default('0.00'),
+  rightBV: decimal("right_bv", { precision: 12, scale: 2 }).default('0.00'),
+  totalDirects: integer("total_directs").default(0),
+  leftDirects: integer("left_directs").default(0),
+  rightDirects: integer("right_directs").default(0),
+  kycStatus: kycStatusEnum("kyc_status").default('pending'),
+  kycSubmittedAt: timestamp("kyc_submitted_at"),
+  kycApprovedAt: timestamp("kyc_approved_at"),
+  txnPin: varchar("txn_pin"),
+  cryptoWalletAddress: varchar("crypto_wallet_address"),
+  firstLogin: boolean("first_login").default(true),
+  passwordChangedAt: timestamp("password_changed_at"),
+  isHiddenId: boolean("is_hidden_id").default(false),
+  kycDeadline: timestamp("kyc_deadline"),
+  kycLocked: boolean("kyc_locked").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const productsBvTest = pgTable("products_bvtest", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  bv: decimal("bv", { precision: 10, scale: 2 }).notNull(),
+  gst: decimal("gst", { precision: 5, scale: 2 }).notNull(),
+  category: varchar("category").notNull(),
+  purchaseType: purchaseTypeEnum("purchase_type").notNull(),
+  imageUrl: varchar("image_url"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const purchasesBvTest = pgTable("purchases_bvtest", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  productId: varchar("product_id").notNull(),
+  quantity: integer("quantity").default(1),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  totalBV: decimal("total_bv", { precision: 10, scale: 2 }).notNull(),
+  paymentMethod: varchar("payment_method"),
+  paymentStatus: varchar("payment_status").default('pending'),
+  transactionId: varchar("transaction_id"),
+  deliveryAddress: text("delivery_address"),
+  deliveryStatus: varchar("delivery_status").default('pending'),
+  trackingId: varchar("tracking_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const walletBalancesBvTest = pgTable("walletbalances_bvtest", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().unique(),
+  balance: decimal("balance", { precision: 12, scale: 2 }).default('0.00'),
+  totalEarnings: decimal("total_earnings", { precision: 12, scale: 2 }).default('0.00'),
+  totalWithdrawals: decimal("total_withdrawals", { precision: 12, scale: 2 }).default('0.00'),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const transactionsBvTest = pgTable("transactions_bvtest", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  type: transactionTypeEnum("type").notNull(),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  description: text("description").notNull(),
+  referenceId: varchar("reference_id"),
+  balanceBefore: decimal("balance_before", { precision: 12, scale: 2 }).notNull(),
+  balanceAfter: decimal("balance_after", { precision: 12, scale: 2 }).notNull(),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Table select types
 export type User = typeof users.$inferSelect;
 export type Product = typeof products.$inferSelect;
@@ -768,6 +882,13 @@ export type EmailToken = typeof emailTokens.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type ReferralLink = typeof referralLinks.$inferSelect;
 export type RecruitmentRequest = typeof recruitmentRequests.$inferSelect;
+
+// BV Test table types
+export type UserBvTest = typeof usersBvTest.$inferSelect;
+export type ProductBvTest = typeof productsBvTest.$inferSelect;
+export type PurchaseBvTest = typeof purchasesBvTest.$inferSelect;
+export type WalletBalanceBvTest = typeof walletBalancesBvTest.$inferSelect;
+export type TransactionBvTest = typeof transactionsBvTest.$inferSelect;
 
 // Referral link and recruitment schemas
 export const createReferralLinkSchema = createInsertSchema(referralLinks).pick({
@@ -851,6 +972,77 @@ export type TicketCategory = typeof supportTickets.$inferSelect.category;
 //   // Metadata
 //   createdAt: timestamp("created_at").defaultNow(),
 // });
+
+// BV Calculation Tables (for testing with _bvtest suffix)
+export const lifetimeBvCalculationsBvTest = pgTable("lifetime_bv_calculations_bvtest", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  parentId: varchar("parent_id"),
+  userLevel: integer("user_level").default(0),
+  leftBv: decimal("left_bv", { precision: 12, scale: 2 }).default('0.00'),
+  rightBv: decimal("right_bv", { precision: 12, scale: 2 }).default('0.00'),
+  selfBv: decimal("self_bv", { precision: 12, scale: 2 }).default('0.00'),
+  directsBv: decimal("directs_bv", { precision: 12, scale: 2 }).default('0.00'),
+  matchingBv: decimal("matching_bv", { precision: 12, scale: 2 }).default('0.00'),
+  newMatch: decimal("new_match", { precision: 12, scale: 2 }).default('0.00'),
+  teamBv: decimal("team_bv", { precision: 12, scale: 2 }).default('0.00'),
+  carryForwardLeft: decimal("carry_forward_left", { precision: 12, scale: 2 }).default('0.00'),
+  carryForwardRight: decimal("carry_forward_right", { precision: 12, scale: 2 }).default('0.00'),
+  rank: varchar("rank").default('Executive'),
+  diffIncome: decimal("diff_income", { precision: 12, scale: 2 }).default('0.00'),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const monthlyBvBvTest = pgTable("monthly_bv_bvtest", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  parentId: varchar("parent_id"),
+  monthId: integer("month_id").notNull(),
+  monthStartdate: date("month_startdate").notNull(),
+  monthEnddate: date("month_enddate").notNull(),
+  monthBvLeft: decimal("month_bv_left", { precision: 12, scale: 2 }).notNull().default('0.00'),
+  monthBvRight: decimal("month_bv_right", { precision: 12, scale: 2 }).notNull().default('0.00'),
+  monthBvDirects: decimal("month_bv_directs", { precision: 12, scale: 2 }).notNull().default('0.00'),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const bvTransactionsBvTest = pgTable("bv_transactions_bvtest", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  parentId: varchar("parent_id"),
+  purchaseId: varchar("purchase_id"),
+  transactionType: varchar("transaction_type").notNull(),
+  prevLeftBv: decimal("prev_left_bv", { precision: 12, scale: 2 }).default('0.00'),
+  newLeftBv: decimal("new_left_bv", { precision: 12, scale: 2 }).default('0.00'),
+  prevRightBv: decimal("prev_right_bv", { precision: 12, scale: 2 }).default('0.00'),
+  newRightBv: decimal("new_right_bv", { precision: 12, scale: 2 }).default('0.00'),
+  prevMatchingBv: decimal("prev_matching_bv", { precision: 12, scale: 2 }).default('0.00'),
+  newMatchingBv: decimal("new_matching_bv", { precision: 12, scale: 2 }).default('0.00'),
+  newMatchAmount: decimal("new_match_amount", { precision: 12, scale: 2 }).default('0.00'),
+  carryForwardLeft: decimal("carry_forward_left", { precision: 12, scale: 2 }).default('0.00'),
+  carryForwardRight: decimal("carry_forward_right", { precision: 12, scale: 2 }).default('0.00'),
+  rank: varchar("rank").default('Executive'),
+  rankPercentage: decimal("rank_percentage", { precision: 5, scale: 4 }).default('0.0000'),
+  diffIncome: decimal("diff_income", { precision: 12, scale: 2 }).default('0.00'),
+  directIncome: decimal("direct_income", { precision: 12, scale: 2 }).default('0.00'),
+  monthId: integer("month_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const rankConfigurations = pgTable("rank_configurations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  rankName: varchar("rank_name").unique().notNull(),
+  percentage: decimal("percentage", { precision: 5, scale: 4 }).notNull(),
+  minTeamBv: decimal("min_team_bv", { precision: 12, scale: 2 }).default('0.00'),
+  minDirects: integer("min_directs").default(0),
+  bonusAmount: decimal("bonus_amount", { precision: 12, scale: 2 }).default('0.00'),
+  tourRewards: text("tour_rewards"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 
 // Enhanced type exports
 // export type ApprovalRequest = typeof approvalRequests.$inferSelect; // COMMENTED OUT - approval_requests not in use

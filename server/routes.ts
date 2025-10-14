@@ -755,14 +755,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Helper function to get the actual user ID (supports both session and impersonation)
   const getActualUserId = (req: any): string | null => {
+    console.log('🔍 getActualUserId called');
+    console.log('  - req.user:', req.user ? `id=${req.user.id}, role=${req.user.role}` : 'null');
+    console.log('  - req.session.userId:', req.session?.userId);
+    
     // Priority 1: Impersonation token (req.user is set by bearer token auth)
     if (req.user && req.user.id) {
+      console.log('  ✅ Using req.user.id:', req.user.id);
       return req.user.id;
     }
     // Priority 2: Session-based auth
     if (req.session && req.session.userId) {
+      console.log('  ✅ Using req.session.userId:', req.session.userId);
       return req.session.userId;
     }
+    console.log('  ❌ No user ID found');
     return null;
   };
 

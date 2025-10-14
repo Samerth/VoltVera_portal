@@ -324,7 +324,11 @@ export const fundRequests = pgTable("fund_requests", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  receiptUrl: varchar("receipt_url"), // Link to uploaded receipt image/PDF
+  receiptUrl: varchar("receipt_url"), // Legacy URL field - kept for backward compatibility
+  receiptData: text("receipt_data"), // Base64 encoded receipt data
+  receiptContentType: varchar("receipt_content_type", { length: 100 }), // MIME type
+  receiptFilename: varchar("receipt_filename", { length: 255 }), // Original filename
+  receiptSize: integer("receipt_size"), // File size in bytes
   status: varchar("status").default('pending'), // 'pending', 'approved', 'rejected'
   paymentMethod: varchar("payment_method"), // 'bank_transfer', 'upi', 'cash', 'cheque', etc.
   transactionId: varchar("transaction_id"),

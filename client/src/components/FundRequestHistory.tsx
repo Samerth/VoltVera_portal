@@ -22,6 +22,10 @@ interface FundRequest {
   id: string;
   amount: string;
   receiptUrl?: string;
+  receiptData?: string;
+  receiptContentType?: string;
+  receiptFilename?: string;
+  receiptSize?: number;
   status: 'pending' | 'approved' | 'rejected';
   paymentMethod?: string;
   transactionId?: string;
@@ -86,6 +90,54 @@ export default function FundRequestHistory() {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const getReceiptDataUrl = (request: FundRequest): string | null => {
+    if (request.receiptData && request.receiptContentType) {
+      return `data:${request.receiptContentType};base64,${request.receiptData}`;
+    }
+    return request.receiptUrl || null;
+  };
+
+  const handleViewReceipt = (request: FundRequest) => {
+    const dataUrl = getReceiptDataUrl(request);
+    if (!dataUrl) return;
+
+    // For PDFs, open in new tab directly
+    if (request.receiptContentType === 'application/pdf' || dataUrl.includes('.pdf')) {
+      window.open(dataUrl, '_blank');
+    } else {
+      // For images, create a preview window
+      const previewWindow = window.open('', '_blank');
+      if (previewWindow) {
+        previewWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Receipt - ${request.receiptFilename || 'Receipt'}</title>
+              <style>
+                body {
+                  margin: 0;
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  min-height: 100vh;
+                  background-color: #f3f4f6;
+                }
+                img {
+                  max-width: 90%;
+                  max-height: 90vh;
+                  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                }
+              </style>
+            </head>
+            <body>
+              <img src="${dataUrl}" alt="Receipt" />
+            </body>
+          </html>
+        `);
+      }
+    }
   };
 
   if (isLoading) {
@@ -213,17 +265,23 @@ export default function FundRequestHistory() {
                     </div>
                   )}
                   
-                  {request.receiptUrl && (
-                    <div className="mt-3">
+                  {(request.receiptData || request.receiptUrl) && (
+                    <div className="mt-3 flex items-center gap-3">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => window.open(request.receiptUrl, '_blank')}
+                        onClick={() => handleViewReceipt(request)}
                         className="text-blue-600 border-blue-600 hover:bg-blue-50"
                       >
                         <ExternalLink className="mr-2 h-4 w-4" />
                         View Receipt
                       </Button>
+                      {request.receiptFilename && (
+                        <span className="text-xs text-gray-600">
+                          {request.receiptFilename}
+                          {request.receiptSize && ` (${(request.receiptSize / 1024).toFixed(2)} KB)`}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>

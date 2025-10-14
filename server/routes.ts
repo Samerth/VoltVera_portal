@@ -2354,6 +2354,10 @@ app.get('/api/admin/fund-requests', isAuthenticated, isAdmin, async (req, res) =
         userId: fundRequests.userId,
         amount: fundRequests.amount,
         receiptUrl: fundRequests.receiptUrl,
+        receiptData: fundRequests.receiptData,
+        receiptContentType: fundRequests.receiptContentType,
+        receiptFilename: fundRequests.receiptFilename,
+        receiptSize: fundRequests.receiptSize,
         status: fundRequests.status,
         paymentMethod: fundRequests.paymentMethod,
         transactionId: fundRequests.transactionId,
@@ -3543,12 +3547,26 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
-      const { amount, transactionId, paymentMethod, receiptUrl } = req.body;
+      const { 
+        amount, 
+        transactionId, 
+        paymentMethod, 
+        receiptData, 
+        receiptContentType, 
+        receiptFilename, 
+        receiptSize 
+      } = req.body;
 
       // Validation
       if (!amount || !transactionId || !paymentMethod) {
         return res.status(400).json({ 
           message: 'Missing required fields: amount, transactionId, paymentMethod' 
+        });
+      }
+
+      if (!receiptData || !receiptContentType || !receiptFilename) {
+        return res.status(400).json({ 
+          message: 'Receipt is required. Please upload a payment receipt.' 
         });
       }
 
@@ -3559,13 +3577,38 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
         });
       }
 
-      // Create fund request
+      // Validate Base64 data
+      const base64Pattern = /^[A-Za-z0-9+/]*={0,2}$/;
+      if (!base64Pattern.test(receiptData)) {
+        return res.status(400).json({ 
+          message: 'Invalid receipt data format' 
+        });
+      }
+
+      // Validate file size (10MB max)
+      const calculatedSize = Math.round((receiptData.length * 3) / 4);
+      if (calculatedSize > 10 * 1024 * 1024) {
+        return res.status(400).json({ 
+          message: 'Receipt file size exceeds 10MB limit' 
+        });
+      }
+
+      console.log('📝 Creating fund request with receipt:');
+      console.log('  - User ID:', userId);
+      console.log('  - Amount:', amountNum);
+      console.log('  - Receipt size:', calculatedSize, 'bytes');
+      console.log('  - Receipt type:', receiptContentType);
+
+      // Create fund request with receipt data
       const fundRequest = await db.insert(fundRequests).values({
         userId,
         amount: amountNum.toString(),
         transactionId,
         paymentMethod,
-        receiptUrl: receiptUrl || null,
+        receiptData,
+        receiptContentType,
+        receiptFilename,
+        receiptSize: receiptSize || calculatedSize,
         status: 'pending'
       }).returning();
 

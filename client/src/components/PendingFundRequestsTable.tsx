@@ -28,6 +28,10 @@ interface FundRequest {
   userId: string;
   amount: string;
   receiptUrl?: string;
+  receiptData?: string;
+  receiptContentType?: string;
+  receiptFilename?: string;
+  receiptSize?: number;
   status: 'pending' | 'approved' | 'rejected';
   paymentMethod?: string;
   transactionId?: string;
@@ -244,6 +248,54 @@ export default function FundRequestsTable({
     });
   };
 
+  const getReceiptDataUrl = (request: FundRequest): string | null => {
+    if (request.receiptData && request.receiptContentType) {
+      return `data:${request.receiptContentType};base64,${request.receiptData}`;
+    }
+    return request.receiptUrl || null;
+  };
+
+  const handleViewReceipt = (request: FundRequest) => {
+    const dataUrl = getReceiptDataUrl(request);
+    if (!dataUrl) return;
+
+    // For PDFs, open in new tab directly
+    if (request.receiptContentType === 'application/pdf' || dataUrl.includes('.pdf')) {
+      window.open(dataUrl, '_blank');
+    } else {
+      // For images, create a preview window
+      const previewWindow = window.open('', '_blank');
+      if (previewWindow) {
+        previewWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Receipt - ${request.receiptFilename || 'Receipt'}</title>
+              <style>
+                body {
+                  margin: 0;
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  min-height: 100vh;
+                  background-color: #f3f4f6;
+                }
+                img {
+                  max-width: 90%;
+                  max-height: 90vh;
+                  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                }
+              </style>
+            </head>
+            <body>
+              <img src="${dataUrl}" alt="Receipt" />
+            </body>
+          </html>
+        `);
+      }
+    }
+  };
+
   const handleView = (request: FundRequest) => {
     setSelectedRequest(request);
     setEditableAmount(request.amount);
@@ -418,11 +470,11 @@ export default function FundRequestsTable({
                       </div>
                     </td>
                     <td className="p-3 min-w-[130px]">
-                      {request.receiptUrl ? (
+                      {(request.receiptData || request.receiptUrl) ? (
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => window.open(request.receiptUrl, '_blank')}
+                          onClick={() => handleViewReceipt(request)}
                         >
                           <Eye className="mr-2 h-4 w-4" />
                           View
@@ -513,15 +565,23 @@ export default function FundRequestsTable({
                 </div>
                 <div>
                   <Label className="font-medium">Receipt</Label>
-                  {selectedRequest.receiptUrl ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => window.open(selectedRequest.receiptUrl, '_blank')}
-                    >
-                      <Eye className="mr-2 h-4 w-4" />
-                      View Receipt
-                    </Button>
+                  {(selectedRequest.receiptData || selectedRequest.receiptUrl) ? (
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleViewReceipt(selectedRequest)}
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        View Receipt
+                      </Button>
+                      {selectedRequest.receiptFilename && (
+                        <span className="text-xs text-gray-600">
+                          {selectedRequest.receiptFilename}
+                          {selectedRequest.receiptSize && ` (${(selectedRequest.receiptSize / 1024).toFixed(2)} KB)`}
+                        </span>
+                      )}
+                    </div>
                   ) : (
                     <span className="text-sm text-gray-500">No receipt</span>
                   )}

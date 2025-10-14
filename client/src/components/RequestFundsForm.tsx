@@ -14,6 +14,10 @@ interface RequestFundsFormData {
   transactionId: string;
   paymentMethod: string;
   receiptUrl: string;
+  receiptData?: string;
+  receiptContentType?: string;
+  receiptFilename?: string;
+  receiptSize?: number;
 }
 
 export default function RequestFundsForm() {
@@ -24,6 +28,8 @@ export default function RequestFundsForm() {
     receiptUrl: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -42,6 +48,21 @@ export default function RequestFundsForm() {
   };
 
   const CurrencyIcon = getCurrencyIcon();
+
+  // Helper function to convert file to Base64
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64String = reader.result as string;
+        // Remove the data URL prefix (e.g., "data:image/jpeg;base64,")
+        const base64Data = base64String.split(',')[1];
+        resolve(base64Data);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
 
   // Mutation for requesting funds
   const requestFundsMutation = useMutation({
@@ -73,6 +94,7 @@ export default function RequestFundsForm() {
         paymentMethod: '',
         receiptUrl: ''
       });
+      setSelectedFile(null);
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['/api/user/fund-requests'] });
     },
@@ -102,6 +124,15 @@ export default function RequestFundsForm() {
       return;
     }
 
+    if (!selectedFile) {
+      toast({
+        title: "Receipt Required",
+        description: "Please upload a payment receipt.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const amount = parseFloat(formData.amount);
     if (isNaN(amount) || amount <= 0) {
       toast({
@@ -114,13 +145,28 @@ export default function RequestFundsForm() {
 
     setIsSubmitting(true);
     
-    // For now, use a dummy URL for receipt
-    const requestData = {
-      ...formData,
-      receiptUrl: `https://example.com/receipts/${Date.now()}.pdf` // Dummy URL
-    };
-    
-    requestFundsMutation.mutate(requestData);
+    try {
+      // Convert receipt to Base64
+      const receiptData = await convertFileToBase64(selectedFile);
+      
+      const requestData = {
+        ...formData,
+        receiptData,
+        receiptContentType: selectedFile.type,
+        receiptFilename: selectedFile.name,
+        receiptSize: selectedFile.size,
+      };
+      
+      requestFundsMutation.mutate(requestData);
+    } catch (error) {
+      console.error('Error processing receipt:', error);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to process receipt. Please try again.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+    }
   };
 
   const handleInputChange = (field: keyof RequestFundsFormData, value: string) => {
@@ -128,6 +174,39 @@ export default function RequestFundsForm() {
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please upload a PDF, JPG, or PNG file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (10MB max)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      toast({
+        title: "File Too Large",
+        description: "Receipt file must be less than 10MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedFile(file);
+    toast({
+      title: "Receipt Selected",
+      description: `${file.name} ready to upload`,
+    });
   };
 
   const PaymentMethodIcon = formData.paymentMethod ? getPaymentMethodIcon(formData.paymentMethod) : CreditCard;
@@ -228,33 +307,39 @@ export default function RequestFundsForm() {
           {/* Receipt Upload Field */}
           <div className="space-y-2">
             <Label htmlFor="receipt" className="text-sm font-medium text-gray-700">
-              Payment Receipt
+              Payment Receipt <span className="text-red-500">*</span>
             </Label>
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
               <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
               <p className="text-sm text-gray-600 mb-2">
-                Upload your payment receipt (PDF, JPG, PNG)
+                Upload your payment receipt (PDF, JPG, PNG - Max 10MB)
               </p>
+              <input
+                type="file"
+                id="receipt"
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={handleFileChange}
+                className="hidden"
+              />
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  // For now, just set a dummy URL
-                  handleInputChange('receiptUrl', `https://example.com/receipts/${Date.now()}.pdf`);
-                  toast({
-                    title: "Receipt Uploaded",
-                    description: "Receipt uploaded successfully (demo mode)",
-                  });
-                }}
+                onClick={() => document.getElementById('receipt')?.click()}
+                disabled={isUploading}
               >
                 <Receipt className="mr-2 h-4 w-4" />
-                Upload Receipt
+                {selectedFile ? 'Change Receipt' : 'Select Receipt'}
               </Button>
-              {formData.receiptUrl && (
-                <p className="text-xs text-green-600 mt-2">
-                  ✓ Receipt uploaded successfully
-                </p>
+              {selectedFile && (
+                <div className="mt-3 p-2 bg-green-50 rounded-lg">
+                  <p className="text-xs text-green-700 font-medium">
+                    ✓ {selectedFile.name}
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    {(selectedFile.size / 1024).toFixed(2)} KB
+                  </p>
+                </div>
               )}
             </div>
           </div>

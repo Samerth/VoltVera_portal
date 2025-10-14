@@ -22,6 +22,7 @@ import MyTeam from "@/pages/MyTeam";
 import ProductCatalog from "@/pages/ProductCatalog";
 import MyPurchases from "@/pages/MyPurchases";
 import PendingUserDashboard from "@/pages/PendingUserDashboard";
+import BVTestSimulation from "@/pages/BVTestSimulation";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -82,6 +83,9 @@ function Router() {
           {['mini_franchise', 'basic_franchise'].includes(user?.role || '') && (
             <Route path="/franchise" component={FranchiseDashboard} />
           )}
+          
+          {/* BV Test Simulation - Available to all authenticated users for testing */}
+          <Route path="/bv-test" component={BVTestSimulation} />
           
           {/* Role-based home routes */}
           {user?.role === 'founder' && <Route path="/" component={FounderDashboard} />}

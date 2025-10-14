@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
+import { registerBVTestRoutes } from "./bvTestRoutes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
@@ -46,6 +47,10 @@ app.use((req, res, next) => {
   try {
     const server = await registerRoutes(app);
     console.log('Routes registered successfully');
+    
+    // Register BV test routes
+    registerBVTestRoutes(app);
+    console.log('BV test routes registered successfully');
     
     // Clean up any existing temporary placement recruits
     try {

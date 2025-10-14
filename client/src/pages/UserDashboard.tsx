@@ -35,8 +35,19 @@ function UserKYCSection() {
 
   const fetchKYCInfo = async () => {
     try {
+      // Get impersonation token if available
+      const impersonationToken = sessionStorage.getItem('impersonationToken');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (impersonationToken) {
+        headers['Authorization'] = `Bearer ${impersonationToken}`;
+      }
+      
       const response = await fetch('/api/user/kyc-info', {
-        credentials: 'include'
+        credentials: 'include',
+        headers
       });
       if (response.ok) {
         const data = await response.json();

@@ -1597,6 +1597,8 @@ export class DatabaseStorage implements IStorage {
       bankAccountNumber: pendingRecruit.bankAccountNumber,
       bankIFSC: pendingRecruit.bankIFSC,
       bankName: pendingRecruit.bankName,
+      bankAccountHolderName: pendingRecruit.bankAccountHolderName,
+      nominee: pendingRecruit.nominee,
       profileImageUrl: pendingRecruit.profileImageUrl,
     }).returning();
 

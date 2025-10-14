@@ -3277,6 +3277,27 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(users.id, updatedDoc.userId));
       
+      // FIX #3: Sync kyc_profile document to match overall status after re-upload
+      const kycProfileDocs = await db.select()
+        .from(kycDocuments)
+        .where(and(
+          eq(kycDocuments.userId, updatedDoc.userId),
+          eq(kycDocuments.documentType, 'kyc_profile')
+        ))
+        .limit(1);
+
+      if (kycProfileDocs.length > 0) {
+        await db.update(kycDocuments)
+          .set({
+            status: overallKYCStatus as 'pending' | 'approved' | 'rejected',
+            rejectionReason: null,  // Clear rejection reason on re-upload
+            updatedAt: new Date()
+          })
+          .where(eq(kycDocuments.id, kycProfileDocs[0].id));
+        
+        console.log(`🔄 Updated kyc_profile to ${overallKYCStatus} after document re-upload`);
+      }
+      
       // Create notification for re-verification request
       if (overallKYCStatus === 'pending' && wasRejected) {
         const { notifications } = await import('@shared/schema');

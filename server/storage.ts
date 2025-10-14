@@ -51,7 +51,7 @@ import {
   type CreateNews,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, ilike, or, desc, and, sql, gte, lte, asc } from "drizzle-orm";
+import { eq, ilike, or, desc, and, sql, gte, lte, asc, ne } from "drizzle-orm";
 
 import { nanoid } from "nanoid";
 
@@ -3247,9 +3247,13 @@ export class DatabaseStorage implements IStorage {
     
     if (updatedDoc) {
       // Recalculate overall KYC status for the user
+      // EXCLUDE kyc_profile from calculation as it's just a status tracker
       const allUserKYC = await db.select({ status: kycDocuments.status })
         .from(kycDocuments)
-        .where(eq(kycDocuments.userId, updatedDoc.userId));
+        .where(and(
+          eq(kycDocuments.userId, updatedDoc.userId),
+          ne(kycDocuments.documentType, 'kyc_profile')
+        ));
       
       // Determine overall KYC status
       let overallKYCStatus = 'pending';
@@ -3650,9 +3654,13 @@ export class DatabaseStorage implements IStorage {
       
       if (success) {
         // Check if all KYC documents for this user are now approved
+        // EXCLUDE kyc_profile from calculation as it's just a status tracker
         const allUserKYC = await db.select({ status: kycDocuments.status })
           .from(kycDocuments)
-          .where(eq(kycDocuments.userId, userId));
+          .where(and(
+            eq(kycDocuments.userId, userId),
+            ne(kycDocuments.documentType, 'kyc_profile')
+          ));
         
         // Determine overall KYC status
         let overallKYCStatus = 'pending';

@@ -240,19 +240,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // 1) Bearer token-based impersonation (does not rely on cookie session)
       const authHeader = req.headers['authorization'] as string | undefined;
+      console.log('🔐 Auth check - Authorization header:', authHeader ? 'present' : 'missing');
       if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.slice('Bearer '.length).trim();
+        console.log('🔑 Bearer token found:', token.substring(0, 10) + '...');
+        console.log('📋 Impersonation tokens map size:', impersonationTokens.size);
         const entry = impersonationTokens.get(token);
+        console.log('🔍 Token entry:', entry ? `userId=${entry.userId}, expired=${Date.now() >= entry.expiresAt}` : 'NOT FOUND');
         if (entry && Date.now() < entry.expiresAt) {
           const user = await storage.getUser(entry.userId);
           if (!user) {
+            console.log('❌ User not found for token:', entry.userId);
             return res.status(401).json({ message: 'User not found' });
           }
+          console.log('✅ Impersonation successful! Setting req.user to:', user.id);
           req.user = user;
           // Do not bind to cookie session to avoid clobbering admin session in other tabs
           return next();
         } else {
           // Invalid or expired token → fall through to cookie session
+          console.log('⚠️ Token invalid or expired, falling back to session');
           if (entry && Date.now() >= entry.expiresAt) impersonationTokens.delete(token);
         }
       }

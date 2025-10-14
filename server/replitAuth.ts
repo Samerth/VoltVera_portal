@@ -146,6 +146,28 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
+  // Import the impersonationTokens map
+  const { impersonationTokens } = require('./routes');
+  
+  // Check for bearer token authentication (impersonation) FIRST
+  const authHeader = req.headers.authorization;
+  console.log('🔐 isAuthenticated - Authorization header:', authHeader ? `Bearer ${authHeader.substring(7, 17)}...` : 'NONE');
+  
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    console.log('🔑 Looking up token in map (size:', impersonationTokens.size, ')');
+    
+    const impersonatedUser = impersonationTokens.get(token);
+    if (impersonatedUser) {
+      console.log('✅ Impersonation token found! User:', impersonatedUser.id);
+      req.user = impersonatedUser;
+      return next();
+    } else {
+      console.log('⚠️  Token not found in map');
+    }
+  }
+  
+  // Fall back to session authentication
   const user = req.user as any;
 
   if (!req.isAuthenticated() || !user.expires_at) {

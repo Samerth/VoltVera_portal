@@ -255,44 +255,67 @@ export default function FundRequestsTable({
     return request.receiptUrl || null;
   };
 
-  const handleViewReceipt = (request: FundRequest) => {
+  const handleViewReceipt = async (request: FundRequest) => {
     const dataUrl = getReceiptDataUrl(request);
     if (!dataUrl) return;
 
-    // For PDFs, open in new tab directly
-    if (request.receiptContentType === 'application/pdf' || dataUrl.includes('.pdf')) {
-      window.open(dataUrl, '_blank');
-    } else {
-      // For images, create a preview window
-      const previewWindow = window.open('', '_blank');
-      if (previewWindow) {
-        previewWindow.document.write(`
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <title>Receipt - ${request.receiptFilename || 'Receipt'}</title>
-              <style>
-                body {
-                  margin: 0;
-                  display: flex;
-                  justify-content: center;
-                  align-items: center;
-                  min-height: 100vh;
-                  background-color: #f3f4f6;
-                }
-                img {
-                  max-width: 90%;
-                  max-height: 90vh;
-                  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                }
-              </style>
-            </head>
-            <body>
-              <img src="${dataUrl}" alt="Receipt" />
-            </body>
-          </html>
-        `);
+    console.log('🔍 Admin viewing receipt:', {
+      hasReceiptData: !!request.receiptData,
+      contentType: request.receiptContentType,
+      filename: request.receiptFilename,
+      dataUrlLength: dataUrl.length
+    });
+
+    try {
+      // For PDFs, convert to blob for better browser compatibility
+      if (request.receiptContentType === 'application/pdf' || dataUrl.includes('.pdf')) {
+        console.log('📄 Opening PDF receipt');
+        const response = await fetch(dataUrl);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        
+        const newWindow = window.open(blobUrl, '_blank');
+        if (!newWindow) {
+          alert('Please allow popups to view documents.');
+        } else {
+          console.log('✅ PDF opened successfully');
+        }
+      } else {
+        // For images, create a preview window
+        console.log('🖼️ Opening image receipt');
+        const previewWindow = window.open('', '_blank');
+        if (previewWindow) {
+          previewWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <title>Receipt - ${request.receiptFilename || 'Receipt'}</title>
+                <style>
+                  body {
+                    margin: 0;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    min-height: 100vh;
+                    background-color: #f3f4f6;
+                  }
+                  img {
+                    max-width: 90%;
+                    max-height: 90vh;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                  }
+                </style>
+              </head>
+              <body>
+                <img src="${dataUrl}" alt="Receipt" />
+              </body>
+            </html>
+          `);
+        }
       }
+    } catch (error) {
+      console.error('❌ Error viewing receipt:', error);
+      alert('Failed to open receipt. Please try again.');
     }
   };
 

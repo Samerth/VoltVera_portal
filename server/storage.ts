@@ -1762,8 +1762,8 @@ export class DatabaseStorage implements IStorage {
     // Send login credentials email
     try {
       const { sendLoginCredentialsEmail } = await import('./emailService');
-      // If comprehensive registration, user already set their password, just send account activation
-      const passwordForEmail = pendingRecruit.password ? 'Your chosen password' : 'defaultpass123';
+      // Send the actual password stored in the database
+      const passwordForEmail = newUser.password || 'defaultpass123';
       const emailSent = await sendLoginCredentialsEmail(newUser.email!, firstName, passwordForEmail, newUser.userId!);
       if (emailSent) {
         console.log(`Login credentials email sent to ${newUser.email}`);

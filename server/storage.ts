@@ -3658,6 +3658,29 @@ export class DatabaseStorage implements IStorage {
           })
           .where(eq(users.id, userId));
         
+        // FIX #1: Sync kyc_profile document to match overall status
+        const kycProfileDocs = await db.select()
+          .from(kycDocuments)
+          .where(and(
+            eq(kycDocuments.userId, userId),
+            eq(kycDocuments.documentType, 'kyc_profile')
+          ))
+          .limit(1);
+
+        if (kycProfileDocs.length > 0) {
+          await db.update(kycDocuments)
+            .set({
+              status: overallKYCStatus as 'pending' | 'approved' | 'rejected',
+              rejectionReason: overallKYCStatus === 'rejected' ? reason : null,
+              reviewedBy: 'admin',
+              reviewedAt: new Date(),
+              updatedAt: new Date()
+            })
+            .where(eq(kycDocuments.id, kycProfileDocs[0].id));
+          
+          console.log(`✅ Synced kyc_profile document to ${overallKYCStatus}`);
+        }
+        
         // Only create notification if the overall KYC status actually changed
         if (currentOverallStatus !== overallKYCStatus) {
           console.log(`📢 KYC status changed from ${currentOverallStatus} to ${overallKYCStatus} - sending notification`);
@@ -3786,14 +3809,24 @@ export class DatabaseStorage implements IStorage {
   // Get user KYC information for profile
   async getUserKYCInfo(userId: string): Promise<any> {
     try {
-      const { kycDocuments } = await import('@shared/schema');
+      const { kycDocuments, users } = await import('@shared/schema');
+      
+      // FIX #2: Get user's overall KYC status from users table (source of truth)
+      const [userData] = await db.select({ 
+        kycStatus: users.kycStatus,
+        kycApprovedAt: users.kycApprovedAt,
+        kycSubmittedAt: users.kycSubmittedAt
+      })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
       
       // Get all KYC documents for the user
       const documents = await db.select().from(kycDocuments)
         .where(eq(kycDocuments.userId, userId))
         .orderBy(desc(kycDocuments.createdAt));
       
-      // Get the main KYC profile record
+      // Get the main KYC profile record (for rejection reason if needed)
       const kycProfile = documents.find(doc => doc.documentType === 'kyc_profile');
       
       // Get individual document statuses
@@ -3803,47 +3836,50 @@ export class DatabaseStorage implements IStorage {
       const bankStatement = documents.find(doc => doc.documentType === 'bank_details');
       const photo = documents.find(doc => doc.documentType === 'photo');
       
+      // Use user's kyc_status as the overall status (single source of truth)
+      const overallStatus = userData?.kycStatus || 'pending';
+      
       return {
-        overallStatus: kycProfile?.status || 'pending',
+        overallStatus: overallStatus,
         overallReason: kycProfile?.rejectionReason || '',
         documents: {
           panCard: {
             status: panCard?.status || 'pending',
             url: panCard?.documentUrl || '',
-            documentData: panCard?.documentData || '', // ✅ Added documentData
+            documentData: panCard?.documentData || '',
             documentType: panCard?.documentContentType || '',
             reason: panCard?.rejectionReason || ''
           },
           aadhaarFront: {
             status: aadhaarFront?.status || 'pending',
             url: aadhaarFront?.documentUrl || '',
-            documentData: aadhaarFront?.documentData || '', // ✅ Added documentData
+            documentData: aadhaarFront?.documentData || '',
             documentType: aadhaarFront?.documentContentType || '',
             reason: aadhaarFront?.rejectionReason || ''
           },
           aadhaarBack: {
             status: aadhaarBack?.status || 'pending',
             url: aadhaarBack?.documentUrl || '',
-            documentData: aadhaarBack?.documentData || '', // ✅ Added documentData
+            documentData: aadhaarBack?.documentData || '',
             documentType: aadhaarBack?.documentContentType || '',
             reason: aadhaarBack?.rejectionReason || ''
           },
           bankStatement: {
             status: bankStatement?.status || 'pending',
             url: bankStatement?.documentUrl || '',
-            documentData: bankStatement?.documentData || '', // ✅ Added documentData
+            documentData: bankStatement?.documentData || '',
             documentType: bankStatement?.documentContentType || '',
             reason: bankStatement?.rejectionReason || ''
           },
           photo: {
             status: photo?.status || 'pending',
             url: photo?.documentUrl || '',
-            documentData: photo?.documentData || '', // ✅ Added documentData
+            documentData: photo?.documentData || '',
             documentType: photo?.documentContentType || '',
             reason: photo?.rejectionReason || ''
           }
         },
-        lastUpdated: kycProfile?.updatedAt || kycProfile?.createdAt
+        lastUpdated: userData?.kycApprovedAt || userData?.kycSubmittedAt || kycProfile?.updatedAt || kycProfile?.createdAt
       };
     } catch (error) {
       console.error('Error getting user KYC info:', error);

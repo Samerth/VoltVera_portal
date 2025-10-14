@@ -1,0 +1,61 @@
+CREATE TABLE "rank_configurations" (
+	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"rank_name" varchar NOT NULL,
+	"percentage" numeric(5, 4) NOT NULL,
+	"min_team_bv" numeric(12, 2) DEFAULT '0.00',
+	"min_directs" integer DEFAULT 0,
+	"bonus_amount" numeric(12, 2) DEFAULT '0.00',
+	"tour_rewards" text,
+	"is_active" boolean DEFAULT true,
+	"created_at" timestamp DEFAULT now(),
+	"updated_at" timestamp DEFAULT now(),
+	CONSTRAINT "rank_configurations_rank_name_key" UNIQUE("rank_name")
+);
+ALTER TABLE "wallet_balances_backup" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "backup_metadata" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "withdrawal_requests_backup" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "rank_achievements_backup" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "email_tokens_backup" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "notifications_backup" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "temp_login_tokens" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "referral_links_backup" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "support_tickets_backup" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "transactions_backup" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "products_backup" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "franchise_requests_backup" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "purchases_backup" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "kyc_documents_backup" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "pending_recruits_backup" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "users_mlm_test" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "users_backup" DISABLE ROW LEVEL SECURITY;
+DROP TABLE "wallet_balances_backup" CASCADE;
+DROP TABLE "backup_metadata" CASCADE;
+DROP TABLE "withdrawal_requests_backup" CASCADE;
+DROP TABLE "rank_achievements_backup" CASCADE;
+DROP TABLE "email_tokens_backup" CASCADE;
+DROP TABLE "notifications_backup" CASCADE;
+DROP TABLE "temp_login_tokens" CASCADE;
+DROP TABLE "referral_links_backup" CASCADE;
+DROP TABLE "support_tickets_backup" CASCADE;
+DROP TABLE "transactions_backup" CASCADE;
+DROP TABLE "products_backup" CASCADE;
+DROP TABLE "franchise_requests_backup" CASCADE;
+DROP TABLE "purchases_backup" CASCADE;
+DROP TABLE "kyc_documents_backup" CASCADE;
+DROP TABLE "pending_recruits_backup" CASCADE;
+DROP TABLE "users_mlm_test" CASCADE;
+DROP TABLE "users_backup" CASCADE;
+ALTER TABLE "recruitment_requests" ADD COLUMN "referral_link_id" varchar DEFAULT '' NOT NULL;
+ALTER TABLE "recruitment_requests" ADD COLUMN "recruitee_email" varchar DEFAULT '' NOT NULL;
+ALTER TABLE "recruitment_requests" ADD COLUMN "recruitee_name" varchar;
+ALTER TABLE "recruitment_requests" ADD COLUMN "recruitee_id" varchar;
+ALTER TABLE "recruitment_requests" ADD COLUMN "approved_by" varchar;
+ALTER TABLE "recruitment_requests" ADD COLUMN "approved_at" timestamp;
+ALTER TABLE "recruitment_requests" ADD COLUMN "placement_locked" boolean DEFAULT false;
+CREATE INDEX "idx_rank_configurations_rank_name" ON "rank_configurations" USING btree ("rank_name");
+truncate table "wallet_balances" cascade;
+ALTER TABLE "wallet_balances" ADD CONSTRAINT "wallet_balances_user_id_unique" UNIQUE("user_id");
+ALTER TABLE "referral_links" ADD CONSTRAINT "referral_links_token_unique" UNIQUE("token");
+truncate table "email_tokens" cascade;
+ALTER TABLE "email_tokens" ADD CONSTRAINT "email_tokens_token_unique" UNIQUE("token");
+ALTER TABLE "users" ADD CONSTRAINT "users_user_id_unique" UNIQUE("user_id");

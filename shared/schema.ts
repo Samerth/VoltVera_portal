@@ -916,58 +916,58 @@ export type FranchiseType = typeof franchiseRequests.$inferSelect.franchiseType;
 export type TicketStatus = typeof supportTickets.$inferSelect.status;
 export type TicketCategory = typeof supportTickets.$inferSelect.category;
 
-// Approval Requests - Formal approval workflow tracking
-export const approvalRequests = pgTable("approval_requests", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  applicantId: varchar("applicant_id"), // User being approved (nullable for pending recruits)
-  pendingRecruitId: varchar("pending_recruit_id"), // Link to pending recruit
-  sponsorId: varchar("sponsor_id").notNull(),
-  planId: varchar("plan_id").default('binary'), // Compensation plan
-  placementScope: jsonb("placement_scope"), // {position, leg, constraints}
-  formSnapshot: jsonb("form_snapshot"), // User data at approval time
-  kycStatus: varchar("kyc_status").default('pending'),
-  riskScore: integer("risk_score").default(0),
-  
-  // Approval workflow
-  status: varchar("status").default('pending'), // 'pending', 'approved', 'rejected', 'info_requested'
-  requestedBy: varchar("requested_by").notNull(),
-  reviewedBy: varchar("reviewed_by"),
-  reviewedAt: timestamp("reviewed_at"),
-  rejectionReason: text("rejection_reason"),
-  approvalNotes: text("approval_notes"),
-  
-  // Metadata
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
+// Approval Requests - Formal approval workflow tracking (NOT IN USE - COMMENTED OUT)
+// export const approvalRequests = pgTable("approval_requests", {
+//   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+//   applicantId: varchar("applicant_id"), // User being approved (nullable for pending recruits)
+//   pendingRecruitId: varchar("pending_recruit_id"), // Link to pending recruit
+//   sponsorId: varchar("sponsor_id").notNull(),
+//   planId: varchar("plan_id").default('binary'), // Compensation plan
+//   placementScope: jsonb("placement_scope"), // {position, leg, constraints}
+//   formSnapshot: jsonb("form_snapshot"), // User data at approval time
+//   kycStatus: varchar("kyc_status").default('pending'),
+//   riskScore: integer("risk_score").default(0),
+//   
+//   // Approval workflow
+//   status: varchar("status").default('pending'), // 'pending', 'approved', 'rejected', 'info_requested'
+//   requestedBy: varchar("requested_by").notNull(),
+//   reviewedBy: varchar("reviewed_by"),
+//   reviewedAt: timestamp("reviewed_at"),
+//   rejectionReason: text("rejection_reason"),
+//   approvalNotes: text("approval_notes"),
+//   
+//   // Metadata
+//   createdAt: timestamp("created_at").defaultNow(),
+//   updatedAt: timestamp("updated_at").defaultNow(),
+// });
 
-// Audit Log - Complete state change tracking
-export const auditLog = pgTable("audit_log", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  
-  // Entity information
-  entityType: varchar("entity_type").notNull(), // 'user', 'pending_recruit', 'approval_request', 'placement'
-  entityId: varchar("entity_id").notNull(),
-  
-  // Action details
-  action: varchar("action").notNull(), // 'created', 'updated', 'approved', 'rejected', 'placed', 'activated'
-  actorId: varchar("actor_id").notNull(), // Who performed the action
-  actorRole: varchar("actor_role").notNull(), // Actor's role at time of action
-  
-  // State changes
-  previousState: jsonb("previous_state"), // Entity state before change
-  newState: jsonb("new_state"), // Entity state after change
-  changes: jsonb("changes"), // Specific field changes
-  
-  // Context
-  reason: text("reason"), // Why the action was taken
-  ipAddress: varchar("ip_address"),
-  userAgent: text("user_agent"),
-  sessionId: varchar("session_id"),
-  
-  // Metadata
-  createdAt: timestamp("created_at").defaultNow(),
-});
+// Audit Log - Complete state change tracking (NOT IN USE - COMMENTED OUT)
+// export const auditLog = pgTable("audit_log", {
+//   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+//   
+//   // Entity information
+//   entityType: varchar("entity_type").notNull(), // 'user', 'pending_recruit', 'approval_request', 'placement'
+//   entityId: varchar("entity_id").notNull(),
+//   
+//   // Action details
+//   action: varchar("action").notNull(), // 'created', 'updated', 'approved', 'rejected', 'placed', 'activated'
+//   actorId: varchar("actor_id").notNull(), // Who performed the action
+//   actorRole: varchar("actor_role").notNull(), // Actor's role at time of action
+//   
+//   // State changes
+//   previousState: jsonb("previous_state"), // Entity state before change
+//   newState: jsonb("new_state"), // Entity state after change
+//   changes: jsonb("changes"), // Specific field changes
+//   
+//   // Context
+//   reason: text("reason"), // Why the action was taken
+//   ipAddress: varchar("ip_address"),
+//   userAgent: text("user_agent"),
+//   sessionId: varchar("session_id"),
+//   
+//   // Metadata
+//   createdAt: timestamp("created_at").defaultNow(),
+// });
 
 // BV Calculation Tables (for testing with _bvtest suffix)
 export const lifetimeBvCalculationsBvTest = pgTable("lifetime_bv_calculations_bvtest", {
@@ -1041,9 +1041,5 @@ export const rankConfigurations = pgTable("rank_configurations", {
 });
 
 // Enhanced type exports
-export type ApprovalRequest = typeof approvalRequests.$inferSelect;
-export type AuditLogEntry = typeof auditLog.$inferSelect;
-export type LifetimeBvCalculationBvTest = typeof lifetimeBvCalculationsBvTest.$inferSelect;
-export type MonthlyBvBvTest = typeof monthlyBvBvTest.$inferSelect;
-export type BvTransactionBvTest = typeof bvTransactionsBvTest.$inferSelect;
-export type RankConfiguration = typeof rankConfigurations.$inferSelect;
+// export type ApprovalRequest = typeof approvalRequests.$inferSelect; // COMMENTED OUT - approval_requests not in use
+// export type AuditLogEntry = typeof auditLog.$inferSelect; // COMMENTED OUT - audit_log not in use

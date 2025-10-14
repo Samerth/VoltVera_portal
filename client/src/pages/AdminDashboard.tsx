@@ -946,6 +946,8 @@ export default function AdminDashboard() {
                 >
                   Rejected Fund Requests
                 </button>
+                {/* Manage Fund button hidden per request */}
+                {/* 
                 <button 
                   onClick={() => setActiveSection('manage-fund')}
                   className={`block w-full px-4 py-2 text-left text-sm rounded hover:bg-white/10 ${
@@ -954,6 +956,7 @@ export default function AdminDashboard() {
                 >
                   Manage Fund
                 </button>
+                */}
               </div>
             )}
           </div>

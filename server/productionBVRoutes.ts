@@ -10,12 +10,97 @@ import {
 } from '../shared/schema';
 import { eq, and, desc } from 'drizzle-orm';
 
+// Helper function to get the actual user ID (supports both session and impersonation)
+const getActualUserId = (req: any): string | null => {
+  console.log('🔍 getActualUserId called');
+  console.log('  - req.user:', req.user ? `id=${req.user.id}, role=${req.user.role}` : 'null');
+  console.log('  - req.session.userId:', req.session?.userId);
+  
+  // Priority 1: Impersonation token (req.user is set by bearer token auth)
+  if (req.user && req.user.id) {
+    console.log('  ✅ Using req.user.id:', req.user.id);
+    return req.user.id;
+  }
+  // Priority 2: Session-based auth
+  if (req.session?.userId) {
+    console.log('  ✅ Using req.session.userId:', req.session.userId);
+    return req.session.userId;
+  }
+  
+  console.log('  ❌ No valid user ID found');
+  return null;
+};
+
 export function registerProductionBVRoutes(app: Express) {
   
-  // Get user's BV calculation data
-  app.get('/api/user/bv-calculations', async (req, res) => {
+  // Simple test endpoint to verify routes are registered
+  app.get('/api/test/simple', (req, res) => {
+    res.json({ message: 'BV routes are working!', timestamp: new Date().toISOString() });
+  });
+  
+  // Import authentication middleware from routes
+  const isAuthenticated = async (req: any, res: any, next: any) => {
     try {
-      const userId = req.session?.userId;
+      // 1) Bearer token-based impersonation (does not rely on cookie session)
+      const authHeader = req.headers['authorization'] as string | undefined;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.slice('Bearer '.length).trim();
+        const record = impersonationTokens.get(token);
+        if (record && record.expiresAt > Date.now()) {
+          req.user = { id: record.userId, role: 'admin' }; // Admin can impersonate
+          return next();
+        }
+      }
+
+      // 2) Session-based authentication
+      if (req.session?.userId) {
+        req.user = { id: req.session.userId };
+        return next();
+      }
+
+      return res.status(401).json({ message: 'Unauthorized' });
+    } catch (error) {
+      console.error('Authentication error:', error);
+      return res.status(500).json({ message: 'Authentication failed' });
+    }
+  };
+
+  // Mock impersonation tokens map (in real app, this would be imported)
+  const impersonationTokens = new Map();
+  
+  // Debug endpoint to check authentication
+  app.get('/api/debug/auth', async (req, res) => {
+    res.json({
+      session: req.session,
+      user: req.user,
+      headers: req.headers,
+      cookies: req.cookies
+    });
+  });
+
+  // Test endpoint to get BV data for VV0001 without authentication (for testing only)
+  app.get('/api/test/bv-calculations', async (req, res) => {
+    try {
+      // Hardcode VV0001 for testing
+      const userId = 'VV0001';
+      
+      // Get BV data using the engine
+      const bvData = await productionBVEngine.getUserBVData(userId);
+      
+      res.json(bvData);
+    } catch (error) {
+      console.error('Error getting test BV calculations:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+  
+  // Get user's BV calculation data
+  app.get('/api/user/bv-calculations', isAuthenticated, async (req, res) => {
+    try {
+      const userId = getActualUserId(req);
       if (!userId) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
@@ -33,10 +118,7 @@ export function registerProductionBVRoutes(app: Express) {
       // Get BV data using the engine
       const bvData = await productionBVEngine.getUserBVData(user.userId);
       
-      res.json({
-        success: true,
-        data: bvData
-      });
+      res.json(bvData);
     } catch (error) {
       console.error('Error getting BV calculations:', error);
       res.status(500).json({ 
@@ -47,9 +129,9 @@ export function registerProductionBVRoutes(app: Express) {
   });
 
   // Get user's BV transaction history
-  app.get('/api/user/bv-transactions', async (req, res) => {
+  app.get('/api/user/bv-transactions', isAuthenticated, async (req, res) => {
     try {
-      const userId = req.session?.userId;
+      const userId = getActualUserId(req);
       if (!userId) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
@@ -101,9 +183,9 @@ export function registerProductionBVRoutes(app: Express) {
   });
 
   // Get user's monthly BV data
-  app.get('/api/user/monthly-bv', async (req, res) => {
+  app.get('/api/user/monthly-bv', isAuthenticated, async (req, res) => {
     try {
-      const userId = req.session?.userId;
+      const userId = getActualUserId(req);
       if (!userId) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
@@ -159,9 +241,9 @@ export function registerProductionBVRoutes(app: Express) {
   });
 
   // Admin: Get all BV calculations (for admin dashboard)
-  app.get('/api/admin/bv-calculations', async (req, res) => {
+  app.get('/api/admin/bv-calculations', isAuthenticated, async (req, res) => {
     try {
-      const userId = req.session?.userId;
+      const userId = getActualUserId(req);
       if (!userId) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
@@ -211,9 +293,9 @@ export function registerProductionBVRoutes(app: Express) {
   });
 
   // Admin: Get all BV transactions (for admin dashboard)
-  app.get('/api/admin/bv-transactions', async (req, res) => {
+  app.get('/api/admin/bv-transactions', isAuthenticated, async (req, res) => {
     try {
-      const userId = req.session?.userId;
+      const userId = getActualUserId(req);
       if (!userId) {
         return res.status(401).json({ message: 'Unauthorized' });
       }

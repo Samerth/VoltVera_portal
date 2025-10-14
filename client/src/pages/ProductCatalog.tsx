@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 // import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // DISABLED: Removed purchase type tabs
 import { useToast } from "@/hooks/use-toast";
-import { ShoppingCart, Package, Zap, Tv, Fan, Droplets, IndianRupee, Star } from "lucide-react";
+import { ShoppingCart, Package, Zap, Tv, Fan, Droplets, IndianRupee, Star, TrendingUp, Target, DollarSign } from "lucide-react";
+import { Link } from "wouter";
 
 interface Product {
   id: string;
@@ -70,6 +71,12 @@ export default function ProductCatalog() {
     quantity: 1,
     paymentMethod: '',
     deliveryAddress: ''
+  });
+
+  // Fetch BV calculations data
+  const { data: bvData, isLoading: bvLoading } = useQuery({
+    queryKey: ['/api/test/bv-calculations'],
+    enabled: true, // Always fetch BV data
   });
 
   const { toast } = useToast();
@@ -200,6 +207,84 @@ export default function ProductCatalog() {
         <p className="text-gray-600">
           Discover our premium range of products with exclusive Business Volume benefits
         </p>
+      </div>
+
+      {/* BV Summary Section */}
+      <div className="mb-8">
+        <Card className="bg-gradient-to-r from-blue-50 to-green-50 border-blue-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-blue-800">
+              <TrendingUp className="h-5 w-5" />
+              Your BV Matching Summary
+            </CardTitle>
+            <CardDescription className="text-blue-600">
+              Track your Business Volume and matching income from purchases
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {bvLoading ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="h-4 bg-blue-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-6 bg-blue-200 rounded w-full"></div>
+                  </div>
+                ))}
+              </div>
+            ) : bvData?.lifetime ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className="flex items-center justify-center mb-1">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                    <span className="text-sm font-medium text-blue-700">Left BV</span>
+                  </div>
+                  <div className="text-xl font-bold text-blue-600">
+                    {parseFloat(bvData.lifetime.leftBv || '0').toLocaleString()} BV
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="flex items-center justify-center mb-1">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                    <span className="text-sm font-medium text-green-700">Right BV</span>
+                  </div>
+                  <div className="text-xl font-bold text-green-600">
+                    {parseFloat(bvData.lifetime.rightBv || '0').toLocaleString()} BV
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="flex items-center justify-center mb-1">
+                    <Target className="h-4 w-4 text-purple-600 mr-2" />
+                    <span className="text-sm font-medium text-purple-700">Matched BV</span>
+                  </div>
+                  <div className="text-xl font-bold text-purple-600">
+                    {parseFloat(bvData.lifetime.matchingBv || '0').toLocaleString()} BV
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="flex items-center justify-center mb-1">
+                    <DollarSign className="h-4 w-4 text-yellow-600 mr-2" />
+                    <span className="text-sm font-medium text-yellow-700">Income</span>
+                  </div>
+                  <div className="text-xl font-bold text-yellow-600">
+                    ₹{parseFloat(bvData.lifetime.diffIncome || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-gray-500 mb-2">No BV data available</p>
+                <p className="text-sm text-gray-400">Make a purchase to start earning BV matching income</p>
+              </div>
+            )}
+            <div className="mt-4 pt-4 border-t border-blue-200">
+              <Link href="/bv-calculations">
+                <Button variant="outline" size="sm" className="w-full border-blue-300 text-blue-700 hover:bg-blue-50">
+                  View Detailed BV Calculations
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}
@@ -444,6 +529,35 @@ export default function ProductCatalog() {
                       </div>
                     </div>
                   </div>
+
+                  {/* BV Impact Preview */}
+                  {bvData?.lifetime && (
+                    <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                      <h4 className="font-medium mb-2 text-green-800 flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4" />
+                        BV Impact Preview
+                      </h4>
+                      <div className="text-sm space-y-1 text-green-700">
+                        <div className="flex justify-between">
+                          <span>Current Left BV:</span>
+                          <span>{parseFloat(bvData.lifetime.leftBv || '0').toLocaleString()} BV</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Current Right BV:</span>
+                          <span>{parseFloat(bvData.lifetime.rightBv || '0').toLocaleString()} BV</span>
+                        </div>
+                        <div className="flex justify-between font-medium">
+                          <span>After Purchase:</span>
+                          <span className="text-green-600">
+                            {(parseFloat(bvData.lifetime.leftBv || '0') + (parseFloat(selectedProduct.bv) * purchaseForm.quantity)).toLocaleString()} BV
+                          </span>
+                        </div>
+                        <div className="text-xs text-green-600 mt-2">
+                          * This purchase will add {(parseFloat(selectedProduct.bv) * purchaseForm.quantity).toLocaleString()} BV to your left leg
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

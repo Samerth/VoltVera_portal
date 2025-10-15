@@ -256,9 +256,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Do not bind to cookie session to avoid clobbering admin session in other tabs
           return next();
         } else {
-          // Invalid or expired token → fall through to cookie session
-          console.log('⚠️ Token invalid or expired, falling back to session');
+          // Invalid or expired token → return 401 so frontend clears it
+          console.log('❌ Token invalid or expired - returning 401');
           if (entry && Date.now() >= entry.expiresAt) impersonationTokens.delete(token);
+          return res.status(401).json({ message: 'Impersonation token invalid or expired' });
         }
       }
 

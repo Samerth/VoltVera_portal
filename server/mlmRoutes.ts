@@ -72,11 +72,12 @@ const requireAuth = async (req: any, res: any, next: any) => {
         req.user = user;
         return next();
       } else {
-        // Invalid or expired token → clean up and fall through to session
-        console.log('⚠️ MLM Token invalid or expired, falling back to session');
+        // Invalid or expired token → return 401 so frontend clears it
+        console.log('❌ MLM Token invalid or expired - returning 401');
         if (entry && Date.now() >= entry.expiresAt) {
           impersonationTokens.delete(token);
         }
+        return res.status(401).json({ message: 'Impersonation token invalid or expired' });
       }
     }
 

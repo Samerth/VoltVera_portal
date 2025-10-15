@@ -31,9 +31,23 @@ declare module 'express-session' {
 
 const router = Router();
 
+// Helper function to get the actual user ID (supports both session and impersonation)
+const getActualUserId = (req: any): string | null => {
+  // Priority 1: Impersonation token (req.user is set by bearer token auth in routes.ts)
+  if (req.user && req.user.id) {
+    return req.user.id;
+  }
+  // Priority 2: Session-based auth
+  if (req.session && req.session.userId) {
+    return req.session.userId;
+  }
+  return null;
+};
+
 // Middleware to check authentication
 const requireAuth = (req: any, res: any, next: any) => {
-  if (!req.session?.userId) {
+  const userId = getActualUserId(req);
+  if (!userId) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
   next();
@@ -42,7 +56,11 @@ const requireAuth = (req: any, res: any, next: any) => {
 // Middleware to check admin role
 const requireAdmin = async (req: any, res: any, next: any) => {
   try {
-    const user = await storage.getUser(req.session.userId);
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    const user = await storage.getUser(userId);
     if (!user || user.role !== 'admin') {
       return res.status(403).json({ message: 'Admin access required' });
     }

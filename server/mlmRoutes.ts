@@ -50,20 +50,29 @@ const requireAuth = async (req: any, res: any, next: any) => {
   try {
     // 1) Check for Bearer token-based impersonation (priority)
     const authHeader = req.headers['authorization'] as string | undefined;
+    console.log('🔐 MLM requireAuth - Authorization header:', authHeader ? 'present' : 'missing');
+    
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.slice('Bearer '.length).trim();
+      console.log('🔑 MLM Bearer token found:', token.substring(0, 10) + '...');
+      console.log('📋 MLM Impersonation tokens map size:', impersonationTokens.size);
+      
       const entry = impersonationTokens.get(token);
+      console.log('🔍 MLM Token entry:', entry ? `userId=${entry.userId}, expired=${Date.now() >= entry.expiresAt}` : 'NOT FOUND');
       
       if (entry && Date.now() < entry.expiresAt) {
         // Valid impersonation token - fetch user and set req.user
         const user = await storage.getUser(entry.userId);
         if (!user) {
+          console.log('❌ MLM User not found for token:', entry.userId);
           return res.status(401).json({ message: 'User not found' });
         }
+        console.log('✅ MLM Impersonation successful! Setting req.user to:', user.id);
         req.user = user;
         return next();
       } else {
         // Invalid or expired token → clean up and fall through to session
+        console.log('⚠️ MLM Token invalid or expired, falling back to session');
         if (entry && Date.now() >= entry.expiresAt) {
           impersonationTokens.delete(token);
         }
@@ -72,6 +81,7 @@ const requireAuth = async (req: any, res: any, next: any) => {
 
     // 2) Fallback to session-based authentication
     const userId = getActualUserId(req);
+    console.log('🔄 MLM Fallback to session auth, userId:', userId);
     if (!userId) {
       return res.status(401).json({ message: 'Unauthorized' });
     }

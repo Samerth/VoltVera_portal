@@ -9,6 +9,7 @@ import {
   rankConfigurations 
 } from '../shared/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
+import { impersonationTokens } from './impersonation';
 
 // Helper function to get the actual user ID (supports both session and impersonation)
 const getActualUserId = (req: any): string | null => {
@@ -45,16 +46,33 @@ export function registerProductionBVRoutes(app: Express) {
       const authHeader = req.headers['authorization'] as string | undefined;
       if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.slice('Bearer '.length).trim();
-        const record = impersonationTokens.get(token);
-        if (record && record.expiresAt > Date.now()) {
-          req.user = { id: record.userId, role: 'admin' }; // Admin can impersonate
+        const entry = impersonationTokens.get(token);
+        
+        if (entry && Date.now() < entry.expiresAt) {
+          // Valid impersonation token - fetch user and set req.user
+          const { storage } = await import('./storage');
+          const user = await storage.getUser(entry.userId);
+          if (!user) {
+            return res.status(401).json({ message: 'User not found' });
+          }
+          req.user = user;
           return next();
+        } else {
+          // Invalid or expired token → clean up and fall through to session
+          if (entry && Date.now() >= entry.expiresAt) {
+            impersonationTokens.delete(token);
+          }
         }
       }
 
       // 2) Session-based authentication
       if (req.session?.userId) {
-        req.user = { id: req.session.userId };
+        const { storage } = await import('./storage');
+        const user = await storage.getUser(req.session.userId);
+        if (!user) {
+          return res.status(401).json({ message: 'User not found' });
+        }
+        req.user = user;
         return next();
       }
 
@@ -64,9 +82,6 @@ export function registerProductionBVRoutes(app: Express) {
       return res.status(500).json({ message: 'Authentication failed' });
     }
   };
-
-  // Mock impersonation tokens map (in real app, this would be imported)
-  const impersonationTokens = new Map();
   
   // Debug endpoint to check authentication
   app.get('/api/debug/auth', async (req, res) => {

@@ -11,6 +11,7 @@ import { nanoid } from "nanoid";
 import mlmRoutes from "./mlmRoutes";
 import { db } from "./db";
 import { eq, lt, and, sql, desc } from "drizzle-orm";
+import { impersonationTokens, impersonationCodes } from "./impersonation";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint for deployment
@@ -233,9 +234,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Simple auth middleware with debugging
-  const impersonationTokens: Map<string, { userId: string; expiresAt: number; jti: string; issuedByAdminId?: string }> = new Map();
-  const impersonationCodes: Map<string, { userId: string; expiresAt: number; used: boolean; jti: string; issuedByAdminId: string }> = new Map();
-
   const isAuthenticated = async (req: any, res: any, next: any) => {
     try {
       // 1) Bearer token-based impersonation (does not rely on cookie session)

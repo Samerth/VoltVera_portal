@@ -2,6 +2,7 @@ import { Router } from "express";
 import { storage } from "./storage";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import { impersonationTokens } from "./impersonation";
 import {
   createProductSchema,
   createPurchaseSchema,
@@ -44,13 +45,41 @@ const getActualUserId = (req: any): string | null => {
   return null;
 };
 
-// Middleware to check authentication
-const requireAuth = (req: any, res: any, next: any) => {
-  const userId = getActualUserId(req);
-  if (!userId) {
-    return res.status(401).json({ message: 'Unauthorized' });
+// Middleware to check authentication with bearer token support
+const requireAuth = async (req: any, res: any, next: any) => {
+  try {
+    // 1) Check for Bearer token-based impersonation (priority)
+    const authHeader = req.headers['authorization'] as string | undefined;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.slice('Bearer '.length).trim();
+      const entry = impersonationTokens.get(token);
+      
+      if (entry && Date.now() < entry.expiresAt) {
+        // Valid impersonation token - fetch user and set req.user
+        const user = await storage.getUser(entry.userId);
+        if (!user) {
+          return res.status(401).json({ message: 'User not found' });
+        }
+        req.user = user;
+        return next();
+      } else {
+        // Invalid or expired token → clean up and fall through to session
+        if (entry && Date.now() >= entry.expiresAt) {
+          impersonationTokens.delete(token);
+        }
+      }
+    }
+
+    // 2) Fallback to session-based authentication
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    next();
+  } catch (error: any) {
+    console.error('Authentication error in mlmRoutes:', error);
+    return res.status(500).json({ message: 'Authentication failed' });
   }
-  next();
 };
 
 // Middleware to check admin role

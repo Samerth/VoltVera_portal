@@ -40,18 +40,24 @@ export class ProductionBVEngine {
 
       // Step 2: Direct income to SPONSOR (10% of BV)
       if (user.sponsorId) {
-        const directIncome = bvAmount * 0.1;
-        await this.creditWallet(user.sponsorId, directIncome, 'sponsor_income', data.purchaseId);
-        console.log(`💰 Direct income: ${directIncome} to sponsor ${user.sponsorId}`);
+        const sponsorDisplayId = await this.normalizeToDisplayId(user.sponsorId);
+        if (sponsorDisplayId) {
+          const directIncome = bvAmount * 0.1;
+          await this.creditWallet(sponsorDisplayId, directIncome, 'sponsor_income', data.purchaseId);
+          console.log(`💰 Direct income: ${directIncome} to sponsor ${sponsorDisplayId}`);
+        }
       }
 
       // Step 3: Process BV matching for all uplines (BV flows UP the tree)
-      let currentUserId = user.parentId;
+      let currentUserId = await this.normalizeToDisplayId(user.parentId);
       let childUserId = data.userId; // Start with the buyer
       
       while (currentUserId) {
         const currentUser = await this.getUserByDisplayId(currentUserId);
-        if (!currentUser) break;
+        if (!currentUser) {
+          console.log(`⚠️ User not found for ID: ${currentUserId} - stopping BV propagation`);
+          break;
+        }
         
         // Stop if we reach admin user BEFORE processing
         if (currentUser.userId === 'ADMIN' || currentUser.userId === 'admin-demo') {
@@ -69,7 +75,7 @@ export class ProductionBVEngine {
         
         // Move up the tree: current user becomes the child for the next iteration
         childUserId = currentUserId;
-        currentUserId = currentUser.parentId;
+        currentUserId = await this.normalizeToDisplayId(currentUser.parentId);
       }
 
       console.log(`✅ BV calculations completed for purchase ${data.purchaseId}`);

@@ -879,12 +879,26 @@ export class DatabaseStorage implements IStorage {
       db.select({ count: sql<number>`count(*)` }).from(franchiseRequests).where(eq(franchiseRequests.status, 'pending'))
     ]);
     
-    // Calculate total BV in system
-    const allUsers = await db.select({ totalBV: users.totalBV }).from(users);
-    const totalBV = allUsers.reduce((sum, user) => sum + parseFloat(user.totalBV || '0'), 0);
+    // Calculate total BV in system (excluding admin users)
+    const nonAdminUsers = await db.select({ totalBV: users.totalBV })
+      .from(users)
+      .where(eq(users.role, 'user'));
+    const totalBV = nonAdminUsers.reduce((sum, user) => sum + parseFloat(user.totalBV || '0'), 0);
     
-    // Calculate monthly income (placeholder - would need transaction history)
-    const monthlyIncome = '125000.00'; // This would be calculated from actual transactions
+    // Calculate monthly income from actual transactions for current month
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    const monthlyTransactions = await db.select({ amount: transactions.amount })
+      .from(transactions)
+      .where(
+        and(
+          gte(transactions.createdAt, firstDayOfMonth),
+          sql`${transactions.type} IN ('sponsor_income', 'sales_incentive', 'sales_bonus', 'consistency_bonus', 'franchise_income', 'car_fund', 'travel_fund', 'leadership_fund', 'house_fund', 'millionaire_club', 'royalty_income', 'admin_credit')`
+        )
+      );
+    
+    const monthlyIncome = monthlyTransactions.reduce((sum, txn) => sum + parseFloat(txn.amount || '0'), 0);
     
     return {
       totalUsers: userStats.totalUsers,
@@ -893,7 +907,7 @@ export class DatabaseStorage implements IStorage {
       withdrawalRequests: withdrawalCount[0]?.count || 0,
       franchiseRequests: franchiseCount[0]?.count || 0,
       totalBV: totalBV.toFixed(2),
-      monthlyIncome
+      monthlyIncome: monthlyIncome.toFixed(2)
     };
   }
 

@@ -1123,51 +1123,64 @@ export default function AdminDashboard() {
                 </Card>
               </div>
               
-              {/* Recent Activity */}
-              <Card className="mb-6 hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Activity className="mr-2 h-5 w-5 text-volt-light" />
-                    Recent Admin Actions Required
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border-l-4 border-yellow-400">
-                      <div className="flex items-center gap-3">
-                        <Shield className="h-5 w-5 text-yellow-600" />
-                        <div>
-                          <p className="font-medium">KYC Document Submitted</p>
-                          <p className="text-sm text-gray-600">User ID: VTR001234 - Aadhaar & PAN verification</p>
+              {/* Recent Activity - Show only if there are actual pending actions */}
+              {((adminStats?.pendingKYC || 0) > 0 || (adminStats?.withdrawalRequests || 0) > 0 || (adminStats?.franchiseRequests || 0) > 0) && (
+                <Card className="mb-6 hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Activity className="mr-2 h-5 w-5 text-volt-light" />
+                      Admin Actions Required
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {adminStats && adminStats.pendingKYC > 0 && (
+                        <button
+                          onClick={() => setActiveSection('pending-kyc')}
+                          className="w-full flex items-center justify-between p-3 bg-yellow-50 rounded-lg border-l-4 border-yellow-400 hover:bg-yellow-100 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Shield className="h-5 w-5 text-yellow-600" />
+                            <div className="text-left">
+                              <p className="font-medium">Pending KYC Documents</p>
+                              <p className="text-sm text-gray-600">{adminStats.pendingKYC} document{adminStats.pendingKYC !== 1 ? 's' : ''} awaiting review</p>
+                            </div>
+                          </div>
+                          <Button size="sm" variant="outline" className="volt-gradient text-white">Review</Button>
+                        </button>
+                      )}
+                      
+                      {adminStats && adminStats.withdrawalRequests > 0 && (
+                        <button
+                          onClick={() => setActiveSection('pending-withdraw')}
+                          className="w-full flex items-center justify-between p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400 hover:bg-blue-100 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <DollarSign className="h-5 w-5 text-blue-600" />
+                            <div className="text-left">
+                              <p className="font-medium">Pending Withdrawals</p>
+                              <p className="text-sm text-gray-600">{adminStats.withdrawalRequests} withdrawal request{adminStats.withdrawalRequests !== 1 ? 's' : ''} pending</p>
+                            </div>
+                          </div>
+                          <Button size="sm" variant="outline" className="volt-gradient text-white">Review</Button>
+                        </button>
+                      )}
+                      
+                      {adminStats && adminStats.franchiseRequests > 0 && (
+                        <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border-l-4 border-purple-400">
+                          <div className="flex items-center gap-3">
+                            <Award className="h-5 w-5 text-purple-600" />
+                            <div>
+                              <p className="font-medium">Franchise Applications</p>
+                              <p className="text-sm text-gray-600">{adminStats.franchiseRequests} application{adminStats.franchiseRequests !== 1 ? 's' : ''} under review</p>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <Button size="sm" variant="outline" className="volt-gradient text-white">Review</Button>
+                      )}
                     </div>
-                    
-                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-                      <div className="flex items-center gap-3">
-                        <DollarSign className="h-5 w-5 text-blue-600" />
-                        <div>
-                          <p className="font-medium">Withdrawal Request</p>
-                          <p className="text-sm text-gray-600">Amount: ₹5,000 - User ID: VTR005678</p>
-                        </div>
-                      </div>
-                      <Button size="sm" variant="outline" className="volt-gradient text-white">Approve</Button>
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border-l-4 border-purple-400">
-                      <div className="flex items-center gap-3">
-                        <Award className="h-5 w-5 text-purple-600" />
-                        <div>
-                          <p className="font-medium">Franchise Application</p>
-                          <p className="text-sm text-gray-600">Mini Franchise - Location: Mumbai</p>
-                        </div>
-                      </div>
-                      <Button size="sm" variant="outline" className="volt-gradient text-white">Review</Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
             </>
           )}
           

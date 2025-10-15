@@ -245,8 +245,8 @@ export default function UserManagementTable({ users, walletData, withdrawalData 
               </TableHeader>
               <TableBody>
                 {filteredUsers.map((user) => {
-                  const wallet = walletData[user.userId];
-                  const withdrawal = withdrawalData[user.userId];
+                  const wallet = walletData[user.userId || user.id];
+                  const withdrawal = withdrawalData[user.userId || user.id];
                   
                   return (
                     <TableRow key={user.id} className="hover:bg-gray-50">

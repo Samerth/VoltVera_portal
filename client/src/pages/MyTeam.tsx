@@ -326,12 +326,12 @@ export default function MyTeam() {
         </div>
 
         {/* Main Content Tabs */}
-        <Tabs defaultValue="decisions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="decisions" className="flex items-center gap-2">
+        <Tabs defaultValue="direct" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            {/* <TabsTrigger value="decisions" className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
               Position Decisions
-            </TabsTrigger>
+            </TabsTrigger> */}
             <TabsTrigger value="direct" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Direct
@@ -344,16 +344,16 @@ export default function MyTeam() {
               <TreePine className="h-4 w-4" />
               Binary Tree
             </TabsTrigger>
-            <TabsTrigger value="business" className="flex items-center gap-2">
+            {/* <TabsTrigger value="business" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Team Business Stages
-            </TabsTrigger>
+            </TabsTrigger> */}
           </TabsList>
 
           {/* Position Decisions Tab */}
-          <TabsContent value="decisions" className="space-y-6">
+          {/* <TabsContent value="decisions" className="space-y-6">
             <UplineDecisions />
-          </TabsContent>
+          </TabsContent> */}
 
           {/* Direct Recruits Tab */}
           <TabsContent value="direct" className="space-y-6">
@@ -513,9 +513,9 @@ export default function MyTeam() {
           </TabsContent>
 
           {/* Team Business Stages Tab */}
-          <TabsContent value="business">
+          {/* <TabsContent value="business">
             <TeamBusinessStages />
-          </TabsContent>
+          </TabsContent> */}
         </Tabs>
     </div>
   );

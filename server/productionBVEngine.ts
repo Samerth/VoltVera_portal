@@ -268,6 +268,38 @@ export class ProductionBVEngine {
     return user;
   }
 
+  /**
+   * Normalize any user identifier to Display ID (VVxxxx format)
+   * Handles both UUID and Display ID inputs
+   * @param userId - Can be UUID (from id column) or Display ID (from userId column)
+   * @returns Display ID (VVxxxx) or original value if not found
+   */
+  async normalizeToDisplayId(userId: string | null | undefined): Promise<string | null> {
+    if (!userId) return null;
+    
+    // Already a display ID (VVxxxx format) or admin-demo
+    if (userId.startsWith('VV') || userId === 'admin-demo' || userId === 'ADMIN') {
+      return userId;
+    }
+    
+    // Check if it's a UUID format (8-4-4-4-12 pattern)
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidPattern.test(userId)) {
+      // Look up display ID from UUID
+      const [user] = await db.select({ userId: users.userId })
+        .from(users)
+        .where(eq(users.id, userId));
+      
+      if (user?.userId) {
+        console.log(`🔄 Normalized UUID ${userId.substring(0, 8)}... → ${user.userId}`);
+        return user.userId;
+      }
+    }
+    
+    // Return as-is if not found (might already be display ID)
+    return userId;
+  }
+
   async creditWallet(userId: string, amount: number, type: string, referenceId?: string) {
     // Get current wallet balance
     const [wallet] = await db.select().from(walletBalances).where(eq(walletBalances.userId, userId));

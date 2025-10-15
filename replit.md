@@ -41,6 +41,12 @@ Preferred communication style: Simple, everyday language.
 - **Session Strategy**: Secure HTTP-only cookies with PostgreSQL session store
 - **Role-Based Access**: Admin and user roles with middleware protection
 - **Security Features**: CSRF protection, secure cookie settings, and automatic session management
+- **Admin Impersonation**: Bearer token-based impersonation system allowing admins to act as users
+  - Centralized token management via shared `impersonation.ts` module
+  - One-time codes exchanged for short-lived access tokens (5-minute expiry)
+  - Token validation across all routes via unified `requireAuth` middleware
+  - Priority: Bearer token (impersonation) → Session auth (normal)
+  - Works seamlessly across all MLM endpoints (purchases, wallet, KYC, transactions, etc.) ✅ FIXED (October 15, 2025)
 
 ## Key Features
 - **User Management**: Full CRUD operations for user accounts (admin only)

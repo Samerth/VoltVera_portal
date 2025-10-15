@@ -96,6 +96,59 @@ export function registerProductionBVRoutes(app: Express) {
       });
     }
   });
+
+  // Test endpoint to trigger BV calculations for a specific purchase (for testing only)
+  app.post('/api/test/trigger-bv/:purchaseId', async (req, res) => {
+    try {
+      const { purchaseId } = req.params;
+      console.log(`🔄 Manually triggering BV calculations for purchase: ${purchaseId}`);
+      
+      // Import storage to access processIncomeDistribution
+      const { storage } = await import('./storage');
+      
+      // Trigger BV calculations
+      await storage.processIncomeDistribution(purchaseId);
+      
+      res.json({ 
+        success: true, 
+        message: `BV calculations triggered for purchase ${purchaseId}` 
+      });
+    } catch (error) {
+      console.error('Error triggering BV calculations:', error);
+      res.status(500).json({ 
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+    }
+  });
+
+  // Test endpoint to directly test BV engine (for debugging)
+  app.post('/api/test/bv-engine', async (req, res) => {
+    try {
+      console.log(`🧪 Testing BV engine directly`);
+      
+      // Test BV engine directly
+      await productionBVEngine.processPurchase({
+        purchaseId: 'test-purchase-debug',
+        userId: 'VV0001',
+        bvAmount: '1000',
+        monthId: 1
+      });
+      
+      res.json({ 
+        success: true, 
+        message: 'BV engine test completed successfully' 
+      });
+    } catch (error) {
+      console.error('BV engine test error:', error);
+      res.status(500).json({ 
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+    }
+  });
   
   // Get user's BV calculation data
   app.get('/api/user/bv-calculations', isAuthenticated, async (req, res) => {

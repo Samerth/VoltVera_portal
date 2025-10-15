@@ -54,7 +54,7 @@ export class ProductionBVEngine {
         if (!currentUser) break;
         
         // Stop if we reach admin user BEFORE processing
-        if (currentUser.userId === 'ADMIN') {
+        if (currentUser.userId === 'ADMIN' || currentUser.userId === 'admin-demo') {
           console.log(`🛑 Stopping BV calculations at ${currentUser.userId} (admin user) - NOT processing`);
           break;
         }

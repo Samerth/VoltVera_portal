@@ -2237,10 +2237,11 @@ export class DatabaseStorage implements IStorage {
       totalAmount: totalAmount.toString(),
       totalBV: totalBV.toString(),
       paymentMethod: data.paymentMethod,
+      paymentStatus: 'completed', // Set to completed since purchase is created when user completes form
       deliveryAddress: data.deliveryAddress,
     }).returning();
 
-    // Process income distribution and BV updates
+    // Process income distribution and BV updates since payment is completed
     await this.processIncomeDistribution(purchase.id);
     
     return purchase;
@@ -2262,6 +2263,18 @@ export class DatabaseStorage implements IStorage {
       .update(purchases)
       .set({ paymentStatus: status, updatedAt: new Date() })
       .where(eq(purchases.id, id));
+    
+    // If payment is completed, trigger BV calculations
+    if (status === 'completed' && (result.rowCount ?? 0) > 0) {
+      console.log(`💰 Payment completed for purchase ${id}, triggering BV calculations`);
+      try {
+        await this.processIncomeDistribution(id);
+        console.log(`✅ BV calculations completed for purchase ${id}`);
+      } catch (error) {
+        console.error(`❌ Error in BV calculations for purchase ${id}:`, error);
+      }
+    }
+    
     return (result.rowCount ?? 0) > 0;
   }
 

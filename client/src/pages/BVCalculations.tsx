@@ -48,7 +48,7 @@ export default function BVCalculations() {
   const [activeTab, setActiveTab] = useState('overview');
 
   const { data: bvData, isLoading, error } = useQuery<BVData>({
-    queryKey: ['/api/test/bv-calculations'],
+    queryKey: ['/api/user/bv-calculations'],
   });
 
   // Debug logging

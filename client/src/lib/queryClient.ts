@@ -25,6 +25,12 @@ export async function apiRequest(
     credentials: "include",
   });
 
+  // If 401 Unauthorized and using impersonation token, clear stale token
+  if (res.status === 401 && impersonationToken && typeof window !== 'undefined') {
+    sessionStorage.removeItem('impersonationToken');
+    console.warn('❌ Impersonation token expired or invalid - cleared from storage. Please get a fresh impersonation code.');
+  }
+
   // Throw for both server errors (5xx) and client errors (4xx) - let redirects (3xx) pass through
   if (res.status >= 400) {
     await throwIfResNotOk(res);
@@ -59,6 +65,12 @@ export const getQueryFn: <T>(options: {
       credentials: "include",
       headers,
     });
+
+    // If 401 Unauthorized and using impersonation token, clear stale token
+    if (res.status === 401 && impersonationToken && typeof window !== 'undefined') {
+      sessionStorage.removeItem('impersonationToken');
+      console.warn('❌ Impersonation token expired or invalid - cleared from storage. Please get a fresh impersonation code.');
+    }
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;

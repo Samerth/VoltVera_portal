@@ -56,6 +56,7 @@ const requireAuth = async (req: any, res: any, next: any) => {
       const token = authHeader.slice('Bearer '.length).trim();
       console.log('🔑 MLM Bearer token found:', token.substring(0, 10) + '...');
       console.log('📋 MLM Impersonation tokens map size:', impersonationTokens.size);
+      console.log('📋 MLM All tokens in map:', Array.from(impersonationTokens.keys()).map(k => k.substring(0, 10) + '...'));
       
       const entry = impersonationTokens.get(token);
       console.log('🔍 MLM Token entry:', entry ? `userId=${entry.userId}, expired=${Date.now() >= entry.expiresAt}` : 'NOT FOUND');

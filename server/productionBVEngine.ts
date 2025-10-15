@@ -51,6 +51,7 @@ export class ProductionBVEngine {
       // Step 3: Process BV matching for all uplines (BV flows UP the tree)
       let currentUserId = await this.normalizeToDisplayId(user.parentId);
       let childUserId = data.userId; // Start with the buyer
+      const buyerUserId = data.userId; // Keep track of original buyer for direct recruit detection
       
       while (currentUserId) {
         const currentUser = await this.getUserByDisplayId(currentUserId);
@@ -70,8 +71,8 @@ export class ProductionBVEngine {
         const childPosition = childUser?.position as 'left' | 'right';
         console.log(`📍 Child ${childUserId} position relative to ${currentUserId}: ${childPosition}`);
         
-        // Process BV calculations for this upline
-        await this.processBVMatching(currentUserId, bvAmount.toString(), data.purchaseId, data.monthId, childPosition);
+        // Process BV calculations for this upline, passing buyer ID for direct recruit tracking
+        await this.processBVMatching(currentUserId, bvAmount.toString(), data.purchaseId, data.monthId, childPosition, buyerUserId);
         
         // Move up the tree: current user becomes the child for the next iteration
         childUserId = currentUserId;
@@ -149,7 +150,7 @@ export class ProductionBVEngine {
   }
 
   // Process BV calculations for a user
-  async processBVMatching(userId: string, bvAmount: string, purchaseId: string, monthId: number, childPosition?: 'left' | 'right') {
+  async processBVMatching(userId: string, bvAmount: string, purchaseId: string, monthId: number, childPosition?: 'left' | 'right', buyerUserId?: string) {
     const user = await this.getUserByDisplayId(userId);
     if (!user) return;
 
@@ -180,12 +181,29 @@ export class ProductionBVEngine {
     // Calculate new BV state
     let newLeftBV = prevLeftBV;
     let newRightBV = prevRightBV;
+    const bvAmountNum = parseFloat(bvAmount);
 
     // Add BV to appropriate leg based on child's position
     if (childPosition === 'left') {
-      newLeftBV += parseFloat(bvAmount);
+      newLeftBV += bvAmountNum;
+      // Update monthly BV for left leg
+      await this.updateMonthlyBV(userId, { leftBvIncrement: bvAmountNum });
     } else if (childPosition === 'right') {
-      newRightBV += parseFloat(bvAmount);
+      newRightBV += bvAmountNum;
+      // Update monthly BV for right leg
+      await this.updateMonthlyBV(userId, { rightBvIncrement: bvAmountNum });
+    }
+
+    // Check if buyer is a direct recruit (sponsored by this upline)
+    if (buyerUserId) {
+      const buyer = await this.getUserByDisplayId(buyerUserId);
+      const buyerSponsorId = await this.normalizeToDisplayId(buyer?.sponsorId);
+      
+      if (buyerSponsorId === userId) {
+        // Buyer is a direct recruit - update directs BV
+        await this.updateMonthlyBV(userId, { directsBvIncrement: bvAmountNum });
+        console.log(`👥 Direct recruit BV: ${bvAmountNum} added to ${userId}'s directs`);
+      }
     }
 
     // Calculate matching BV
@@ -400,6 +418,88 @@ export class ProductionBVEngine {
   getCurrentMonthId(): number {
     const now = new Date();
     return now.getFullYear() * 12 + now.getMonth() + 1;
+  }
+
+  // Get month start and end dates for calendar month
+  getMonthBoundaries(date: Date = new Date()): { start: Date; end: Date; monthId: number } {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    
+    const start = new Date(year, month, 1);
+    const end = new Date(year, month + 1, 0);
+    const monthId = year * 12 + month + 1;
+    
+    return { start, end, monthId };
+  }
+
+  // Get or create monthly BV record for a user
+  async getOrCreateMonthlyBV(userId: string, purchaseDate: Date = new Date()) {
+    const user = await this.getUserByDisplayId(userId);
+    if (!user) return null;
+
+    const { start, end, monthId } = this.getMonthBoundaries(purchaseDate);
+
+    // Try to find existing record for this month
+    const [existing] = await db.select()
+      .from(monthlyBv)
+      .where(
+        and(
+          eq(monthlyBv.userId, userId),
+          eq(monthlyBv.monthId, monthId)
+        )
+      )
+      .limit(1);
+
+    if (existing) {
+      return existing;
+    }
+
+    // Create new monthly BV record
+    const [newRecord] = await db.insert(monthlyBv).values({
+      userId: userId,
+      parentId: user.parentId,
+      monthId: monthId,
+      monthStartdate: start.toISOString().split('T')[0],
+      monthEnddate: end.toISOString().split('T')[0],
+      monthBvLeft: '0.00',
+      monthBvRight: '0.00',
+      monthBvDirects: '0.00'
+    }).returning();
+
+    return newRecord;
+  }
+
+  // Update monthly BV for a user
+  async updateMonthlyBV(
+    userId: string, 
+    updates: { 
+      leftBvIncrement?: number; 
+      rightBvIncrement?: number; 
+      directsBvIncrement?: number; 
+    },
+    purchaseDate: Date = new Date()
+  ) {
+    const monthlyRecord = await this.getOrCreateMonthlyBV(userId, purchaseDate);
+    if (!monthlyRecord) return;
+
+    const currentLeftBv = parseFloat(monthlyRecord.monthBvLeft || '0');
+    const currentRightBv = parseFloat(monthlyRecord.monthBvRight || '0');
+    const currentDirectsBv = parseFloat(monthlyRecord.monthBvDirects || '0');
+
+    const newLeftBv = currentLeftBv + (updates.leftBvIncrement || 0);
+    const newRightBv = currentRightBv + (updates.rightBvIncrement || 0);
+    const newDirectsBv = currentDirectsBv + (updates.directsBvIncrement || 0);
+
+    await db.update(monthlyBv)
+      .set({
+        monthBvLeft: newLeftBv.toString(),
+        monthBvRight: newRightBv.toString(),
+        monthBvDirects: newDirectsBv.toString(),
+        updatedAt: new Date()
+      })
+      .where(eq(monthlyBv.id, monthlyRecord.id));
+
+    console.log(`📅 Monthly BV updated for ${userId} (Month ${monthlyRecord.monthId}): L=${newLeftBv}, R=${newRightBv}, D=${newDirectsBv}`);
   }
 }
 

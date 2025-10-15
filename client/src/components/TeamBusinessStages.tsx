@@ -52,18 +52,18 @@ export function TeamBusinessStages() {
       
       // Define rank requirements (you can adjust these based on your MLM plan)
       const rankRequirements = {
-        'Executive': { teamBV: 0, leftBV: 0, rightBV: 0, directRecruits: 0 },
-        'Bronze Star': { teamBV: 10000, leftBV: 5000, rightBV: 5000, directRecruits: 2 },
-        'Gold Star': { teamBV: 25000, leftBV: 12500, rightBV: 12500, directRecruits: 4 },
-        'Emerald Star': { teamBV: 50000, leftBV: 25000, rightBV: 25000, directRecruits: 6 },
-        'Ruby Star': { teamBV: 100000, leftBV: 50000, rightBV: 50000, directRecruits: 8 },
-        'Diamond': { teamBV: 250000, leftBV: 125000, rightBV: 125000, directRecruits: 10 },
-        'Wise President': { teamBV: 500000, leftBV: 250000, rightBV: 250000, directRecruits: 12 },
-        'President': { teamBV: 1000000, leftBV: 500000, rightBV: 500000, directRecruits: 15 },
-        'Ambassador': { teamBV: 2500000, leftBV: 1250000, rightBV: 1250000, directRecruits: 20 },
-        'Deputy Director': { teamBV: 5000000, leftBV: 2500000, rightBV: 2500000, directRecruits: 25 },
-        'Director': { teamBV: 10000000, leftBV: 5000000, rightBV: 5000000, directRecruits: 30 },
-        'Founder': { teamBV: 25000000, leftBV: 12500000, rightBV: 12500000, directRecruits: 40 }
+        'Executive': { teamBV: '0', leftBV: '0', rightBV: '0', directRecruits: 0 },
+        'Bronze Star': { teamBV: '10000', leftBV: '5000', rightBV: '5000', directRecruits: 2 },
+        'Gold Star': { teamBV: '25000', leftBV: '12500', rightBV: '12500', directRecruits: 4 },
+        'Emerald Star': { teamBV: '50000', leftBV: '25000', rightBV: '25000', directRecruits: 6 },
+        'Ruby Star': { teamBV: '100000', leftBV: '50000', rightBV: '50000', directRecruits: 8 },
+        'Diamond': { teamBV: '250000', leftBV: '125000', rightBV: '125000', directRecruits: 10 },
+        'Wise President': { teamBV: '500000', leftBV: '250000', rightBV: '250000', directRecruits: 12 },
+        'President': { teamBV: '1000000', leftBV: '500000', rightBV: '500000', directRecruits: 15 },
+        'Ambassador': { teamBV: '2500000', leftBV: '1250000', rightBV: '1250000', directRecruits: 20 },
+        'Deputy Director': { teamBV: '5000000', leftBV: '2500000', rightBV: '2500000', directRecruits: 25 },
+        'Director': { teamBV: '10000000', leftBV: '5000000', rightBV: '5000000', directRecruits: 30 },
+        'Founder': { teamBV: '25000000', leftBV: '12500000', rightBV: '12500000', directRecruits: 40 }
       };
       
       const ranks = Object.keys(rankRequirements);
@@ -73,9 +73,9 @@ export function TeamBusinessStages() {
       const nextRankReq = rankRequirements[nextRank as keyof typeof rankRequirements];
       
       // Calculate progress percentage
-      const bvProgress = Math.min((teamBV / parseFloat(nextRankReq.teamBV)) * 100, 100);
-      const leftProgress = Math.min((leftBV / parseFloat(nextRankReq.leftBV)) * 100, 100);
-      const rightProgress = Math.min((rightBV / parseFloat(nextRankReq.rightBV)) * 100, 100);
+      const bvProgress = Math.min((teamBV / parseFloat(nextRankReq.teamBV || '0')) * 100, 100);
+      const leftProgress = Math.min((leftBV / parseFloat(nextRankReq.leftBV || '0')) * 100, 100);
+      const rightProgress = Math.min((rightBV / parseFloat(nextRankReq.rightBV || '0')) * 100, 100);
       const recruitsProgress = Math.min((data.totalDirects / nextRankReq.directRecruits) * 100, 100);
       
       const overallProgress = (bvProgress + leftProgress + rightProgress + recruitsProgress) / 4;

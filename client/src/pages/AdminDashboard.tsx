@@ -29,6 +29,7 @@ import WithdrawPersonallyForm from "@/components/WithdrawPersonallyForm";
 import SendFundForm from "@/components/SendFundForm";
 import FundHistoryTable from "@/components/FundHistoryTable";
 import FundRequestsTable from "@/components/PendingFundRequestsTable";
+import { IncomeReportsTable } from "@/components/IncomeReportsTable";
 
 interface UserStats {
   totalUsers: number;
@@ -2059,11 +2060,35 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {/* Direct Income Report */}
+          {activeSection === 'direct-income' && (
+            <IncomeReportsTable
+              reportType="direct"
+              title="Direct Income Report"
+              description="Sponsor income earned from direct recruits"
+            />
+          )}
+
+          {/* ROI Income Report */}
+          {activeSection === 'roi-income' && (
+            <IncomeReportsTable
+              reportType="roi"
+              title="ROI Income Report"
+              description="Sales incentives and bonuses"
+            />
+          )}
+
+          {/* Salary Income Report */}
+          {activeSection === 'salary-income' && (
+            <IncomeReportsTable
+              reportType="salary"
+              title="Salary Income Report"
+              description="Consistency bonuses and leadership funds"
+            />
+          )}
+
           {/* Enhanced Section Content for other sections */}
           {(activeSection === 'user-activities' ||
-            activeSection === 'direct-income' ||
-            activeSection === 'roi-income' ||
-            activeSection === 'salary-income' ||
             activeSection === 'payout-summary' ||
             activeSection === 'holiday-reward' ||
             activeSection === 'manage-fund' ||

@@ -220,6 +220,14 @@ export interface IStorage {
   getAllWalletBalances(): Promise<WalletBalance[]>;
   getAllWithdrawalRequests(): Promise<WithdrawalRequest[]>;
   
+  // Income reports
+  getIncomeReports(filters?: {
+    transactionTypes?: string[];
+    startDate?: string;
+    endDate?: string;
+    userId?: string;
+  }): Promise<any[]>;
+  
   // Referral links and recruitment
   createReferralLink(data: CreateReferralLink & { token: string }): Promise<ReferralLink>;
   getReferralLink(token: string): Promise<ReferralLink | undefined>;
@@ -4407,6 +4415,60 @@ export class DatabaseStorage implements IStorage {
 
   async getAllWithdrawalRequests(): Promise<WithdrawalRequest[]> {
     return await db.select().from(withdrawalRequests).orderBy(desc(withdrawalRequests.createdAt));
+  }
+
+  // Income reports
+  async getIncomeReports(filters?: {
+    transactionTypes?: string[];
+    startDate?: string;
+    endDate?: string;
+    userId?: string;
+  }): Promise<any[]> {
+    const conditions = [];
+    
+    // Filter by transaction types
+    if (filters?.transactionTypes && filters.transactionTypes.length > 0) {
+      conditions.push(sql`${transactions.type} = ANY(${filters.transactionTypes})`);
+    }
+    
+    // Filter by date range
+    if (filters?.startDate) {
+      conditions.push(gte(transactions.createdAt, new Date(filters.startDate)));
+    }
+    if (filters?.endDate) {
+      conditions.push(lte(transactions.createdAt, new Date(filters.endDate)));
+    }
+    
+    // Filter by user ID (optional)
+    if (filters?.userId) {
+      conditions.push(eq(transactions.userId, filters.userId));
+    }
+    
+    // Get transactions with user details
+    const query = db
+      .select({
+        id: transactions.id,
+        userId: transactions.userId,
+        userDisplayId: users.userId,
+        userName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`,
+        userEmail: users.email,
+        type: transactions.type,
+        amount: transactions.amount,
+        description: transactions.description,
+        referenceId: transactions.referenceId,
+        balanceBefore: transactions.balanceBefore,
+        balanceAfter: transactions.balanceAfter,
+        createdAt: transactions.createdAt,
+      })
+      .from(transactions)
+      .leftJoin(users, eq(transactions.userId, users.id))
+      .orderBy(desc(transactions.createdAt));
+    
+    if (conditions.length > 0) {
+      return await query.where(and(...conditions));
+    }
+    
+    return await query;
   }
 
   // Referral links and recruitment

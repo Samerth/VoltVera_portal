@@ -124,6 +124,34 @@ router.get('/admin/stats', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+// Get income reports
+router.get('/admin/income-reports', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { transactionTypes, startDate, endDate, userId } = req.query;
+    
+    const filters: any = {};
+    
+    if (transactionTypes) {
+      filters.transactionTypes = (transactionTypes as string).split(',');
+    }
+    if (startDate) {
+      filters.startDate = startDate as string;
+    }
+    if (endDate) {
+      filters.endDate = endDate as string;
+    }
+    if (userId) {
+      filters.userId = userId as string;
+    }
+    
+    const reports = await storage.getIncomeReports(filters);
+    res.json(reports);
+  } catch (error) {
+    console.error('Error fetching income reports:', error);
+    res.status(500).json({ message: 'Failed to fetch income reports' });
+  }
+});
+
 // Enhanced user search for admin
 router.get('/admin/users/search', requireAuth, requireAdmin, async (req, res) => {
   try {

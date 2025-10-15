@@ -1082,47 +1082,57 @@ export class DatabaseStorage implements IStorage {
 
   // Team management methods
   async getTeamMembers(userId: string): Promise<User[]> {
+    // Normalize UUID to Display ID
+    const normalizedUserId = await this.normalizeToDisplayId(userId);
+    
     return await db.select()
       .from(users)
-      .where(eq(users.sponsorId, userId))
+      .where(eq(users.sponsorId, normalizedUserId))
       .orderBy(desc(users.createdAt));
   }
 
   async getDownline(userId: string, levels: number = 10): Promise<User[]> {
+    // Normalize UUID to Display ID for initial lookup
+    const normalizedUserId = await this.normalizeToDisplayId(userId);
+    
     const allMembers: User[] = [];
     const visited = new Set<string>();
     
-    const getLevel = async (currentUserId: string, currentLevel: number): Promise<void> => {
-      if (currentLevel > levels || visited.has(currentUserId)) return;
-      visited.add(currentUserId);
+    const getLevel = async (currentDisplayId: string, currentLevel: number): Promise<void> => {
+      if (currentLevel > levels || visited.has(currentDisplayId)) return;
+      visited.add(currentDisplayId);
       
-      // Use binary tree structure (leftChildId, rightChildId) instead of sponsorId
-      const currentUser = await db.select().from(users).where(eq(users.id, currentUserId)).limit(1);
+      // Look up user by Display ID (for sponsor/parent relationships)
+      const currentUser = await db.select().from(users).where(eq(users.userId, currentDisplayId)).limit(1);
       if (!currentUser.length) return;
       
       const user = currentUser[0];
       
-      // Check left child
-      if (user.leftChildId) {
-        const leftChild = await db.select().from(users).where(eq(users.id, user.leftChildId)).limit(1);
-        if (leftChild.length && !allMembers.find(m => m.id === leftChild[0].id)) {
-          allMembers.push(leftChild[0]);
-          await getLevel(leftChild[0].id, currentLevel + 1);
-        }
-      }
+      // Get children based on parent_id (which stores Display IDs)
+      const children = await db.select().from(users).where(eq(users.parentId, currentDisplayId));
       
-      // Check right child
-      if (user.rightChildId) {
-        const rightChild = await db.select().from(users).where(eq(users.id, user.rightChildId)).limit(1);
-        if (rightChild.length && !allMembers.find(m => m.id === rightChild[0].id)) {
-          allMembers.push(rightChild[0]);
-          await getLevel(rightChild[0].id, currentLevel + 1);
+      for (const child of children) {
+        if (!allMembers.find(m => m.id === child.id)) {
+          allMembers.push(child);
+          await getLevel(child.userId!, currentLevel + 1);
         }
       }
     };
     
-    await getLevel(userId, 1);
+    await getLevel(normalizedUserId, 1);
     return allMembers.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+  
+  // Helper function to normalize UUID to Display ID
+  private async normalizeToDisplayId(id: string): Promise<string> {
+    if (!id) return id;
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    if (uuidPattern.test(id)) {
+      const user = await db.select({ userId: users.userId }).from(users).where(eq(users.id, id)).limit(1);
+      return user[0]?.userId || id;
+    }
+    return id;
   }
 
   async getTeamStats(userId: string): Promise<{

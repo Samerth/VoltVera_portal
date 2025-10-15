@@ -255,6 +255,7 @@ export default function BVCalculations() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
+                      <TableHead>Initiator</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Left BV</TableHead>
                       <TableHead>Right BV</TableHead>
@@ -269,7 +270,12 @@ export default function BVCalculations() {
                           {new Date(tx.createdAt).toLocaleDateString('en-IN')}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">
+                          <Badge variant="secondary" data-testid={`initiator-${tx.id}`}>
+                            {(tx as any).initiatingUserId || 'N/A'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" data-testid={`type-${tx.id}`}>
                             {tx.transactionType.replace('_', ' ').toUpperCase()}
                           </Badge>
                         </TableCell>
@@ -290,7 +296,7 @@ export default function BVCalculations() {
                         <TableCell className="text-green-600 font-medium">
                           {formatBV(tx.newMatchAmount)}
                         </TableCell>
-                        <TableCell className="text-blue-600 font-bold">
+                        <TableCell className="text-blue-600 font-bold" data-testid={`income-${tx.id}`}>
                           {formatCurrency(tx.diffIncome)}
                         </TableCell>
                       </TableRow>

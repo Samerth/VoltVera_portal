@@ -353,8 +353,32 @@ export class ProductionBVEngine {
       .where(eq(lifetimeBvCalculations.userId, userId))
       .limit(1);
 
-    const bvTransactionsData = await db.select()
+    const bvTransactionsData = await db.select({
+      id: bvTransactions.id,
+      userId: bvTransactions.userId,
+      parentId: bvTransactions.parentId,
+      purchaseId: bvTransactions.purchaseId,
+      transactionType: bvTransactions.transactionType,
+      prevLeftBv: bvTransactions.prevLeftBv,
+      newLeftBv: bvTransactions.newLeftBv,
+      prevRightBv: bvTransactions.prevRightBv,
+      newRightBv: bvTransactions.newRightBv,
+      prevMatchingBv: bvTransactions.prevMatchingBv,
+      newMatchingBv: bvTransactions.newMatchingBv,
+      newMatchAmount: bvTransactions.newMatchAmount,
+      carryForwardLeft: bvTransactions.carryForwardLeft,
+      carryForwardRight: bvTransactions.carryForwardRight,
+      rank: bvTransactions.rank,
+      rankPercentage: bvTransactions.rankPercentage,
+      diffIncome: bvTransactions.diffIncome,
+      directIncome: bvTransactions.directIncome,
+      monthId: bvTransactions.monthId,
+      createdAt: bvTransactions.createdAt,
+      initiatingUserId: users.userId,
+    })
       .from(bvTransactions)
+      .leftJoin(purchases, eq(bvTransactions.purchaseId, purchases.id))
+      .leftJoin(users, eq(purchases.userId, users.id))
       .where(eq(bvTransactions.userId, userId))
       .orderBy(desc(bvTransactions.createdAt))
       .limit(50);

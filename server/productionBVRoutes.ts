@@ -8,7 +8,7 @@ import {
   users,
   rankConfigurations 
 } from '../shared/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 
 // Helper function to get the actual user ID (supports both session and impersonation)
 const getActualUserId = (req: any): string | null => {

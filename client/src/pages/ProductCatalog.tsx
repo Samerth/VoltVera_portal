@@ -539,21 +539,20 @@ export default function ProductCatalog() {
                       </h4>
                       <div className="text-sm space-y-1 text-green-700">
                         <div className="flex justify-between">
-                          <span>Current Left BV:</span>
-                          <span>{parseFloat(bvData.lifetime.leftBv || '0').toLocaleString()} BV</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Current Right BV:</span>
-                          <span>{parseFloat(bvData.lifetime.rightBv || '0').toLocaleString()} BV</span>
+                          <span>Current Self BV:</span>
+                          <span>{parseFloat(bvData.lifetime.selfBv || '0').toLocaleString()} BV</span>
                         </div>
                         <div className="flex justify-between font-medium">
-                          <span>After Purchase:</span>
+                          <span>After Purchase (Self BV):</span>
                           <span className="text-green-600">
-                            {(parseFloat(bvData.lifetime.leftBv || '0') + (parseFloat(selectedProduct.bv) * purchaseForm.quantity)).toLocaleString()} BV
+                            {(parseFloat(bvData.lifetime.selfBv || '0') + (parseFloat(selectedProduct.bv) * purchaseForm.quantity)).toLocaleString()} BV
                           </span>
                         </div>
                         <div className="text-xs text-green-600 mt-2">
-                          * This purchase will add {(parseFloat(selectedProduct.bv) * purchaseForm.quantity).toLocaleString()} BV to your left leg
+                          * This purchase will increase your Self BV by {(parseFloat(selectedProduct.bv) * purchaseForm.quantity).toLocaleString()} BV
+                        </div>
+                        <div className="text-xs text-gray-600 mt-1">
+                          * Your upline will receive this BV in their weaker leg
                         </div>
                       </div>
                     </div>

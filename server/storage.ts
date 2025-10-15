@@ -2266,6 +2266,9 @@ export class DatabaseStorage implements IStorage {
 
   // ===== PURCHASE OPERATIONS =====
   async createPurchase(userId: string, data: CreatePurchase): Promise<Purchase> {
+    // Normalize UUID to Display ID for database consistency
+    const normalizedUserId = await this.normalizeToDisplayId(userId);
+    
     const product = await this.getProductById(data.productId);
     if (!product) {
       throw new Error('Product not found');
@@ -2275,7 +2278,7 @@ export class DatabaseStorage implements IStorage {
     const totalBV = parseFloat(product.bv) * data.quantity;
 
     const [purchase] = await db.insert(purchases).values({
-      userId,
+      userId: normalizedUserId,  // Use normalized Display ID
       productId: data.productId,
       quantity: data.quantity,
       totalAmount: totalAmount.toString(),
@@ -2292,8 +2295,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserPurchases(userId: string): Promise<Purchase[]> {
+    // Normalize UUID to Display ID for consistency
+    const normalizedUserId = await this.normalizeToDisplayId(userId);
+    
     return await db.select().from(purchases)
-      .where(eq(purchases.userId, userId))
+      .where(eq(purchases.userId, normalizedUserId))
       .orderBy(desc(purchases.createdAt));
   }
 
@@ -2324,7 +2330,9 @@ export class DatabaseStorage implements IStorage {
 
   // ===== WALLET OPERATIONS =====
   async getWalletBalance(userId: string): Promise<WalletBalance | undefined> {
-    const [wallet] = await db.select().from(walletBalances).where(eq(walletBalances.userId, userId));
+    // Normalize UUID to Display ID for consistency
+    const normalizedUserId = await this.normalizeToDisplayId(userId);
+    const [wallet] = await db.select().from(walletBalances).where(eq(walletBalances.userId, normalizedUserId));
     return wallet;
   }
 
@@ -2613,8 +2621,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserTransactions(userId: string): Promise<Transaction[]> {
+    // Normalize UUID to Display ID for consistency
+    const normalizedUserId = await this.normalizeToDisplayId(userId);
     return await db.select().from(transactions)
-      .where(eq(transactions.userId, userId))
+      .where(eq(transactions.userId, normalizedUserId))
       .orderBy(desc(transactions.createdAt));
   }
 

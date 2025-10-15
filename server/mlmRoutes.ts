@@ -172,7 +172,12 @@ router.post('/purchases', requireAuth, async (req, res) => {
       return res.status(400).json({ message: 'Invalid purchase data', errors: result.error.errors });
     }
     
-    const purchase = await storage.createPurchase(req.session.userId!, result.data);
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const purchase = await storage.createPurchase(userId, result.data);
     res.status(201).json(purchase);
   } catch (error: any) {
     console.error('Error creating purchase:', error);
@@ -183,7 +188,12 @@ router.post('/purchases', requireAuth, async (req, res) => {
 // Get user purchases
 router.get('/purchases', requireAuth, async (req, res) => {
   try {
-    const purchases = await storage.getUserPurchases(req.session.userId!);
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const purchases = await storage.getUserPurchases(userId);
     res.json(purchases);
   } catch (error) {
     console.error('Error fetching purchases:', error);
@@ -195,9 +205,14 @@ router.get('/purchases', requireAuth, async (req, res) => {
 // Get wallet balance
 router.get('/wallet', requireAuth, async (req, res) => {
   try {
-    let wallet = await storage.getWalletBalance(req.session.userId!);
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    let wallet = await storage.getWalletBalance(userId);
     if (!wallet) {
-      wallet = await storage.createWalletBalance(req.session.userId!);
+      wallet = await storage.createWalletBalance(userId);
     }
     res.json(wallet);
   } catch (error) {
@@ -209,7 +224,12 @@ router.get('/wallet', requireAuth, async (req, res) => {
 // Get transaction history
 router.get('/transactions', requireAuth, async (req, res) => {
   try {
-    const transactions = await storage.getUserTransactions(req.session.userId!);
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const transactions = await storage.getUserTransactions(userId);
     res.json(transactions);
   } catch (error) {
     console.error('Error fetching transactions:', error);
@@ -226,7 +246,12 @@ router.post('/withdrawals', requireAuth, async (req, res) => {
       return res.status(400).json({ message: 'Invalid withdrawal data', errors: result.error.errors });
     }
     
-    const withdrawal = await storage.createWithdrawalRequest(req.session.userId!, result.data);
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const withdrawal = await storage.createWithdrawalRequest(userId, result.data);
     res.status(201).json(withdrawal);
   } catch (error) {
     console.error('Error creating withdrawal:', error);
@@ -237,7 +262,12 @@ router.post('/withdrawals', requireAuth, async (req, res) => {
 // Get user withdrawal requests
 router.get('/withdrawals', requireAuth, async (req, res) => {
   try {
-    const withdrawals = await storage.getUserWithdrawals(req.session.userId!);
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const withdrawals = await storage.getUserWithdrawals(userId);
     res.json(withdrawals);
   } catch (error) {
     console.error('Error fetching withdrawals:', error);
@@ -276,7 +306,12 @@ router.patch('/admin/withdrawals/:id', requireAuth, requireAdmin, async (req, re
 // Get user KYC documents
 router.get('/kyc', requireAuth, async (req, res) => {
   try {
-    const documents = await storage.getUserKYCDocuments(req.session.userId!);
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const documents = await storage.getUserKYCDocuments(userId);
     res.json(documents);
   } catch (error) {
     console.error('Error fetching KYC documents:', error);
@@ -292,7 +327,12 @@ router.post('/kyc', requireAuth, async (req, res) => {
       return res.status(400).json({ message: 'Invalid KYC data', errors: result.error.errors });
     }
     
-    const document = await storage.createKYCDocument(req.session.userId!, result.data);
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const document = await storage.createKYCDocument(userId, result.data);
     res.status(201).json(document);
   } catch (error) {
     console.error('Error uploading KYC document:', error);
@@ -309,9 +349,14 @@ router.put('/kyc/:documentId', requireAuth, async (req, res) => {
       return res.status(400).json({ message: 'Invalid KYC data', errors: result.error.errors });
     }
     
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
     // Check if document belongs to the current user
     const existingDoc = await storage.getKYCDocumentById(documentId);
-    if (!existingDoc || existingDoc.userId !== req.session.userId!) {
+    if (!existingDoc || existingDoc.userId !== userId) {
       return res.status(404).json({ message: 'Document not found' });
     }
     
@@ -326,7 +371,8 @@ router.put('/kyc/:documentId', requireAuth, async (req, res) => {
 // Get all pending KYC (Admin only)
 router.get('/admin/kyc', requireAuth, requireAdmin, async (req, res) => {
   try {
-    console.log('🔍 KYC endpoint called by user:', req.session.userId);
+    const userId = getActualUserId(req);
+    console.log('🔍 KYC endpoint called by user:', userId);
     const documents = await storage.getAllPendingKYC();
     console.log('📊 KYC documents found:', documents.length);
     res.json(documents);
@@ -543,7 +589,12 @@ router.get('/admin/kyc/debug', requireAuth, requireAdmin, async (req, res) => {
 // Get user rank history
 router.get('/ranks', requireAuth, async (req, res) => {
   try {
-    const achievements = await storage.getUserRankHistory(req.session.userId!);
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const achievements = await storage.getUserRankHistory(userId);
     res.json(achievements);
   } catch (error) {
     console.error('Error fetching rank history:', error);
@@ -554,7 +605,12 @@ router.get('/ranks', requireAuth, async (req, res) => {
 // Check rank eligibility
 router.get('/ranks/eligibility', requireAuth, async (req, res) => {
   try {
-    const eligibility = await storage.checkRankEligibility(req.session.userId!);
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const eligibility = await storage.checkRankEligibility(userId);
     res.json(eligibility);
   } catch (error) {
     console.error('Error checking rank eligibility:', error);
@@ -566,7 +622,12 @@ router.get('/ranks/eligibility', requireAuth, async (req, res) => {
 // Get user BV stats
 router.get('/bv-stats', requireAuth, async (req, res) => {
   try {
-    const bvStats = await storage.calculateUserBV(req.session.userId!);
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const bvStats = await storage.calculateUserBV(userId);
     res.json(bvStats);
   } catch (error) {
     console.error('Error calculating BV stats:', error);
@@ -583,7 +644,12 @@ router.post('/franchise-requests', requireAuth, async (req, res) => {
       return res.status(400).json({ message: 'Invalid franchise request data', errors: result.error.errors });
     }
     
-    const request = await storage.createFranchiseRequest(req.session.userId!, result.data);
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const request = await storage.createFranchiseRequest(userId, result.data);
     res.status(201).json(request);
   } catch (error) {
     console.error('Error creating franchise request:', error);
@@ -594,7 +660,12 @@ router.post('/franchise-requests', requireAuth, async (req, res) => {
 // Get user franchise requests
 router.get('/franchise-requests', requireAuth, async (req, res) => {
   try {
-    const requests = await storage.getUserFranchiseRequests(req.session.userId!);
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const requests = await storage.getUserFranchiseRequests(userId);
     res.json(requests);
   } catch (error) {
     console.error('Error fetching franchise requests:', error);
@@ -638,7 +709,12 @@ router.post('/support-tickets', requireAuth, async (req, res) => {
       return res.status(400).json({ message: 'Invalid ticket data', errors: result.error.errors });
     }
     
-    const ticket = await storage.createSupportTicket(req.session.userId!, result.data);
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const ticket = await storage.createSupportTicket(userId, result.data);
     res.status(201).json(ticket);
   } catch (error) {
     console.error('Error creating support ticket:', error);
@@ -649,7 +725,12 @@ router.post('/support-tickets', requireAuth, async (req, res) => {
 // Get user support tickets
 router.get('/support-tickets', requireAuth, async (req, res) => {
   try {
-    const tickets = await storage.getUserTickets(req.session.userId!);
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const tickets = await storage.getUserTickets(userId);
     res.json(tickets);
   } catch (error) {
     console.error('Error fetching support tickets:', error);
@@ -702,7 +783,12 @@ router.get('/achievers/:type', requireAuth, async (req, res) => {
 // Get user cheques
 router.get('/cheques', requireAuth, async (req, res) => {
   try {
-    const cheques = await storage.getUserCheques(req.session.userId!);
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const cheques = await storage.getUserCheques(userId);
     res.json(cheques);
   } catch (error) {
     console.error('Error fetching cheques:', error);
@@ -741,7 +827,12 @@ router.post('/admin/news', requireAuth, requireAdmin, async (req, res) => {
       return res.status(400).json({ message: 'Invalid news data', errors: result.error.errors });
     }
     
-    const news = await storage.createNews(result.data, req.session.userId!);
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const news = await storage.createNews(result.data, userId);
     res.status(201).json(news);
   } catch (error) {
     console.error('Error creating news:', error);
@@ -758,7 +849,12 @@ router.patch('/profile', requireAuth, async (req, res) => {
       return res.status(400).json({ message: 'Invalid profile data', errors: result.error.errors });
     }
     
-    const user = await storage.updateUserProfile(req.session.userId!, result.data);
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const user = await storage.updateUserProfile(userId, result.data);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }

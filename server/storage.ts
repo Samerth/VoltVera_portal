@@ -2121,6 +2121,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async placeUserInMultiChildTree(userId: string, sponsorId: string, desiredPosition?: 'left' | 'right'): Promise<void> {
+    // Helper function to normalize ID to Display ID format
+    const normalizeToDisplayId = async (id: string): Promise<string> => {
+      if (!id) return id;
+      const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      
+      if (uuidPattern.test(id)) {
+        const user = await db.select({ userId: users.userId }).from(users).where(eq(users.id, id)).limit(1);
+        return user[0]?.userId || id;
+      }
+      return id;
+    };
+    
+    // Normalize sponsorId to Display ID format
+    const normalizedSponsorId = await normalizeToDisplayId(sponsorId);
+    
     let position: 'left' | 'right';
     let order: number;
 
@@ -2131,18 +2146,18 @@ export class DatabaseStorage implements IStorage {
       // Get count for the desired position to determine order
       const countResult = await db.select({ count: sql`count(*)` })
         .from(users)
-        .where(and(eq(users.parentId, sponsorId), eq(users.position, desiredPosition)));
+        .where(and(eq(users.parentId, normalizedSponsorId), eq(users.position, desiredPosition)));
       
       order = parseInt(countResult[0]?.count as string) || 0;
     } else {
       // Fallback to auto-balancing if no position specified
       const leftCount = await db.select({ count: sql`count(*)` })
         .from(users)
-        .where(and(eq(users.parentId, sponsorId), eq(users.position, 'left')));
+        .where(and(eq(users.parentId, normalizedSponsorId), eq(users.position, 'left')));
       
       const rightCount = await db.select({ count: sql`count(*)` })
         .from(users)
-        .where(and(eq(users.parentId, sponsorId), eq(users.position, 'right')));
+        .where(and(eq(users.parentId, normalizedSponsorId), eq(users.position, 'right')));
 
       const leftChildrenCount = parseInt(leftCount[0]?.count as string) || 0;
       const rightChildrenCount = parseInt(rightCount[0]?.count as string) || 0;
@@ -2152,11 +2167,11 @@ export class DatabaseStorage implements IStorage {
       order = position === 'left' ? leftChildrenCount : rightChildrenCount;
     }
 
-    // Update user with tree position
+    // Update user with tree position - use normalized Display ID
     await db.update(users)
       .set({
-        sponsorId: sponsorId,
-        parentId: sponsorId,
+        sponsorId: normalizedSponsorId,
+        parentId: normalizedSponsorId,
         position: position,
         order: order,
         updatedAt: new Date()
@@ -4541,10 +4556,26 @@ export class DatabaseStorage implements IStorage {
     try {
       // Store password in plaintext (no hashing)
       
-      // Get parent user to calculate level
-      const parentUser = await db.select().from(users).where(eq(users.id, data.parentId)).limit(1);
+      // Helper function to normalize ID to Display ID format
+      const normalizeToDisplayId = async (id: string): Promise<string> => {
+        if (!id) return id;
+        const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        
+        if (uuidPattern.test(id)) {
+          const user = await db.select({ userId: users.userId }).from(users).where(eq(users.id, id)).limit(1);
+          return user[0]?.userId || id;
+        }
+        return id;
+      };
+      
+      // Normalize parentId and sponsorId to Display ID format
+      const normalizedParentId = await normalizeToDisplayId(data.parentId);
+      const normalizedSponsorId = await normalizeToDisplayId(data.sponsorId);
+      
+      // Get parent user to calculate level - look up by Display ID
+      const parentUser = await db.select().from(users).where(eq(users.userId, normalizedParentId)).limit(1);
       if (!parentUser.length) {
-        throw new Error('Parent user not found');
+        throw new Error(`Parent user not found with ID: ${normalizedParentId}`);
       }
       
       const parentLevel = parseInt(parentUser[0].level || '0');
@@ -4555,6 +4586,7 @@ export class DatabaseStorage implements IStorage {
       
       // Create the user with strategic placement
       console.log('🔍 Creating strategic user with originalPassword:', data.password);
+      console.log('🔍 Using normalized IDs - parentId:', normalizedParentId, 'sponsorId:', normalizedSponsorId);
       
       const [newUser] = await db.insert(users).values({
         userId: userId, // Add the userId field
@@ -4565,9 +4597,9 @@ export class DatabaseStorage implements IStorage {
         lastName: data.lastName,
         mobile: data.mobile || null,
         packageAmount: data.packageAmount,
-        parentId: data.parentId,
+        parentId: normalizedParentId,
         position: data.position,
-        sponsorId: data.sponsorId,
+        sponsorId: normalizedSponsorId,
         level: userLevel,
         status: 'active',
         role: 'user',
@@ -4591,7 +4623,7 @@ export class DatabaseStorage implements IStorage {
       // }
 
       // Place user in multi-child tree (NEW)
-      await this.placeUserInMultiChildTree(newUser.id, data.sponsorId, data.position as 'left' | 'right');
+      await this.placeUserInMultiChildTree(newUser.id, normalizedSponsorId, data.position as 'left' | 'right');
       
       // Create wallet balance for the new user
       await this.createWalletBalance(userId);

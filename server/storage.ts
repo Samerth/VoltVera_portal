@@ -380,7 +380,7 @@ export class DatabaseStorage implements IStorage {
       if (user.sponsorId) {
         const sponsor = await db.select({ userId: users.userId })
           .from(users)
-          .where(eq(users.id, user.sponsorId))
+          .where(eq(users.userId, user.sponsorId))
           .limit(1);
         sponsorUserId = sponsor[0]?.userId || null;
       }
@@ -465,7 +465,7 @@ export class DatabaseStorage implements IStorage {
       if (user.sponsorId) {
         const sponsor = await db.select({ userId: users.userId })
           .from(users)
-          .where(eq(users.id, user.sponsorId))
+          .where(eq(users.userId, user.sponsorId))
           .limit(1);
         sponsorUserId = sponsor[0]?.userId || null;
       }
@@ -555,7 +555,7 @@ export class DatabaseStorage implements IStorage {
       if (user.sponsorId) {
         const sponsor = await db.select({ userId: users.userId })
           .from(users)
-          .where(eq(users.id, user.sponsorId))
+          .where(eq(users.userId, user.sponsorId))
           .limit(1);
         sponsorUserId = sponsor[0]?.userId || null;
       }
@@ -638,7 +638,7 @@ export class DatabaseStorage implements IStorage {
       if (user.sponsorId) {
         const sponsor = await db.select({ userId: users.userId })
           .from(users)
-          .where(eq(users.id, user.sponsorId))
+          .where(eq(users.userId, user.sponsorId))
           .limit(1);
         sponsorUserId = sponsor[0]?.userId || null;
       }
@@ -852,7 +852,7 @@ export class DatabaseStorage implements IStorage {
       if (user.sponsorId) {
         const sponsor = await db.select({ userId: users.userId })
           .from(users)
-          .where(eq(users.id, user.sponsorId))
+          .where(eq(users.userId, user.sponsorId))
           .limit(1);
         sponsorUserId = sponsor[0]?.userId || null;
       }

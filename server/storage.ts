@@ -2118,10 +2118,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMultiChildDirectRecruits(userId: string): Promise<User[]> {
+    // Normalize userId to Display ID format
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    let normalizedUserId = userId;
+    
+    if (uuidPattern.test(userId)) {
+      const user = await db.select({ userId: users.userId }).from(users).where(eq(users.id, userId)).limit(1);
+      normalizedUserId = user[0]?.userId || userId;
+    }
+    
     // Get all direct children of the user
     const directChildren = await db.select()
       .from(users)
-      .where(eq(users.parentId, userId))
+      .where(eq(users.parentId, normalizedUserId))
       .orderBy(asc(users.position), asc(users.order));
 
     return directChildren;

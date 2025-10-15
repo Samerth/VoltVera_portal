@@ -115,6 +115,11 @@ export interface IStorage {
     directRecruits: number;
     totalDownline: number;
     activeMembers: number;
+    currentRank: string;
+    teamBV: string;
+    leftBV: string;
+    rightBV: string;
+    totalDirects: number;
   }>;
   
   // Binary MLM Tree operations (LEGACY)
@@ -1139,15 +1144,34 @@ export class DatabaseStorage implements IStorage {
     directRecruits: number;
     totalDownline: number;
     activeMembers: number;
+    currentRank: string;
+    teamBV: string;
+    leftBV: string;
+    rightBV: string;
+    totalDirects: number;
   }> {
     const directMembers = await this.getTeamMembers(userId);
     const allDownline = await this.getDownline(userId);
+    const user = await this.getUser(userId);
     
-    return {
+    if (!user) {
+      throw new Error(`User not found: ${userId}`);
+    }
+    
+    const result = {
       directRecruits: directMembers.length,
       totalDownline: allDownline.length,
       activeMembers: allDownline.filter(u => u.status === 'active').length,
+      currentRank: user.currentRank || 'Executive',
+      teamBV: user.totalBV || '0.00',
+      leftBV: user.leftBV || '0.00',
+      rightBV: user.rightBV || '0.00',
+      totalDirects: user.totalDirects || 0,
     };
+    
+    console.log('📊 getTeamStats result for user', userId, ':', result);
+    
+    return result;
   }
 
   // Pending recruits operations 

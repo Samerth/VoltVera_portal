@@ -91,6 +91,16 @@ export default function BVCalculations() {
     return `${parseFloat(bv || '0').toLocaleString('en-IN', { minimumFractionDigits: 0 })} BV`;
   };
 
+  const formatMonthName = (monthId: number) => {
+    const year = Math.floor(monthId / 12);
+    const month = monthId % 12;
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return `${monthNames[month - 1] || 'Unknown'} ${year}`;
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
       <div className="flex items-center justify-between">
@@ -339,7 +349,7 @@ export default function BVCalculations() {
                     {monthly.map((month) => (
                       <TableRow key={month.monthId}>
                         <TableCell className="font-medium">
-                          Month {month.monthId}
+                          {formatMonthName(month.monthId)}
                         </TableCell>
                         <TableCell className="text-blue-600">
                           {formatBV(month.monthBvLeft)}

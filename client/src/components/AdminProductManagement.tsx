@@ -36,6 +36,19 @@ export default function AdminProductManagement() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [uploadingImageFor, setUploadingImageFor] = useState<string | null>(null);
 
+  // Helper function to get the image URL (proxy for Google Cloud Storage URLs)
+  const getImageUrl = (imageUrl: string | undefined) => {
+    if (!imageUrl) return null;
+    
+    // If it's a Google Cloud Storage URL, use our proxy
+    if (imageUrl.startsWith('https://storage.googleapis.com/')) {
+      return `/api/images/proxy?url=${encodeURIComponent(imageUrl)}`;
+    }
+    
+    // For other URLs (like placeholder URLs), use directly
+    return imageUrl;
+  };
+
   // Fetch all products
   const { data: products = [], isLoading } = useQuery<Product[]>({
     queryKey: ['/api/products'],
@@ -306,12 +319,12 @@ export default function AdminProductManagement() {
                 {product.imageUrl ? (
                   <>
                     <img
-                      src={product.imageUrl}
+                      src={getImageUrl(product.imageUrl) || ''}
                       alt={product.name}
                       className="w-full h-full object-cover image-element"
                       data-testid={`img-product-${product.id}`}
                       onError={(e) => {
-                        console.log('Image failed to load:', product.imageUrl);
+                        console.log('Image failed to load:', getImageUrl(product.imageUrl));
                         e.currentTarget.style.display = 'none';
                         const placeholder = e.currentTarget.nextElementSibling as HTMLElement;
                         if (placeholder?.classList.contains('image-placeholder')) {

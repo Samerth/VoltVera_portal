@@ -4115,6 +4115,42 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
     }
   });
 
+  // Proxy route to serve Google Cloud Storage images
+  app.get("/api/images/proxy", async (req, res) => {
+    try {
+      const { url } = req.query;
+      
+      if (!url || typeof url !== 'string') {
+        return res.status(400).json({ message: "URL parameter is required" });
+      }
+
+      // Validate that it's a Google Cloud Storage URL
+      if (!url.startsWith('https://storage.googleapis.com/')) {
+        return res.status(400).json({ message: "Invalid image URL" });
+      }
+
+      // Fetch the image from Google Cloud Storage
+      const imageResponse = await fetch(url);
+      
+      if (!imageResponse.ok) {
+        return res.status(404).json({ message: "Image not found" });
+      }
+
+      // Set appropriate headers
+      res.set({
+        'Content-Type': imageResponse.headers.get('content-type') || 'image/jpeg',
+        'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+        'Access-Control-Allow-Origin': '*',
+      });
+
+      // Stream the image data
+      imageResponse.body?.pipe(res);
+    } catch (error) {
+      console.error("Error proxying image:", error);
+      res.status(500).json({ message: "Failed to load image" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

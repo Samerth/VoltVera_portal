@@ -70,6 +70,12 @@ Preferred communication style: Simple, everyday language.
   - User search by display ID, name, or email
   - Bug Fix: Replaced SQL ANY() with Drizzle's inArray() for proper array filtering
   (October 16, 2025) ✅ WORKING & TESTED
+- **BV Propagation System**: Fixed critical database constraint issue preventing BV from flowing up the binary tree
+  - Root Cause: monthly_bv table had foreign key constraint pointing to legacy backup table (users_bv_backup) instead of main users table
+  - Impact: Purchase BV was credited to buyer's self_bv but failed to propagate to upline parent's left/right BV
+  - Resolution: Dropped incorrect constraint (fk_monthly_bv_user_bvtest) and added correct constraint pointing to users(user_id)
+  - Verification: BV now correctly flows from child purchases up through parent's left/right legs with proper matching calculations
+  (October 16, 2025) ✅ CRITICAL FIX COMPLETED
 - **Email Verification**: Secure signup process requiring email confirmation ✅ WORKING
 - **Password Reset**: Email-based password reset with secure token validation ✅ WORKING
 - **Real-time UI**: Optimistic updates and real-time data synchronization

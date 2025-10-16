@@ -2420,7 +2420,7 @@ export class DatabaseStorage implements IStorage {
         productBV: products.bv,
       })
       .from(purchases)
-      .leftJoin(users, eq(purchases.userId, users.id))
+      .leftJoin(users, eq(purchases.userId, users.userId))
       .leftJoin(products, eq(purchases.productId, products.id))
       .orderBy(desc(purchases.createdAt));
 

@@ -38,16 +38,17 @@ export default function AdminPurchasesTable() {
   const [deliveryStatusFilter, setDeliveryStatusFilter] = useState<string>("all");
 
   const { data: purchases = [], isLoading, refetch } = useQuery<PurchaseWithDetails[]>({
-    queryKey: ['/mlm/admin/purchases'],
+    queryKey: ['/api/admin/purchases'],
   });
 
   // Filter purchases based on search and status filters
   const filteredPurchases = purchases.filter(purchase => {
+    const searchLower = searchTerm.toLowerCase();
     const matchesSearch = 
-      purchase.userDisplayId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      purchase.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      purchase.userEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      purchase.productName.toLowerCase().includes(searchTerm.toLowerCase());
+      (purchase.userDisplayId || '').toLowerCase().includes(searchLower) ||
+      (purchase.userName || '').toLowerCase().includes(searchLower) ||
+      (purchase.userEmail || '').toLowerCase().includes(searchLower) ||
+      (purchase.productName || '').toLowerCase().includes(searchLower);
     
     const matchesPaymentStatus = paymentStatusFilter === "all" || purchase.paymentStatus === paymentStatusFilter;
     const matchesDeliveryStatus = deliveryStatusFilter === "all" || purchase.deliveryStatus === deliveryStatusFilter;

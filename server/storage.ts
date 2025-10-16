@@ -2452,6 +2452,25 @@ export class DatabaseStorage implements IStorage {
     return (result.rowCount ?? 0) > 0;
   }
 
+  async updateDeliveryStatus(id: string, status: string, trackingId?: string): Promise<boolean> {
+    const updateData: any = { 
+      deliveryStatus: status, 
+      updatedAt: new Date() 
+    };
+    
+    // If tracking ID is provided, update it as well
+    if (trackingId !== undefined) {
+      updateData.trackingId = trackingId;
+    }
+    
+    const result = await db
+      .update(purchases)
+      .set(updateData)
+      .where(eq(purchases.id, id));
+    
+    return (result.rowCount ?? 0) > 0;
+  }
+
   // ===== WALLET OPERATIONS =====
   async getWalletBalance(userId: string): Promise<WalletBalance | undefined> {
     // Normalize UUID to Display ID for consistency

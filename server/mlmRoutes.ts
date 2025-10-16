@@ -337,6 +337,40 @@ router.get('/admin/purchases', requireAuth, async (req, res) => {
   }
 });
 
+// Update delivery status (Admin only)
+router.patch('/admin/purchases/:id/delivery-status', requireAuth, async (req, res) => {
+  try {
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    // Check if user is admin
+    const user = await storage.getUserById(userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const { id } = req.params;
+    const { deliveryStatus, trackingId } = req.body;
+
+    if (!deliveryStatus) {
+      return res.status(400).json({ message: 'Delivery status is required' });
+    }
+
+    const success = await storage.updateDeliveryStatus(id, deliveryStatus, trackingId);
+    
+    if (!success) {
+      return res.status(404).json({ message: 'Purchase not found' });
+    }
+
+    res.json({ message: 'Delivery status updated successfully', success: true });
+  } catch (error) {
+    console.error('Error updating delivery status:', error);
+    res.status(500).json({ message: 'Failed to update delivery status' });
+  }
+});
+
 // ===== WALLET ROUTES =====
 // Get wallet balance
 router.get('/wallet', requireAuth, async (req, res) => {

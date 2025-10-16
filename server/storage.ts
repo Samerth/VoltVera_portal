@@ -666,30 +666,41 @@ export class DatabaseStorage implements IStorage {
     return usersWithSponsorIds as (User & { sponsorUserId: string | null })[];
   }
 
-  // Generate next sequential user ID like VV0001, VV0002, etc.
+  // Generate random user ID like VVAB12CD, VV3F9K2L, etc.
   async generateNextUserId(): Promise<string> {
-    const result = await db.select({ userId: users.userId })
-      .from(users)
-      .where(sql`${users.userId} LIKE 'VV%'`)
-      .orderBy(sql`${users.userId} DESC`)
-      .limit(1);
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const idLength = 6; // 6 random characters after "VV"
+    const maxAttempts = 10; // Retry limit in case of collision
     
-    if (result.length === 0) {
-      return 'VV0001'; // First user
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      // Generate random alphanumeric string
+      let randomPart = '';
+      for (let i = 0; i < idLength; i++) {
+        randomPart += characters.charAt(Math.floor(Math.random() * characters.length));
+      }
+      
+      const newUserId = `VV${randomPart}`;
+      
+      // Check if this ID already exists
+      const existing = await db.select({ userId: users.userId })
+        .from(users)
+        .where(eq(users.userId, newUserId))
+        .limit(1);
+      
+      if (existing.length === 0) {
+        return newUserId; // Unique ID found
+      }
+      
+      // If collision, loop will retry
+      console.log(`User ID collision detected: ${newUserId}, retrying...`);
     }
     
-    const lastUserId = result[0].userId;
-    if (lastUserId) {
-      const numPart = parseInt(lastUserId.substring(2));
-      const nextNum = numPart + 1;
-      return `VV${nextNum.toString().padStart(4, '0')}`;
-    }
-    
-    return 'VV0001';
+    // Fallback (extremely unlikely to reach here)
+    throw new Error('Failed to generate unique user ID after multiple attempts');
   }
 
   async createUser(userData: CreateUser): Promise<User & { originalPassword?: string }> {
-    // Generate sequential user ID
+    // Generate random user ID
     const userId = await this.generateNextUserId();
     
     // Store password in plaintext (no hashing)
@@ -1634,7 +1645,7 @@ export class DatabaseStorage implements IStorage {
     // Use stored password if available (comprehensive registration), otherwise use default
     const passwordToUse = pendingRecruit.password || 'defaultpass123';
     
-    // Generate sequential user ID
+    // Generate random user ID
     const userId = await this.generateNextUserId();
     
     const [newUser] = await db.insert(users).values({

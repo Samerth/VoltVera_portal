@@ -256,14 +256,12 @@ router.post('/admin/products/:id/image', requireAuth, requireAdmin, async (req, 
       return res.status(400).json({ message: 'Image URL is required' });
     }
     
-    const { ObjectStorageService } = await import('./objectStorage');
-    const objectStorageService = new ObjectStorageService();
+    // For product images, store the full Google Cloud Storage URL directly
+    // Don't normalize it to a local path since we want to display it from GCS
+    console.log('Updating product image URL:', imageUrl);
     
-    // Normalize the object path
-    const normalizedPath = await objectStorageService.trySetObjectEntityAclPolicy(imageUrl, {});
-    
-    // Update product with normalized image URL
-    const product = await storage.updateProduct(id, { imageUrl: normalizedPath });
+    // Update product with the full Google Cloud Storage URL
+    const product = await storage.updateProduct(id, { imageUrl });
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }

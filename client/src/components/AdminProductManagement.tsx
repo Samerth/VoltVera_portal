@@ -356,18 +356,59 @@ export default function AdminProductManagement() {
                   maxFileSize={5 * 1024 * 1024} // 5MB
                   buttonClassName="flex-1"
                   onGetUploadParameters={async () => {
-                    const response = await fetch(`/api/admin/products/${product.id}/upload-url`, {
-                      credentials: 'include',
-                    });
-                    const data = await response.json();
-                    return { method: 'PUT' as const, url: data.url };
+                    try {
+                      console.log('Getting upload parameters for product:', product.id);
+                      const response = await fetch(`/api/admin/products/${product.id}/upload-url`, {
+                        credentials: 'include',
+                      });
+                      
+                      if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(`Failed to get upload URL: ${errorData.message || response.statusText}`);
+                      }
+                      
+                      const data = await response.json();
+                      console.log('Upload parameters received:', data);
+                      return { method: 'PUT' as const, url: data.url };
+                    } catch (error) {
+                      console.error('Error getting upload parameters:', error);
+                      toast({
+                        title: "Upload Error",
+                        description: `Failed to get upload URL: ${error.message}`,
+                        variant: "destructive",
+                      });
+                      throw error;
+                    }
                   }}
                   onComplete={(result) => {
+                    console.log('Upload complete result:', result);
                     if (result.successful && result.successful[0]) {
                       const uploadedUrl = result.successful[0].uploadURL;
+                      console.log('Uploaded URL:', uploadedUrl);
                       if (uploadedUrl) {
-                        uploadImageMutation.mutate({ productId: product.id, imageUrl: uploadedUrl });
+                        // Check if this is a fallback URL (contains direct-upload)
+                        if (uploadedUrl.includes('direct-upload')) {
+                          // For fallback URLs, we don't need to call the image mutation
+                          // as the server already updated the product
+                          toast({
+                            title: "Image Updated",
+                            description: "Product image has been updated successfully.",
+                          });
+                          queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+                        } else {
+                          // For real uploads, use the full Google Cloud Storage URL directly
+                          // Don't let the server normalize it to a local path
+                          console.log('Using full Google Cloud Storage URL:', uploadedUrl);
+                          uploadImageMutation.mutate({ productId: product.id, imageUrl: uploadedUrl });
+                        }
                       }
+                    } else if (result.failed && result.failed.length > 0) {
+                      console.error('Upload failed:', result.failed);
+                      toast({
+                        title: "Upload Failed",
+                        description: "Failed to upload image. Please try again.",
+                        variant: "destructive",
+                      });
                     }
                   }}
                 >

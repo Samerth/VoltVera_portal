@@ -1,10 +1,5 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import type { ReactNode } from "react";
-import Uppy from "@uppy/core";
-import { DashboardModal } from "@uppy/react";
-// Uppy CSS imports removed due to build issues
-import AwsS3 from "@uppy/aws-s3";
-import type { UploadResult } from "@uppy/core";
 import { Button } from "@/components/ui/button";
 
 interface ObjectUploaderProps {
@@ -14,38 +9,25 @@ interface ObjectUploaderProps {
     method: "PUT";
     url: string;
   }>;
-  onComplete?: (
-    result: UploadResult<Record<string, unknown>, Record<string, unknown>>
-  ) => void;
+  onComplete?: (result: { successful: Array<{ uploadURL: string }>; failed: Array<any> }) => void;
   buttonClassName?: string;
   children: ReactNode;
 }
 
 /**
- * A file upload component that renders as a button and provides a modal interface for
- * file management.
+ * A simple file upload component that opens a file dialog and uploads files directly.
  * 
  * Features:
- * - Renders as a customizable button that opens a file upload modal
- * - Provides a modal interface for:
- *   - File selection
- *   - File preview
- *   - Upload progress tracking
- *   - Upload status display
- * 
- * The component uses Uppy under the hood to handle all file upload functionality.
- * All file management features are automatically handled by the Uppy dashboard modal.
+ * - Renders as a customizable button
+ * - Opens native file dialog when clicked
+ * - Uploads files directly using fetch API
+ * - Provides upload progress and error handling
  * 
  * @param props - Component props
  * @param props.maxNumberOfFiles - Maximum number of files allowed to be uploaded
- *   (default: 1)
- * @param props.maxFileSize - Maximum file size in bytes (default: 10MB)
- * @param props.onGetUploadParameters - Function to get upload parameters (method and URL).
- *   Typically used to fetch a presigned URL from the backend server for direct-to-S3
- *   uploads.
- * @param props.onComplete - Callback function called when upload is complete. Typically
- *   used to make post-upload API calls to update server state and set object ACL
- *   policies.
+ * @param props.maxFileSize - Maximum file size in bytes
+ * @param props.onGetUploadParameters - Function to get upload parameters (method and URL)
+ * @param props.onComplete - Callback function called when upload is complete
  * @param props.buttonClassName - Optional CSS class name for the button
  * @param props.children - Content to be rendered inside the button
  */
@@ -57,36 +39,89 @@ export function ObjectUploader({
   buttonClassName,
   children,
 }: ObjectUploaderProps) {
-  const [showModal, setShowModal] = useState(false);
-  const [uppy] = useState(() =>
-    new Uppy({
-      restrictions: {
-        maxNumberOfFiles,
-        maxFileSize,
-      },
-      autoProceed: false,
-    })
-      .use(AwsS3, {
-        shouldUseMultipart: false,
-        getUploadParameters: onGetUploadParameters,
-      })
-      .on("complete", (result) => {
-        onComplete?.(result);
-      })
-  );
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUpload = async (file: File) => {
+    try {
+      setIsUploading(true);
+      
+      // Validate file size
+      if (file.size > maxFileSize) {
+        throw new Error(`File size must be less than ${Math.round(maxFileSize / 1024 / 1024)}MB`);
+      }
+
+      // Get upload parameters
+      const uploadParams = await onGetUploadParameters();
+      console.log('Upload parameters:', uploadParams);
+
+      // Upload the file
+      const uploadResponse = await fetch(uploadParams.url, {
+        method: uploadParams.method,
+        body: file,
+        headers: {
+          'Content-Type': file.type,
+        },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+      }
+
+      // Call onComplete with the result
+      onComplete?.({
+        successful: [{ uploadURL: uploadParams.url }],
+        failed: []
+      });
+
+      console.log('File uploaded successfully');
+    } catch (error) {
+      console.error('Upload error:', error);
+      onComplete?.({
+        successful: [],
+        failed: [{ error: error.message }]
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    // Handle only the first file (respecting maxNumberOfFiles)
+    const file = files[0];
+    await handleUpload(file);
+
+    // Reset the input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleButtonClick = () => {
+    fileInputRef.current?.click();
+  };
 
   return (
     <div>
-      <Button onClick={() => setShowModal(true)} className={buttonClassName}>
-        {children}
-      </Button>
-
-      <DashboardModal
-        uppy={uppy}
-        open={showModal}
-        onRequestClose={() => setShowModal(false)}
-        proudlyDisplayPoweredByUppy={false}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple={maxNumberOfFiles > 1}
+        onChange={handleFileSelect}
+        style={{ display: 'none' }}
       />
+      
+      <Button 
+        onClick={handleButtonClick} 
+        className={buttonClassName}
+        disabled={isUploading}
+      >
+        {isUploading ? 'Uploading...' : children}
+      </Button>
     </div>
   );
 }

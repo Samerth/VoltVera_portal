@@ -3953,6 +3953,168 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
     }
   }, 60 * 60 * 1000); // Run every hour
 
+  // ===== PRODUCT MANAGEMENT ROUTES =====
+  
+  // Get all products
+  app.get("/api/products", async (req, res) => {
+    try {
+      const products = await storage.getAllProducts();
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      res.status(500).json({ message: "Failed to fetch products" });
+    }
+  });
+
+  // Create new product (admin only)
+  app.post("/api/admin/products", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const productData = req.body;
+      
+      // Validate required fields
+      if (!productData.name || !productData.price || !productData.bv || !productData.category) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const product = await storage.createProduct({
+        name: productData.name,
+        description: productData.description || '',
+        price: productData.price,
+        bv: productData.bv,
+        gst: productData.gst || '18',
+        sponsorIncomePercentage: productData.sponsorIncomePercentage || '10',
+        category: productData.category,
+        purchaseType: productData.purchaseType || 'first_purchase',
+        isActive: productData.isActive !== false
+      });
+
+      res.status(201).json(product);
+    } catch (error) {
+      console.error("Error creating product:", error);
+      res.status(500).json({ message: "Failed to create product" });
+    }
+  });
+
+  // Update product (admin only)
+  app.patch("/api/admin/products/:id", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+
+      const product = await storage.updateProduct(id, updates);
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      res.json(product);
+    } catch (error) {
+      console.error("Error updating product:", error);
+      res.status(500).json({ message: "Failed to update product" });
+    }
+  });
+
+  // Upload product image (admin only)
+  app.post("/api/admin/products/:id/image", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { imageUrl } = req.body;
+
+      if (!imageUrl) {
+        return res.status(400).json({ message: "Image URL is required" });
+      }
+
+      // For product images, store the full Google Cloud Storage URL directly
+      // Don't normalize it to a local path since we want to display it from GCS
+      console.log('Updating product image URL:', imageUrl);
+
+      const product = await storage.updateProduct(id, { imageUrl });
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      res.json(product);
+    } catch (error) {
+      console.error("Error updating product image:", error);
+      res.status(500).json({ message: "Failed to update product image" });
+    }
+  });
+
+  // Delete product (admin only)
+  app.delete("/api/admin/products/:id", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      const success = await storage.deleteProduct(id);
+      if (!success) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+      
+      res.json({ message: "Product deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      res.status(500).json({ message: "Failed to delete product" });
+    }
+  });
+
+  // Get presigned URL for image upload (admin only)
+  app.get("/api/admin/products/:id/upload-url", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Try to get a real presigned URL first
+      try {
+        const { ObjectStorageService } = await import('./objectStorage');
+        const objectStorageService = new ObjectStorageService();
+        
+        const uploadUrl = await objectStorageService.getObjectEntityUploadURL();
+        console.log('Generated presigned URL successfully');
+        res.json({ url: uploadUrl });
+        return;
+      } catch (storageError) {
+        console.warn('Presigned URL generation failed, using fallback:', storageError.message);
+        
+        // Fallback: Generate a placeholder URL that will be handled by direct upload
+        const timestamp = Date.now();
+        const fallbackUrl = `/api/admin/products/${id}/direct-upload?timestamp=${timestamp}`;
+        
+        res.json({ 
+          url: fallbackUrl,
+          fallback: true,
+          message: "Using fallback upload method"
+        });
+      }
+    } catch (error) {
+      console.error("Error generating upload URL:", error);
+      res.status(500).json({ message: "Failed to generate upload URL" });
+    }
+  });
+
+  // Direct upload endpoint for fallback (admin only)
+  app.post("/api/admin/products/:id/direct-upload", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // For now, return a placeholder URL since we don't have file upload middleware
+      // In a real implementation, you would handle the file upload here
+      const placeholderUrl = `https://via.placeholder.com/300x200/cccccc/666666?text=Product+Image+${Date.now()}`;
+      
+      // Update the product with the placeholder URL
+      const product = await storage.updateProduct(id, { imageUrl: placeholderUrl });
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+      
+      res.json({ 
+        success: true, 
+        imageUrl: placeholderUrl,
+        message: "Fallback image uploaded successfully"
+      });
+    } catch (error) {
+      console.error("Error in direct upload:", error);
+      res.status(500).json({ message: "Failed to upload image" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -453,6 +453,17 @@ export default function UserDashboard() {
             <Package className="mr-3 h-4 w-4" />
             My Purchases
           </Button>
+          <Link href="/bv-calculations">
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-white hover:text-gray-900"
+              onClick={() => setIsSidebarOpen(false)}
+              data-testid="link-bv-calculations"
+            >
+              <TrendingUp className="mr-3 h-4 w-4" />
+              BV Calculations
+            </Button>
+          </Link>
           <Button
             variant={activeTab === 'deposits' ? 'secondary' : 'ghost'}
             className="w-full justify-start text-white hover:text-gray-900"

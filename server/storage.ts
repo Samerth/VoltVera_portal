@@ -149,6 +149,7 @@ export interface IStorage {
   // Purchase operations
   createPurchase(userId: string, data: CreatePurchase): Promise<Purchase>;
   getUserPurchases(userId: string): Promise<Purchase[]>;
+  getAllPurchasesWithDetails(): Promise<any[]>;
   getPurchaseById(id: string): Promise<Purchase | undefined>;
   updatePurchaseStatus(id: string, status: string): Promise<boolean>;
   
@@ -2386,6 +2387,42 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(purchases)
       .where(eq(purchases.userId, normalizedUserId))
       .orderBy(desc(purchases.createdAt));
+  }
+
+  async getAllPurchasesWithDetails(): Promise<any[]> {
+    // Get all purchases with joined user and product data
+    const allPurchases = await db
+      .select({
+        id: purchases.id,
+        userId: purchases.userId,
+        productId: purchases.productId,
+        quantity: purchases.quantity,
+        totalAmount: purchases.totalAmount,
+        totalBV: purchases.totalBV,
+        paymentMethod: purchases.paymentMethod,
+        paymentStatus: purchases.paymentStatus,
+        deliveryStatus: purchases.deliveryStatus,
+        deliveryAddress: purchases.deliveryAddress,
+        trackingId: purchases.trackingId,
+        createdAt: purchases.createdAt,
+        // User details
+        userDisplayId: users.userId,
+        userName: sql<string>`${users.firstName} || ' ' || ${users.lastName}`,
+        userEmail: users.email,
+        userMobile: users.mobile,
+        // Product details
+        productName: products.name,
+        productDescription: products.description,
+        productCategory: products.category,
+        productPrice: products.price,
+        productBV: products.bv,
+      })
+      .from(purchases)
+      .leftJoin(users, eq(purchases.userId, users.id))
+      .leftJoin(products, eq(purchases.productId, products.id))
+      .orderBy(desc(purchases.createdAt));
+
+    return allPurchases;
   }
 
   async getPurchaseById(id: string): Promise<Purchase | undefined> {

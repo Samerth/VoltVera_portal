@@ -313,6 +313,30 @@ router.get('/purchases', requireAuth, async (req, res) => {
   }
 });
 
+// Get all purchases with details (Admin only)
+router.get('/admin/purchases', requireAuth, async (req, res) => {
+  try {
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    // Check if user is admin
+    const user = await storage.getUserById(userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    
+    console.log('Fetching all purchases with details for admin...');
+    const purchases = await storage.getAllPurchasesWithDetails();
+    console.log(`Found ${purchases.length} total purchases`);
+    res.json(purchases);
+  } catch (error) {
+    console.error('Error fetching all purchases:', error);
+    res.status(500).json({ message: 'Failed to fetch purchases' });
+  }
+});
+
 // ===== WALLET ROUTES =====
 // Get wallet balance
 router.get('/wallet', requireAuth, async (req, res) => {

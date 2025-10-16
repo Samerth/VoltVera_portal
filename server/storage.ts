@@ -51,7 +51,7 @@ import {
   type CreateNews,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, ilike, or, desc, and, sql, gte, lte, asc, ne } from "drizzle-orm";
+import { eq, ilike, or, desc, and, sql, gte, lte, asc, ne, inArray } from "drizzle-orm";
 
 import { nanoid } from "nanoid";
 
@@ -4428,7 +4428,7 @@ export class DatabaseStorage implements IStorage {
     
     // Filter by transaction types
     if (filters?.transactionTypes && filters.transactionTypes.length > 0) {
-      conditions.push(sql`${transactions.type} = ANY(${filters.transactionTypes})`);
+      conditions.push(inArray(transactions.type, filters.transactionTypes));
     }
     
     // Filter by date range

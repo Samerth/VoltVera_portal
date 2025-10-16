@@ -6,7 +6,8 @@ import {
   bvTransactions, 
   monthlyBv,
   users,
-  rankConfigurations 
+  rankConfigurations,
+  purchases
 } from '../shared/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { impersonationTokens } from './impersonation';
@@ -405,6 +406,115 @@ export function registerProductionBVRoutes(app: Express) {
       });
     } catch (error) {
       console.error('Error getting admin BV transactions:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+
+  // Admin: Get BV transactions report with filtering and joins
+  app.get('/api/admin/bv-transactions-report', isAuthenticated, async (req, res) => {
+    try {
+      const userId = getActualUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      // Check if user is admin
+      const [user] = await db.select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      // Get filter parameters
+      const userIdFilter = req.query.userId as string;
+      const transactionType = req.query.transactionType as string;
+      const startDate = req.query.startDate as string;
+      const endDate = req.query.endDate as string;
+
+      // Build where conditions
+      let whereConditions: any[] = [];
+
+      // User filter (search by display ID, name, or email)
+      if (userIdFilter) {
+        // Search in bv_transactions.userId or join with users table for name/email
+        whereConditions.push(
+          sql`(
+            ${bvTransactions.userId} ILIKE ${`%${userIdFilter}%`} OR
+            ${users.firstName} ILIKE ${`%${userIdFilter}%`} OR
+            ${users.lastName} ILIKE ${`%${userIdFilter}%`} OR
+            ${users.email} ILIKE ${`%${userIdFilter}%`}
+          )`
+        );
+      }
+
+      // Transaction type filter
+      if (transactionType) {
+        whereConditions.push(eq(bvTransactions.transactionType, transactionType));
+      }
+
+      // Date range filter
+      if (startDate) {
+        whereConditions.push(sql`${bvTransactions.createdAt} >= ${new Date(startDate)}`);
+      }
+      if (endDate) {
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        whereConditions.push(sql`${bvTransactions.createdAt} <= ${endDateTime}`);
+      }
+
+      // Build query with joins
+      const transactionsQuery = db.select({
+        id: bvTransactions.id,
+        userId: bvTransactions.userId,
+        userName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`,
+        parentId: bvTransactions.parentId,
+        purchaseId: bvTransactions.purchaseId,
+        transactionType: bvTransactions.transactionType,
+        prevLeftBv: bvTransactions.prevLeftBv,
+        newLeftBv: bvTransactions.newLeftBv,
+        prevRightBv: bvTransactions.prevRightBv,
+        newRightBv: bvTransactions.newRightBv,
+        prevMatchingBv: bvTransactions.prevMatchingBv,
+        newMatchingBv: bvTransactions.newMatchingBv,
+        newMatchAmount: bvTransactions.newMatchAmount,
+        carryForwardLeft: bvTransactions.carryForwardLeft,
+        carryForwardRight: bvTransactions.carryForwardRight,
+        rank: bvTransactions.rank,
+        rankPercentage: bvTransactions.rankPercentage,
+        diffIncome: bvTransactions.diffIncome,
+        directIncome: bvTransactions.directIncome,
+        monthId: bvTransactions.monthId,
+        createdAt: bvTransactions.createdAt,
+        initiatingUserId: sql<string>`initiating_user.user_id`,
+      })
+        .from(bvTransactions)
+        .leftJoin(users, eq(bvTransactions.userId, users.userId))
+        .leftJoin(purchases, eq(bvTransactions.purchaseId, purchases.id))
+        .leftJoin(
+          sql`users AS initiating_user`, 
+          sql`${purchases.userId} = initiating_user.user_id`
+        );
+
+      // Apply where conditions if any
+      let finalQuery = transactionsQuery;
+      if (whereConditions.length > 0) {
+        finalQuery = transactionsQuery.where(and(...whereConditions)) as any;
+      }
+
+      // Execute query with ordering
+      const transactions = await finalQuery
+        .orderBy(desc(bvTransactions.createdAt))
+        .limit(1000); // Limit to prevent huge responses
+
+      res.json(transactions);
+    } catch (error) {
+      console.error('Error getting BV transactions report:', error);
       res.status(500).json({ 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 

@@ -30,6 +30,7 @@ import SendFundForm from "@/components/SendFundForm";
 import FundHistoryTable from "@/components/FundHistoryTable";
 import FundRequestsTable from "@/components/PendingFundRequestsTable";
 import { IncomeReportsTable } from "@/components/IncomeReportsTable";
+import { BVTransactionsReport } from "@/components/BVTransactionsReport";
 
 interface UserStats {
   totalUsers: number;
@@ -793,6 +794,15 @@ export default function AdminDashboard() {
                   }`}
                 >
                   Holiday Reward Summary
+                </button>
+                <button 
+                  onClick={() => setActiveSection('bv-transactions-report')}
+                  className={`block w-full px-4 py-2 text-left text-sm rounded hover:bg-white/10 ${
+                    activeSection === 'bv-transactions-report' ? 'text-yellow-300' : 'text-white/80'
+                  }`}
+                  data-testid="menu-bv-transactions-report"
+                >
+                  BV Transactions Report
                 </button>
               </div>
             )}
@@ -2085,6 +2095,11 @@ export default function AdminDashboard() {
               title="Salary Income Report"
               description="Consistency bonuses and leadership funds"
             />
+          )}
+
+          {/* BV Transactions Report */}
+          {activeSection === 'bv-transactions-report' && (
+            <BVTransactionsReport />
           )}
 
           {/* Enhanced Section Content for other sections */}

@@ -252,6 +252,7 @@ export const products = pgTable("products", {
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   bv: decimal("bv", { precision: 10, scale: 2 }).notNull(), // Business Volume
   gst: decimal("gst", { precision: 5, scale: 2 }).notNull(), // GST percentage
+  sponsorIncomePercentage: decimal("sponsor_income_percentage", { precision: 5, scale: 2 }).default('10.00'), // Sponsor income percentage (default 10%)
   category: varchar("category").notNull(), // 'water_purifier', 'led', 'fan', etc.
   purchaseType: purchaseTypeEnum("purchase_type").notNull(),
   imageUrl: varchar("image_url"),

@@ -5,7 +5,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Zap, Leaf, BarChart3, Smartphone, Target, Bell, Lock, Users, Home, Settings, ShoppingCart, Package, Shield, Eye, CheckCircle, XCircle, Clock, Upload, Menu, X, DollarSign, ArrowUpRight, TrendingUp } from "lucide-react";
+import { Zap, Leaf, BarChart3, Smartphone, Target, Bell, Lock, Users, Home, Settings, ShoppingCart, Package, Shield, Eye, CheckCircle, XCircle, Clock, Upload, Menu, X, DollarSign, ArrowUpRight, TrendingUp, Wallet, TrendingDown } from "lucide-react";
 import { Link } from "wouter";
 import VoltverashopLogo from "@/components/VoltverashopLogo";
 import MyTeam from "./MyTeam";
@@ -18,6 +18,7 @@ import WithdrawalRequestForm from "@/components/WithdrawalRequestForm";
 import WithdrawalHistory from "@/components/WithdrawalHistory";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TeamBusinessStages } from "@/components/TeamBusinessStages";
+import { useQuery } from "@tanstack/react-query";
 
 function getInitials(firstName?: string | null, lastName?: string | null) {
   const first = firstName?.[0] || '';
@@ -333,6 +334,123 @@ function UserKYCSection() {
   );
 }
 
+// Wallet Balance Component
+function WalletBalanceCard() {
+  const { data: wallet, isLoading } = useQuery<{
+    balance: string;
+    totalEarnings: string;
+    totalWithdrawals: string;
+  }>({
+    queryKey: ['/api/wallet'],
+  });
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Wallet className="mr-2 h-5 w-5" />
+            E-Wallet Balance
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4">Loading wallet...</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const balance = parseFloat(wallet?.balance || '0');
+  const totalEarnings = parseFloat(wallet?.totalEarnings || '0');
+  const totalWithdrawals = parseFloat(wallet?.totalWithdrawals || '0');
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="bg-gradient-to-r from-green-500 to-emerald-600 text-white">
+        <CardTitle className="flex items-center text-xl">
+          <Wallet className="mr-2 h-6 w-6" />
+          E-Wallet Balance
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Current Balance */}
+          <div className="text-center p-4 bg-green-50 rounded-lg">
+            <div className="flex items-center justify-center mb-2">
+              <DollarSign className="h-5 w-5 text-green-600" />
+            </div>
+            <p className="text-sm text-gray-600 mb-1">Current Balance</p>
+            <p className="text-2xl font-bold text-green-600" data-testid="text-wallet-balance">
+              ₹{balance.toFixed(2)}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">Available for purchases</p>
+          </div>
+
+          {/* Total Earnings */}
+          <div className="text-center p-4 bg-blue-50 rounded-lg">
+            <div className="flex items-center justify-center mb-2">
+              <TrendingUp className="h-5 w-5 text-blue-600" />
+            </div>
+            <p className="text-sm text-gray-600 mb-1">Total Earnings</p>
+            <p className="text-2xl font-bold text-blue-600" data-testid="text-total-earnings">
+              ₹{totalEarnings.toFixed(2)}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">All-time income</p>
+          </div>
+
+          {/* Total Withdrawals */}
+          <div className="text-center p-4 bg-orange-50 rounded-lg">
+            <div className="flex items-center justify-center mb-2">
+              <TrendingDown className="h-5 w-5 text-orange-600" />
+            </div>
+            <p className="text-sm text-gray-600 mb-1">Total Withdrawals</p>
+            <p className="text-2xl font-bold text-orange-600" data-testid="text-total-withdrawals">
+              ₹{totalWithdrawals.toFixed(2)}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">Total withdrawn</p>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mt-6 flex gap-3 justify-center">
+          <Link href="/user-dashboard">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                const dashboard = document.querySelector('[data-tab="deposits"]');
+                if (dashboard) {
+                  (dashboard as HTMLElement).click();
+                }
+              }}
+              data-testid="button-add-funds"
+            >
+              <DollarSign className="h-4 w-4 mr-1" />
+              Add Funds
+            </Button>
+          </Link>
+          <Link href="/user-dashboard">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                const dashboard = document.querySelector('[data-tab="withdraw"]');
+                if (dashboard) {
+                  (dashboard as HTMLElement).click();
+                }
+              }}
+              data-testid="button-withdraw-funds"
+            >
+              <ArrowUpRight className="h-4 w-4 mr-1" />
+              Withdraw
+            </Button>
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function UserDashboard() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const { toast } = useToast();
@@ -633,9 +751,12 @@ export default function UserDashboard() {
       {/* Main Content */}
       <div className="min-h-screen bg-gray-50">
         {activeTab === 'dashboard' && (
-          <div className="p-4 sm:p-6 lg:p-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-6">Team Business Stages</h1>
-            <TeamBusinessStages />
+          <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+            <WalletBalanceCard />
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-6">Team Business Stages</h1>
+              <TeamBusinessStages />
+            </div>
           </div>
         )}
         

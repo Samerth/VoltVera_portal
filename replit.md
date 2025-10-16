@@ -94,6 +94,14 @@ Preferred communication style: Simple, everyday language.
 - **Enhanced Strategic Position Decisions**: AI-powered upline decision system with leg balance analysis and impact forecasting (August 20, 2025)
 - **Complete Email Automation**: Login credentials automatically sent to approved users with professional welcome emails and admin user invitations (August 21, 2025)
 - **ID Normalization System**: Comprehensive UUID to Display ID normalization across BV calculations, wallet crediting, tree operations, and user lookups - supports both UUID and Display ID formats seamlessly (October 15, 2025) ✅ WORKING
+- **E-Wallet Balance Display**: User dashboard now shows comprehensive wallet information (October 16, 2025) ✅ WORKING
+  - Current E-wallet balance (available for purchases)
+  - Total earnings (all-time income)
+  - Total withdrawals (lifetime withdrawals)
+  - Visual indicators with color-coded cards
+  - Quick action buttons for adding funds and withdrawing
+  - Real-time synchronization with wallet transactions
+  - Located prominently at top of user dashboard
 
 # External Dependencies
 

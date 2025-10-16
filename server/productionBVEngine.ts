@@ -142,6 +142,7 @@ export class ProductionBVEngine {
       rank: user.currentRank || 'Executive',
       rankPercentage: '0',
       diffIncome: '0',
+      directIncome: '0',
       monthId: monthId,
       createdAt: now
     });
@@ -195,14 +196,17 @@ export class ProductionBVEngine {
     }
 
     // Check if buyer is a direct recruit (sponsored by this upline)
+    let directIncome = 0;
     if (buyerUserId) {
       const buyer = await this.getUserByDisplayId(buyerUserId);
       const buyerSponsorId = await this.normalizeToDisplayId(buyer?.sponsorId);
       
       if (buyerSponsorId === userId) {
-        // Buyer is a direct recruit - update directs BV
+        // Buyer is a direct recruit - update directs BV and calculate direct income
         await this.updateMonthlyBV(userId, { directsBvIncrement: bvAmountNum });
+        directIncome = bvAmountNum * 0.1; // 10% direct income
         console.log(`👥 Direct recruit BV: ${bvAmountNum} added to ${userId}'s directs`);
+        console.log(`💰 Direct income for transaction: ${directIncome} to ${userId}`);
       }
     }
 
@@ -257,6 +261,7 @@ export class ProductionBVEngine {
       rank: user.currentRank || 'Executive',
       rankPercentage: rankPercentage.toString(),
       diffIncome: diffIncome.toString(),
+      directIncome: directIncome.toString(),
       monthId: monthId,
       createdAt: now
     });

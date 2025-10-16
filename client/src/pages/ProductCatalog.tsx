@@ -61,6 +61,19 @@ const formatPrice = (price: string) => {
   }).format(parseFloat(price));
 };
 
+// Helper function to get proxied image URL for Google Cloud Storage
+const getProxiedImageUrl = (imageUrl: string | undefined): string | undefined => {
+  if (!imageUrl) return undefined;
+  
+  // If it's a Google Cloud Storage URL, use our proxy
+  if (imageUrl.startsWith('https://storage.googleapis.com/')) {
+    return `/api/images/proxy?url=${encodeURIComponent(imageUrl)}`;
+  }
+  
+  // For other URLs (like placeholder URLs), use directly
+  return imageUrl;
+};
+
 export default function ProductCatalog() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   // const [selectedPurchaseType, setSelectedPurchaseType] = useState<string>('all'); // DISABLED: Removed purchase type filtering
@@ -326,7 +339,7 @@ export default function ProductCatalog() {
               <div className="relative h-48 bg-gray-100">
                 {product.imageUrl ? (
                   <img 
-                    src={product.imageUrl} 
+                    src={getProxiedImageUrl(product.imageUrl)} 
                     alt={product.name}
                     className="w-full h-full object-cover"
                     loading="lazy"

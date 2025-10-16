@@ -407,10 +407,28 @@ export class ProductionBVEngine {
       .orderBy(desc(monthlyBv.monthId))
       .limit(12);
 
+    // Calculate total direct income (sponsor income) from transactions
+    const directIncomeResult = await db.select({
+      totalDirectIncome: sql<string>`COALESCE(SUM(${transactions.amount}), 0)`
+    })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.userId, userId),
+          eq(transactions.type, 'sponsor_income')
+        )
+      );
+
+    const totalDirectIncome = directIncomeResult[0]?.totalDirectIncome || '0';
+
     return {
       lifetime: lifetimeData[0] || null,
       transactions: bvTransactionsData,
-      monthly: monthlyData
+      monthly: monthlyData,
+      directIncome: {
+        total: totalDirectIncome,
+        description: 'Total earnings from direct recruits purchases (10% commission)'
+      }
     };
   }
 

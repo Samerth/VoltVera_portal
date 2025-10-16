@@ -42,6 +42,10 @@ interface BVData {
     monthStartdate: string;
     monthEnddate: string;
   }>;
+  directIncome: {
+    total: string;
+    description: string;
+  };
 }
 
 export default function BVCalculations() {
@@ -214,32 +218,23 @@ export default function BVCalculations() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <TrendingDown className="h-5 w-5" />
-                  Carry Forward
+                  <DollarSign className="h-5 w-5 text-emerald-500" />
+                  Direct Income (Sponsor Income)
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Left Carry Forward</span>
-                  <span className="font-medium text-blue-600">
-                    {formatBV(lifetime?.carryForwardLeft || '0')}
-                  </span>
+                <div className="text-3xl font-bold text-emerald-600" data-testid="text-direct-income-total">
+                  {formatCurrency(bvData?.directIncome?.total || '0')}
+                </div>
+                <Separator />
+                <div className="text-sm text-gray-600">
+                  {bvData?.directIncome?.description || 'Total earnings from direct recruits purchases (10% commission)'}
                 </div>
                 <Separator />
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Right Carry Forward</span>
-                  <span className="font-medium text-green-600">
-                    {formatBV(lifetime?.carryForwardRight || '0')}
-                  </span>
-                </div>
-                <Separator />
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Total Carry Forward</span>
-                  <span className="font-medium text-gray-800">
-                    {formatBV(
-                      ((parseFloat(lifetime?.carryForwardLeft || '0') + 
-                        parseFloat(lifetime?.carryForwardRight || '0')).toString())
-                    )}
+                  <span className="text-sm text-gray-600">Directs BV (Lifetime)</span>
+                  <span className="font-medium text-purple-600">
+                    {formatBV(lifetime?.directsBv || '0')}
                   </span>
                 </div>
               </CardContent>

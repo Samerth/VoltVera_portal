@@ -20,6 +20,7 @@ export class ProductionBVEngine {
     userId: string; // Display ID (VV0001)
     bvAmount: string;
     monthId: number;
+    sponsorIncomePercentage?: number; // Optional sponsor income percentage (default 10%)
   }) {
     try {
       const user = await this.getUserByDisplayId(data.userId);
@@ -32,19 +33,22 @@ export class ProductionBVEngine {
         throw new Error('Invalid BV amount');
       }
 
-      console.log(`🛒 Processing REAL purchase: ${data.userId} -> BV ${bvAmount}`);
+      // Use provided sponsor income percentage or default to 10%
+      const sponsorPercentage = (data.sponsorIncomePercentage || 10) / 100;
+
+      console.log(`🛒 Processing REAL purchase: ${data.userId} -> BV ${bvAmount} (Sponsor Income: ${data.sponsorIncomePercentage || 10}%)`);
 
       // Step 1: Update buyer's self_bv (their own purchase BV)
       await this.updateSelfBV(data.userId, bvAmount.toString(), data.purchaseId, data.monthId);
       console.log(`📊 Updated self_bv for ${data.userId}: +${bvAmount}`);
 
-      // Step 2: Direct income to SPONSOR (10% of BV)
+      // Step 2: Direct income to SPONSOR (configurable % of BV)
       if (user.sponsorId) {
         const sponsorDisplayId = await this.normalizeToDisplayId(user.sponsorId);
         if (sponsorDisplayId) {
-          const directIncome = bvAmount * 0.1;
+          const directIncome = bvAmount * sponsorPercentage;
           await this.creditWallet(sponsorDisplayId, directIncome, 'sponsor_income', data.purchaseId);
-          console.log(`💰 Direct income: ${directIncome} to sponsor ${sponsorDisplayId}`);
+          console.log(`💰 Direct income: ${directIncome} (${data.sponsorIncomePercentage || 10}%) to sponsor ${sponsorDisplayId}`);
         }
       }
 
@@ -71,8 +75,8 @@ export class ProductionBVEngine {
         const childPosition = childUser?.position as 'left' | 'right';
         console.log(`📍 Child ${childUserId} position relative to ${currentUserId}: ${childPosition}`);
         
-        // Process BV calculations for this upline, passing buyer ID for direct recruit tracking
-        await this.processBVMatching(currentUserId, bvAmount.toString(), data.purchaseId, data.monthId, childPosition, buyerUserId);
+        // Process BV calculations for this upline, passing buyer ID and sponsor percentage for direct recruit tracking
+        await this.processBVMatching(currentUserId, bvAmount.toString(), data.purchaseId, data.monthId, childPosition, buyerUserId, sponsorPercentage);
         
         // Move up the tree: current user becomes the child for the next iteration
         childUserId = currentUserId;
@@ -151,7 +155,7 @@ export class ProductionBVEngine {
   }
 
   // Process BV calculations for a user
-  async processBVMatching(userId: string, bvAmount: string, purchaseId: string, monthId: number, childPosition?: 'left' | 'right', buyerUserId?: string) {
+  async processBVMatching(userId: string, bvAmount: string, purchaseId: string, monthId: number, childPosition?: 'left' | 'right', buyerUserId?: string, sponsorPercentage?: number) {
     const user = await this.getUserByDisplayId(userId);
     if (!user) return;
 
@@ -204,9 +208,11 @@ export class ProductionBVEngine {
       if (buyerSponsorId === userId) {
         // Buyer is a direct recruit - update directs BV and calculate direct income
         await this.updateMonthlyBV(userId, { directsBvIncrement: bvAmountNum });
-        directIncome = bvAmountNum * 0.1; // 10% direct income
+        // Use provided sponsor percentage or default to 10%
+        const percentage = sponsorPercentage || 0.1;
+        directIncome = bvAmountNum * percentage;
         console.log(`👥 Direct recruit BV: ${bvAmountNum} added to ${userId}'s directs`);
-        console.log(`💰 Direct income for transaction: ${directIncome} to ${userId}`);
+        console.log(`💰 Direct income for transaction: ${directIncome} (${percentage * 100}%) to ${userId}`);
       }
     }
 

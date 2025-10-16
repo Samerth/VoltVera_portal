@@ -4217,7 +4217,13 @@ export class DatabaseStorage implements IStorage {
     const buyer = await this.getUser(purchase.userId);
     if (!buyer) return;
 
-    console.log(`🔄 Processing income distribution for purchase: ${purchaseId}`);
+    // Get product to retrieve sponsor income percentage
+    const product = await this.getProductById(purchase.productId);
+    const sponsorIncomePercentage = product?.sponsorIncomePercentage 
+      ? parseFloat(product.sponsorIncomePercentage) 
+      : 10; // Default to 10% if not specified
+
+    console.log(`🔄 Processing income distribution for purchase: ${purchaseId} (Sponsor Income: ${sponsorIncomePercentage}%)`);
 
     // Import production BV engine
     const { productionBVEngine } = await import('./productionBVEngine');
@@ -4228,7 +4234,8 @@ export class DatabaseStorage implements IStorage {
         purchaseId: purchase.id,
         userId: buyer.userId!, // Display ID (VV0001)
         bvAmount: purchase.totalBV,
-        monthId: productionBVEngine.getCurrentMonthId()
+        monthId: productionBVEngine.getCurrentMonthId(),
+        sponsorIncomePercentage: sponsorIncomePercentage
       });
       
       console.log(`✅ BV calculations completed for purchase: ${purchaseId}`);

@@ -302,32 +302,31 @@ export default function AdminProductManagement() {
         {products.map((product) => (
           <Card key={product.id} data-testid={`card-product-${product.id}`}>
             <CardHeader>
-              <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden mb-4">
+              <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden mb-4 relative">
                 {product.imageUrl ? (
-                  <img
-                    src={product.imageUrl}
-                    alt={product.name}
-                    className="w-full h-full object-cover"
-                    data-testid={`img-product-${product.id}`}
-                    onError={(e) => {
-                      console.log('Image failed to load:', product.imageUrl);
-                      e.currentTarget.style.display = 'none';
-                      const placeholder = e.currentTarget.parentElement?.querySelector('.image-placeholder') as HTMLElement;
-                      if (placeholder) {
-                        placeholder.style.display = 'flex';
-                      }
-                    }}
-                  />
-                ) : null}
-                {!product.imageUrl && (
+                  <>
+                    <img
+                      src={product.imageUrl}
+                      alt={product.name}
+                      className="w-full h-full object-cover image-element"
+                      data-testid={`img-product-${product.id}`}
+                      onError={(e) => {
+                        console.log('Image failed to load:', product.imageUrl);
+                        e.currentTarget.style.display = 'none';
+                        const placeholder = e.currentTarget.nextElementSibling as HTMLElement;
+                        if (placeholder?.classList.contains('image-placeholder')) {
+                          placeholder.classList.remove('hidden');
+                          placeholder.classList.add('flex');
+                        }
+                      }}
+                    />
+                    <div className="image-placeholder absolute inset-0 hidden items-center justify-center bg-gray-100">
+                      <ImageIcon className="h-16 w-16 text-gray-300" />
+                    </div>
+                  </>
+                ) : (
                   <ImageIcon className="h-16 w-16 text-gray-300" />
                 )}
-                <div 
-                  className={`image-placeholder absolute inset-0 flex items-center justify-center bg-gray-100 ${product.imageUrl ? 'hidden' : 'flex'}`}
-                  style={{ display: product.imageUrl ? 'none' : 'flex' }}
-                >
-                  <ImageIcon className="h-16 w-16 text-gray-300" />
-                </div>
               </div>
               <CardTitle className="text-lg">{product.name}</CardTitle>
               <CardDescription className="line-clamp-2">{product.description}</CardDescription>

@@ -1192,7 +1192,7 @@ export default function AdminDashboard() {
                               <p className="text-sm text-gray-600">{adminStats.pendingKYC} document{adminStats.pendingKYC !== 1 ? 's' : ''} awaiting review</p>
                             </div>
                           </div>
-                          <Button size="sm" variant="outline" className="volt-gradient text-white">Review</Button>
+                          <span className="px-4 py-2 text-sm font-medium rounded-md volt-gradient text-white border border-gray-300">Review</span>
                         </button>
                       )}
                       
@@ -1208,7 +1208,7 @@ export default function AdminDashboard() {
                               <p className="text-sm text-gray-600">{adminStats.withdrawalRequests} withdrawal request{adminStats.withdrawalRequests !== 1 ? 's' : ''} pending</p>
                             </div>
                           </div>
-                          <Button size="sm" variant="outline" className="volt-gradient text-white">Review</Button>
+                          <span className="px-4 py-2 text-sm font-medium rounded-md volt-gradient text-white border border-gray-300">Review</span>
                         </button>
                       )}
                       

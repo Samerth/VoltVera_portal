@@ -1,0 +1,147 @@
+[
+  {
+    "check_type": "TABLES",
+    "name": "achievers",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "bv_transactions",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "cheques",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "email_tokens",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "franchise_requests",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "fund_requests",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "kyc_documents",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "lifetime_bv_calculations",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "monthly_bv",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "news",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "notifications",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "pending_recruits",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "products",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "products_bv_backup",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "purchases",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "purchases_bvtest",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "rank_achievements",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "rank_configurations",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "recruitment_requests",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "referral_links",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "sessions",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "support_tickets",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "transactions",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "transactions_bv_backup",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "users",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "users_bv_backup",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "wallet_balances",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "walletbalances_bv_backup",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLES",
+    "name": "withdrawal_requests",
+    "source": "production"
+  }
+]

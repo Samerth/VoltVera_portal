@@ -1,0 +1,387 @@
+[
+  {
+    "check_type": "ENUMS",
+    "enum_name": "franchise_type",
+    "enum_value": "Mini Franchise",
+    "sort_order": 1,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "franchise_type",
+    "enum_value": "Basic Franchise",
+    "sort_order": 2,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "franchise_type",
+    "enum_value": "Smart Franchise",
+    "sort_order": 3,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "franchise_type",
+    "enum_value": "Growth Franchise",
+    "sort_order": 4,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "franchise_type",
+    "enum_value": "Master Franchise",
+    "sort_order": 5,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "franchise_type",
+    "enum_value": "Super Franchise",
+    "sort_order": 6,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "kyc_status",
+    "enum_value": "pending",
+    "sort_order": 1,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "kyc_status",
+    "enum_value": "approved",
+    "sort_order": 2,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "kyc_status",
+    "enum_value": "rejected",
+    "sort_order": 3,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "purchase_type",
+    "enum_value": "first_purchase",
+    "sort_order": 1,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "purchase_type",
+    "enum_value": "second_purchase",
+    "sort_order": 2,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "rank",
+    "enum_value": "Executive",
+    "sort_order": 1,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "rank",
+    "enum_value": "Bronze Star",
+    "sort_order": 2,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "rank",
+    "enum_value": "Gold Star",
+    "sort_order": 3,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "rank",
+    "enum_value": "Emerald Star",
+    "sort_order": 4,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "rank",
+    "enum_value": "Ruby Star",
+    "sort_order": 5,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "rank",
+    "enum_value": "Diamond",
+    "sort_order": 6,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "rank",
+    "enum_value": "Wise President",
+    "sort_order": 7,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "rank",
+    "enum_value": "President",
+    "sort_order": 8,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "rank",
+    "enum_value": "Ambassador",
+    "sort_order": 9,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "rank",
+    "enum_value": "Deputy Director",
+    "sort_order": 10,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "rank",
+    "enum_value": "Director",
+    "sort_order": 11,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "rank",
+    "enum_value": "Founder",
+    "sort_order": 12,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "ticket_category",
+    "enum_value": "Payment",
+    "sort_order": 1,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "ticket_category",
+    "enum_value": "Product",
+    "sort_order": 2,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "ticket_category",
+    "enum_value": "ID",
+    "sort_order": 3,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "ticket_category",
+    "enum_value": "Technical",
+    "sort_order": 4,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "ticket_category",
+    "enum_value": "General",
+    "sort_order": 5,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "ticket_status",
+    "enum_value": "open",
+    "sort_order": 1,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "ticket_status",
+    "enum_value": "in_progress",
+    "sort_order": 2,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "ticket_status",
+    "enum_value": "resolved",
+    "sort_order": 3,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "ticket_status",
+    "enum_value": "closed",
+    "sort_order": 4,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "transaction_type",
+    "enum_value": "sponsor_income",
+    "sort_order": 1,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "transaction_type",
+    "enum_value": "sales_incentive",
+    "sort_order": 2,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "transaction_type",
+    "enum_value": "sales_bonus",
+    "sort_order": 3,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "transaction_type",
+    "enum_value": "consistency_bonus",
+    "sort_order": 4,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "transaction_type",
+    "enum_value": "franchise_income",
+    "sort_order": 5,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "transaction_type",
+    "enum_value": "car_fund",
+    "sort_order": 6,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "transaction_type",
+    "enum_value": "travel_fund",
+    "sort_order": 7,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "transaction_type",
+    "enum_value": "leadership_fund",
+    "sort_order": 8,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "transaction_type",
+    "enum_value": "house_fund",
+    "sort_order": 9,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "transaction_type",
+    "enum_value": "millionaire_club",
+    "sort_order": 10,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "transaction_type",
+    "enum_value": "royalty_income",
+    "sort_order": 11,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "transaction_type",
+    "enum_value": "withdrawal",
+    "sort_order": 12,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "transaction_type",
+    "enum_value": "purchase",
+    "sort_order": 13,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "transaction_type",
+    "enum_value": "admin_credit",
+    "sort_order": 14,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "transaction_type",
+    "enum_value": "admin_debit",
+    "sort_order": 15,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "user_role",
+    "enum_value": "admin",
+    "sort_order": 1,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "user_role",
+    "enum_value": "user",
+    "sort_order": 2,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "user_role",
+    "enum_value": "founder",
+    "sort_order": 3,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "user_role",
+    "enum_value": "mini_franchise",
+    "sort_order": 4,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "user_role",
+    "enum_value": "basic_franchise",
+    "sort_order": 5,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "user_status",
+    "enum_value": "active",
+    "sort_order": 1,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "user_status",
+    "enum_value": "inactive",
+    "sort_order": 2,
+    "source": "production"
+  },
+  {
+    "check_type": "ENUMS",
+    "enum_name": "user_status",
+    "enum_value": "pending",
+    "sort_order": 3,
+    "source": "production"
+  }
+]

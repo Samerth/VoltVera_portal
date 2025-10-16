@@ -1,0 +1,492 @@
+[
+  {
+    "check_type": "INDEXES",
+    "indexname": "achievers_pkey",
+    "tablename": "achievers",
+    "indexdef": "CREATE UNIQUE INDEX achievers_pkey ON public.achievers USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "bv_transactions_bvtest_pkey",
+    "tablename": "bv_transactions",
+    "indexdef": "CREATE UNIQUE INDEX bv_transactions_bvtest_pkey ON public.bv_transactions USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_bv_transactions_bvtest_month_id",
+    "tablename": "bv_transactions",
+    "indexdef": "CREATE INDEX idx_bv_transactions_bvtest_month_id ON public.bv_transactions USING btree (month_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_bv_transactions_month_id",
+    "tablename": "bv_transactions",
+    "indexdef": "CREATE INDEX idx_bv_transactions_month_id ON public.bv_transactions USING btree (month_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_bv_transactions_purchase_id",
+    "tablename": "bv_transactions",
+    "indexdef": "CREATE INDEX idx_bv_transactions_purchase_id ON public.bv_transactions USING btree (purchase_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_bv_transactions_user_id",
+    "tablename": "bv_transactions",
+    "indexdef": "CREATE INDEX idx_bv_transactions_user_id ON public.bv_transactions USING btree (user_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "cheques_cheque_number_key",
+    "tablename": "cheques",
+    "indexdef": "CREATE UNIQUE INDEX cheques_cheque_number_key ON public.cheques USING btree (cheque_number)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "cheques_pkey",
+    "tablename": "cheques",
+    "indexdef": "CREATE UNIQUE INDEX cheques_pkey ON public.cheques USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "email_tokens_pkey",
+    "tablename": "email_tokens",
+    "indexdef": "CREATE UNIQUE INDEX email_tokens_pkey ON public.email_tokens USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "email_tokens_token_key",
+    "tablename": "email_tokens",
+    "indexdef": "CREATE UNIQUE INDEX email_tokens_token_key ON public.email_tokens USING btree (token)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "email_tokens_token_unique",
+    "tablename": "email_tokens",
+    "indexdef": "CREATE UNIQUE INDEX email_tokens_token_unique ON public.email_tokens USING btree (token)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "franchise_requests_pkey",
+    "tablename": "franchise_requests",
+    "indexdef": "CREATE UNIQUE INDEX franchise_requests_pkey ON public.franchise_requests USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "fund_requests_pkey",
+    "tablename": "fund_requests",
+    "indexdef": "CREATE UNIQUE INDEX fund_requests_pkey ON public.fund_requests USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "kyc_documents_pkey",
+    "tablename": "kyc_documents",
+    "indexdef": "CREATE UNIQUE INDEX kyc_documents_pkey ON public.kyc_documents USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_lifetime_bv_calculations_parent_id",
+    "tablename": "lifetime_bv_calculations",
+    "indexdef": "CREATE INDEX idx_lifetime_bv_calculations_parent_id ON public.lifetime_bv_calculations USING btree (parent_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_lifetime_bv_calculations_user_id",
+    "tablename": "lifetime_bv_calculations",
+    "indexdef": "CREATE INDEX idx_lifetime_bv_calculations_user_id ON public.lifetime_bv_calculations USING btree (user_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "lifetime_bv_calculations_bvtest_pkey",
+    "tablename": "lifetime_bv_calculations",
+    "indexdef": "CREATE UNIQUE INDEX lifetime_bv_calculations_bvtest_pkey ON public.lifetime_bv_calculations USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_monthly_bv_month_id",
+    "tablename": "monthly_bv",
+    "indexdef": "CREATE INDEX idx_monthly_bv_month_id ON public.monthly_bv USING btree (month_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_monthly_bv_user_id",
+    "tablename": "monthly_bv",
+    "indexdef": "CREATE INDEX idx_monthly_bv_user_id ON public.monthly_bv USING btree (user_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "monthly_bv_bvtest_pkey",
+    "tablename": "monthly_bv",
+    "indexdef": "CREATE UNIQUE INDEX monthly_bv_bvtest_pkey ON public.monthly_bv USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "monthly_bv_bvtest_user_id_month_id_key",
+    "tablename": "monthly_bv",
+    "indexdef": "CREATE UNIQUE INDEX monthly_bv_bvtest_user_id_month_id_key ON public.monthly_bv USING btree (user_id, month_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "news_pkey",
+    "tablename": "news",
+    "indexdef": "CREATE UNIQUE INDEX news_pkey ON public.news USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "notifications_pkey",
+    "tablename": "notifications",
+    "indexdef": "CREATE UNIQUE INDEX notifications_pkey ON public.notifications USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "pending_recruits_pkey",
+    "tablename": "pending_recruits",
+    "indexdef": "CREATE UNIQUE INDEX pending_recruits_pkey ON public.pending_recruits USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "products_pkey",
+    "tablename": "products",
+    "indexdef": "CREATE UNIQUE INDEX products_pkey ON public.products USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_products_bvtest_active",
+    "tablename": "products_bv_backup",
+    "indexdef": "CREATE INDEX idx_products_bvtest_active ON public.products_bv_backup USING btree (is_active)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_products_bvtest_category",
+    "tablename": "products_bv_backup",
+    "indexdef": "CREATE INDEX idx_products_bvtest_category ON public.products_bv_backup USING btree (category)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "products_bvtest_pkey",
+    "tablename": "products_bv_backup",
+    "indexdef": "CREATE UNIQUE INDEX products_bvtest_pkey ON public.products_bv_backup USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "purchases_pkey",
+    "tablename": "purchases",
+    "indexdef": "CREATE UNIQUE INDEX purchases_pkey ON public.purchases USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_purchases_bvtest_product_id",
+    "tablename": "purchases_bvtest",
+    "indexdef": "CREATE INDEX idx_purchases_bvtest_product_id ON public.purchases_bvtest USING btree (product_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_purchases_bvtest_status",
+    "tablename": "purchases_bvtest",
+    "indexdef": "CREATE INDEX idx_purchases_bvtest_status ON public.purchases_bvtest USING btree (payment_status)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_purchases_bvtest_user_id",
+    "tablename": "purchases_bvtest",
+    "indexdef": "CREATE INDEX idx_purchases_bvtest_user_id ON public.purchases_bvtest USING btree (user_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "purchases_bvtest_pkey",
+    "tablename": "purchases_bvtest",
+    "indexdef": "CREATE UNIQUE INDEX purchases_bvtest_pkey ON public.purchases_bvtest USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "rank_achievements_pkey",
+    "tablename": "rank_achievements",
+    "indexdef": "CREATE UNIQUE INDEX rank_achievements_pkey ON public.rank_achievements USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_rank_configurations_rank_name",
+    "tablename": "rank_configurations",
+    "indexdef": "CREATE INDEX idx_rank_configurations_rank_name ON public.rank_configurations USING btree (rank_name)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "rank_configurations_pkey",
+    "tablename": "rank_configurations",
+    "indexdef": "CREATE UNIQUE INDEX rank_configurations_pkey ON public.rank_configurations USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "rank_configurations_rank_name_key",
+    "tablename": "rank_configurations",
+    "indexdef": "CREATE UNIQUE INDEX rank_configurations_rank_name_key ON public.rank_configurations USING btree (rank_name)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "recruitment_requests_pkey",
+    "tablename": "recruitment_requests",
+    "indexdef": "CREATE UNIQUE INDEX recruitment_requests_pkey ON public.recruitment_requests USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "referral_links_pkey",
+    "tablename": "referral_links",
+    "indexdef": "CREATE UNIQUE INDEX referral_links_pkey ON public.referral_links USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "referral_links_token_key",
+    "tablename": "referral_links",
+    "indexdef": "CREATE UNIQUE INDEX referral_links_token_key ON public.referral_links USING btree (token)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "referral_links_token_unique",
+    "tablename": "referral_links",
+    "indexdef": "CREATE UNIQUE INDEX referral_links_token_unique ON public.referral_links USING btree (token)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "IDX_session_expire",
+    "tablename": "sessions",
+    "indexdef": "CREATE INDEX \"IDX_session_expire\" ON public.sessions USING btree (expire)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "sessions_pkey",
+    "tablename": "sessions",
+    "indexdef": "CREATE UNIQUE INDEX sessions_pkey ON public.sessions USING btree (sid)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "support_tickets_pkey",
+    "tablename": "support_tickets",
+    "indexdef": "CREATE UNIQUE INDEX support_tickets_pkey ON public.support_tickets USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "transactions_pkey",
+    "tablename": "transactions",
+    "indexdef": "CREATE UNIQUE INDEX transactions_pkey ON public.transactions USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_transactions_bvtest_date",
+    "tablename": "transactions_bv_backup",
+    "indexdef": "CREATE INDEX idx_transactions_bvtest_date ON public.transactions_bv_backup USING btree (created_at)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_transactions_bvtest_type",
+    "tablename": "transactions_bv_backup",
+    "indexdef": "CREATE INDEX idx_transactions_bvtest_type ON public.transactions_bv_backup USING btree (type)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_transactions_bvtest_user_id",
+    "tablename": "transactions_bv_backup",
+    "indexdef": "CREATE INDEX idx_transactions_bvtest_user_id ON public.transactions_bv_backup USING btree (user_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "transactions_bvtest_pkey",
+    "tablename": "transactions_bv_backup",
+    "indexdef": "CREATE UNIQUE INDEX transactions_bvtest_pkey ON public.transactions_bv_backup USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "IDX_users_order",
+    "tablename": "users",
+    "indexdef": "CREATE INDEX \"IDX_users_order\" ON public.users USING btree (\"order\")",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_users_left_child_id",
+    "tablename": "users",
+    "indexdef": "CREATE INDEX idx_users_left_child_id ON public.users USING btree (left_child_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_users_level",
+    "tablename": "users",
+    "indexdef": "CREATE INDEX idx_users_level ON public.users USING btree (level)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_users_parent_id",
+    "tablename": "users",
+    "indexdef": "CREATE INDEX idx_users_parent_id ON public.users USING btree (parent_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_users_right_child_id",
+    "tablename": "users",
+    "indexdef": "CREATE INDEX idx_users_right_child_id ON public.users USING btree (right_child_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_users_sponsor_id",
+    "tablename": "users",
+    "indexdef": "CREATE INDEX idx_users_sponsor_id ON public.users USING btree (sponsor_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "users_email_unique",
+    "tablename": "users",
+    "indexdef": "CREATE UNIQUE INDEX users_email_unique ON public.users USING btree (email)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "users_pkey",
+    "tablename": "users",
+    "indexdef": "CREATE UNIQUE INDEX users_pkey ON public.users USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "users_user_id_key",
+    "tablename": "users",
+    "indexdef": "CREATE UNIQUE INDEX users_user_id_key ON public.users USING btree (user_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "users_user_id_unique",
+    "tablename": "users",
+    "indexdef": "CREATE UNIQUE INDEX users_user_id_unique ON public.users USING btree (user_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_users_bvtest_email",
+    "tablename": "users_bv_backup",
+    "indexdef": "CREATE INDEX idx_users_bvtest_email ON public.users_bv_backup USING btree (email)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_users_bvtest_parent_id",
+    "tablename": "users_bv_backup",
+    "indexdef": "CREATE INDEX idx_users_bvtest_parent_id ON public.users_bv_backup USING btree (parent_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_users_bvtest_user_id",
+    "tablename": "users_bv_backup",
+    "indexdef": "CREATE INDEX idx_users_bvtest_user_id ON public.users_bv_backup USING btree (user_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "uk_users_bvtest_user_id",
+    "tablename": "users_bv_backup",
+    "indexdef": "CREATE UNIQUE INDEX uk_users_bvtest_user_id ON public.users_bv_backup USING btree (user_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "users_bvtest_pkey",
+    "tablename": "users_bv_backup",
+    "indexdef": "CREATE UNIQUE INDEX users_bvtest_pkey ON public.users_bv_backup USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "wallet_balances_pkey",
+    "tablename": "wallet_balances",
+    "indexdef": "CREATE UNIQUE INDEX wallet_balances_pkey ON public.wallet_balances USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "wallet_balances_user_id_key",
+    "tablename": "wallet_balances",
+    "indexdef": "CREATE UNIQUE INDEX wallet_balances_user_id_key ON public.wallet_balances USING btree (user_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "wallet_balances_user_id_unique",
+    "tablename": "wallet_balances",
+    "indexdef": "CREATE UNIQUE INDEX wallet_balances_user_id_unique ON public.wallet_balances USING btree (user_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "idx_walletbalances_bvtest_user_id",
+    "tablename": "walletbalances_bv_backup",
+    "indexdef": "CREATE INDEX idx_walletbalances_bvtest_user_id ON public.walletbalances_bv_backup USING btree (user_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "walletbalances_bvtest_pkey",
+    "tablename": "walletbalances_bv_backup",
+    "indexdef": "CREATE UNIQUE INDEX walletbalances_bvtest_pkey ON public.walletbalances_bv_backup USING btree (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "INDEXES",
+    "indexname": "withdrawal_requests_pkey",
+    "tablename": "withdrawal_requests",
+    "indexdef": "CREATE UNIQUE INDEX withdrawal_requests_pkey ON public.withdrawal_requests USING btree (id)",
+    "source": "production"
+  }
+]

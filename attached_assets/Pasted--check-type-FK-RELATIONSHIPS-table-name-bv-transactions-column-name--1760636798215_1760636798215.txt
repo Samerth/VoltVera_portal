@@ -1,0 +1,122 @@
+[
+  {
+    "check_type": "FK_RELATIONSHIPS",
+    "table_name": "bv_transactions",
+    "column_name": "purchase_id",
+    "foreign_table_name": "purchases_bvtest",
+    "foreign_column_name": "id",
+    "update_rule": "NO ACTION",
+    "delete_rule": "SET NULL",
+    "source": "production"
+  },
+  {
+    "check_type": "FK_RELATIONSHIPS",
+    "table_name": "bv_transactions",
+    "column_name": "user_id",
+    "foreign_table_name": "users_bv_backup",
+    "foreign_column_name": "user_id",
+    "update_rule": "NO ACTION",
+    "delete_rule": "CASCADE",
+    "source": "production"
+  },
+  {
+    "check_type": "FK_RELATIONSHIPS",
+    "table_name": "lifetime_bv_calculations",
+    "column_name": "user_id",
+    "foreign_table_name": "users",
+    "foreign_column_name": "user_id",
+    "update_rule": "NO ACTION",
+    "delete_rule": "CASCADE",
+    "source": "production"
+  },
+  {
+    "check_type": "FK_RELATIONSHIPS",
+    "table_name": "monthly_bv",
+    "column_name": "user_id",
+    "foreign_table_name": "users_bv_backup",
+    "foreign_column_name": "user_id",
+    "update_rule": "NO ACTION",
+    "delete_rule": "CASCADE",
+    "source": "production"
+  },
+  {
+    "check_type": "FK_RELATIONSHIPS",
+    "table_name": "notifications",
+    "column_name": "user_id",
+    "foreign_table_name": "users",
+    "foreign_column_name": "id",
+    "update_rule": "NO ACTION",
+    "delete_rule": "CASCADE",
+    "source": "production"
+  },
+  {
+    "check_type": "FK_RELATIONSHIPS",
+    "table_name": "pending_recruits",
+    "column_name": "recruiter_id",
+    "foreign_table_name": "users",
+    "foreign_column_name": "id",
+    "update_rule": "NO ACTION",
+    "delete_rule": "CASCADE",
+    "source": "production"
+  },
+  {
+    "check_type": "FK_RELATIONSHIPS",
+    "table_name": "recruitment_requests",
+    "column_name": "requester_id",
+    "foreign_table_name": "users",
+    "foreign_column_name": "id",
+    "update_rule": "NO ACTION",
+    "delete_rule": "NO ACTION",
+    "source": "production"
+  },
+  {
+    "check_type": "FK_RELATIONSHIPS",
+    "table_name": "recruitment_requests",
+    "column_name": "upline_id",
+    "foreign_table_name": "users",
+    "foreign_column_name": "id",
+    "update_rule": "NO ACTION",
+    "delete_rule": "NO ACTION",
+    "source": "production"
+  },
+  {
+    "check_type": "FK_RELATIONSHIPS",
+    "table_name": "users",
+    "column_name": "left_child_id",
+    "foreign_table_name": "users",
+    "foreign_column_name": "id",
+    "update_rule": "NO ACTION",
+    "delete_rule": "SET NULL",
+    "source": "production"
+  },
+  {
+    "check_type": "FK_RELATIONSHIPS",
+    "table_name": "users",
+    "column_name": "parent_id",
+    "foreign_table_name": "users",
+    "foreign_column_name": "id",
+    "update_rule": "NO ACTION",
+    "delete_rule": "SET NULL",
+    "source": "production"
+  },
+  {
+    "check_type": "FK_RELATIONSHIPS",
+    "table_name": "users",
+    "column_name": "right_child_id",
+    "foreign_table_name": "users",
+    "foreign_column_name": "id",
+    "update_rule": "NO ACTION",
+    "delete_rule": "SET NULL",
+    "source": "production"
+  },
+  {
+    "check_type": "FK_RELATIONSHIPS",
+    "table_name": "users",
+    "column_name": "sponsor_id",
+    "foreign_table_name": "users",
+    "foreign_column_name": "id",
+    "update_rule": "NO ACTION",
+    "delete_rule": "SET NULL",
+    "source": "production"
+  }
+]

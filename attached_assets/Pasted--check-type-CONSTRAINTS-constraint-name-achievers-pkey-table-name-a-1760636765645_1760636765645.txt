@@ -1,0 +1,450 @@
+[
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "achievers_pkey",
+    "table_name": "achievers",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "bv_transactions_bvtest_pkey",
+    "table_name": "bv_transactions",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "fk_bv_transactions_purchase_bvtest",
+    "table_name": "bv_transactions",
+    "constraint_type": "FOREIGN KEY",
+    "constraint_definition": "FOREIGN KEY (purchase_id) REFERENCES purchases_bvtest(id) ON DELETE SET NULL",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "fk_bv_transactions_user_bvtest",
+    "table_name": "bv_transactions",
+    "constraint_type": "FOREIGN KEY",
+    "constraint_definition": "FOREIGN KEY (user_id) REFERENCES users_bv_backup(user_id) ON DELETE CASCADE",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "cheques_cheque_number_key",
+    "table_name": "cheques",
+    "constraint_type": "UNIQUE",
+    "constraint_definition": "UNIQUE (cheque_number)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "cheques_pkey",
+    "table_name": "cheques",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "email_tokens_pkey",
+    "table_name": "email_tokens",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "email_tokens_token_key",
+    "table_name": "email_tokens",
+    "constraint_type": "UNIQUE",
+    "constraint_definition": "UNIQUE (token)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "email_tokens_token_unique",
+    "table_name": "email_tokens",
+    "constraint_type": "UNIQUE",
+    "constraint_definition": "UNIQUE (token)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "franchise_requests_pkey",
+    "table_name": "franchise_requests",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "fund_requests_pkey",
+    "table_name": "fund_requests",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "kyc_documents_pkey",
+    "table_name": "kyc_documents",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "fk_bv_calculations_user",
+    "table_name": "lifetime_bv_calculations",
+    "constraint_type": "FOREIGN KEY",
+    "constraint_definition": "FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "lifetime_bv_calculations_bvtest_pkey",
+    "table_name": "lifetime_bv_calculations",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "fk_monthly_bv_user_bvtest",
+    "table_name": "monthly_bv",
+    "constraint_type": "FOREIGN KEY",
+    "constraint_definition": "FOREIGN KEY (user_id) REFERENCES users_bv_backup(user_id) ON DELETE CASCADE",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "monthly_bv_bvtest_pkey",
+    "table_name": "monthly_bv",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "monthly_bv_bvtest_user_id_month_id_key",
+    "table_name": "monthly_bv",
+    "constraint_type": "UNIQUE",
+    "constraint_definition": "UNIQUE (user_id, month_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "news_pkey",
+    "table_name": "news",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "notifications_pkey",
+    "table_name": "notifications",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "notifications_user_id_fkey",
+    "table_name": "notifications",
+    "constraint_type": "FOREIGN KEY",
+    "constraint_definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "pending_recruits_pkey",
+    "table_name": "pending_recruits",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "pending_recruits_recruiter_id_fkey",
+    "table_name": "pending_recruits",
+    "constraint_type": "FOREIGN KEY",
+    "constraint_definition": "FOREIGN KEY (recruiter_id) REFERENCES users(id) ON DELETE CASCADE",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "products_pkey",
+    "table_name": "products",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "products_bvtest_pkey",
+    "table_name": "products_bv_backup",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "purchases_pkey",
+    "table_name": "purchases",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "purchases_bvtest_pkey",
+    "table_name": "purchases_bvtest",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "rank_achievements_pkey",
+    "table_name": "rank_achievements",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "rank_configurations_pkey",
+    "table_name": "rank_configurations",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "rank_configurations_rank_name_key",
+    "table_name": "rank_configurations",
+    "constraint_type": "UNIQUE",
+    "constraint_definition": "UNIQUE (rank_name)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "recruitment_requests_pkey",
+    "table_name": "recruitment_requests",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "recruitment_requests_placement_position_check",
+    "table_name": "recruitment_requests",
+    "constraint_type": "CHECK",
+    "constraint_definition": "CHECK (((placement_position)::text = ANY (ARRAY[('left'::character varying)::text, ('right'::character varying)::text])))",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "recruitment_requests_requester_id_fkey",
+    "table_name": "recruitment_requests",
+    "constraint_type": "FOREIGN KEY",
+    "constraint_definition": "FOREIGN KEY (requester_id) REFERENCES users(id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "recruitment_requests_status_check",
+    "table_name": "recruitment_requests",
+    "constraint_type": "CHECK",
+    "constraint_definition": "CHECK (((status)::text = ANY (ARRAY[('pending'::character varying)::text, ('approved'::character varying)::text, ('rejected'::character varying)::text, ('completed'::character varying)::text])))",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "recruitment_requests_upline_id_fkey",
+    "table_name": "recruitment_requests",
+    "constraint_type": "FOREIGN KEY",
+    "constraint_definition": "FOREIGN KEY (upline_id) REFERENCES users(id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "referral_links_pkey",
+    "table_name": "referral_links",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "referral_links_token_key",
+    "table_name": "referral_links",
+    "constraint_type": "UNIQUE",
+    "constraint_definition": "UNIQUE (token)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "referral_links_token_unique",
+    "table_name": "referral_links",
+    "constraint_type": "UNIQUE",
+    "constraint_definition": "UNIQUE (token)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "sessions_pkey",
+    "table_name": "sessions",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (sid)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "support_tickets_pkey",
+    "table_name": "support_tickets",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "transactions_pkey",
+    "table_name": "transactions",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "transactions_bvtest_pkey",
+    "table_name": "transactions_bv_backup",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "fk_left_child",
+    "table_name": "users",
+    "constraint_type": "FOREIGN KEY",
+    "constraint_definition": "FOREIGN KEY (left_child_id) REFERENCES users(id) ON DELETE SET NULL",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "fk_parent",
+    "table_name": "users",
+    "constraint_type": "FOREIGN KEY",
+    "constraint_definition": "FOREIGN KEY (parent_id) REFERENCES users(id) ON DELETE SET NULL",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "fk_right_child",
+    "table_name": "users",
+    "constraint_type": "FOREIGN KEY",
+    "constraint_definition": "FOREIGN KEY (right_child_id) REFERENCES users(id) ON DELETE SET NULL",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "fk_sponsor",
+    "table_name": "users",
+    "constraint_type": "FOREIGN KEY",
+    "constraint_definition": "FOREIGN KEY (sponsor_id) REFERENCES users(id) ON DELETE SET NULL",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "users_email_unique",
+    "table_name": "users",
+    "constraint_type": "UNIQUE",
+    "constraint_definition": "UNIQUE (email)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "users_pkey",
+    "table_name": "users",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "users_user_id_key",
+    "table_name": "users",
+    "constraint_type": "UNIQUE",
+    "constraint_definition": "UNIQUE (user_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "users_user_id_unique",
+    "table_name": "users",
+    "constraint_type": "UNIQUE",
+    "constraint_definition": "UNIQUE (user_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "uk_users_bvtest_user_id",
+    "table_name": "users_bv_backup",
+    "constraint_type": "UNIQUE",
+    "constraint_definition": "UNIQUE (user_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "users_bvtest_pkey",
+    "table_name": "users_bv_backup",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "wallet_balances_pkey",
+    "table_name": "wallet_balances",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "wallet_balances_user_id_key",
+    "table_name": "wallet_balances",
+    "constraint_type": "UNIQUE",
+    "constraint_definition": "UNIQUE (user_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "wallet_balances_user_id_unique",
+    "table_name": "wallet_balances",
+    "constraint_type": "UNIQUE",
+    "constraint_definition": "UNIQUE (user_id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "walletbalances_bvtest_pkey",
+    "table_name": "walletbalances_bv_backup",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  },
+  {
+    "check_type": "CONSTRAINTS",
+    "constraint_name": "withdrawal_requests_pkey",
+    "table_name": "withdrawal_requests",
+    "constraint_type": "PRIMARY KEY",
+    "constraint_definition": "PRIMARY KEY (id)",
+    "source": "production"
+  }
+]

@@ -1,0 +1,234 @@
+[
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "kyc_documents",
+    "total_size": "19 MB",
+    "table_size": "40 kB",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "fund_requests",
+    "total_size": "8520 kB",
+    "table_size": "8192 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "pending_recruits",
+    "total_size": "1344 kB",
+    "table_size": "8192 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "users",
+    "total_size": "976 kB",
+    "table_size": "16 kB",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "sessions",
+    "total_size": "416 kB",
+    "table_size": "72 kB",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "referral_links",
+    "total_size": "96 kB",
+    "table_size": "8192 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "email_tokens",
+    "total_size": "64 kB",
+    "table_size": "8192 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "wallet_balances",
+    "total_size": "64 kB",
+    "table_size": "8192 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "rank_configurations",
+    "total_size": "64 kB",
+    "table_size": "8192 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "notifications",
+    "total_size": "64 kB",
+    "table_size": "16 kB",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "bv_transactions",
+    "total_size": "48 kB",
+    "table_size": "0 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "users_bv_backup",
+    "total_size": "48 kB",
+    "table_size": "0 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "monthly_bv",
+    "total_size": "40 kB",
+    "table_size": "0 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "purchases_bvtest",
+    "total_size": "40 kB",
+    "table_size": "0 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "transactions_bv_backup",
+    "total_size": "40 kB",
+    "table_size": "0 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "transactions",
+    "total_size": "32 kB",
+    "table_size": "8192 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "products_bv_backup",
+    "total_size": "32 kB",
+    "table_size": "0 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "lifetime_bv_calculations",
+    "total_size": "32 kB",
+    "table_size": "0 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "withdrawal_requests",
+    "total_size": "32 kB",
+    "table_size": "8192 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "products",
+    "total_size": "32 kB",
+    "table_size": "8192 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "cheques",
+    "total_size": "24 kB",
+    "table_size": "0 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "walletbalances_bv_backup",
+    "total_size": "24 kB",
+    "table_size": "0 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "franchise_requests",
+    "total_size": "16 kB",
+    "table_size": "0 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "support_tickets",
+    "total_size": "16 kB",
+    "table_size": "0 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "achievers",
+    "total_size": "16 kB",
+    "table_size": "0 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "rank_achievements",
+    "total_size": "16 kB",
+    "table_size": "0 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "recruitment_requests",
+    "total_size": "16 kB",
+    "table_size": "0 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "news",
+    "total_size": "16 kB",
+    "table_size": "0 bytes",
+    "source": "production"
+  },
+  {
+    "check_type": "TABLE_STATS",
+    "schemaname": "public",
+    "tablename": "purchases",
+    "total_size": "16 kB",
+    "table_size": "0 bytes",
+    "source": "production"
+  }
+]

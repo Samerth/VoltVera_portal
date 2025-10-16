@@ -365,7 +365,9 @@ export default function AdminProductManagement() {
                   onComplete={(result) => {
                     if (result.successful && result.successful[0]) {
                       const uploadedUrl = result.successful[0].uploadURL;
-                      uploadImageMutation.mutate({ productId: product.id, imageUrl: uploadedUrl });
+                      if (uploadedUrl) {
+                        uploadImageMutation.mutate({ productId: product.id, imageUrl: uploadedUrl });
+                      }
                     }
                   }}
                 >
@@ -439,27 +441,33 @@ export default function AdminProductManagement() {
                   <Label htmlFor="edit-price">Price (₹)</Label>
                   <Input
                     id="edit-price"
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     value={selectedProduct.price}
                     onChange={(e) => setSelectedProduct({ ...selectedProduct, price: e.target.value })}
+                    placeholder="0.00"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-bv">BV</Label>
                   <Input
                     id="edit-bv"
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     value={selectedProduct.bv}
                     onChange={(e) => setSelectedProduct({ ...selectedProduct, bv: e.target.value })}
+                    placeholder="0.00"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-gst">GST (%)</Label>
                   <Input
                     id="edit-gst"
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     value={selectedProduct.gst}
                     onChange={(e) => setSelectedProduct({ ...selectedProduct, gst: e.target.value })}
+                    placeholder="18"
                   />
                 </div>
               </div>
@@ -468,9 +476,11 @@ export default function AdminProductManagement() {
                   <Label htmlFor="edit-sponsor-income">Sponsor Income (%)</Label>
                   <Input
                     id="edit-sponsor-income"
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     value={selectedProduct.sponsorIncomePercentage}
                     onChange={(e) => setSelectedProduct({ ...selectedProduct, sponsorIncomePercentage: e.target.value })}
+                    placeholder="10"
                   />
                 </div>
                 <div className="space-y-2">

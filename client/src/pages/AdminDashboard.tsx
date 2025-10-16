@@ -32,6 +32,7 @@ import FundRequestsTable from "@/components/PendingFundRequestsTable";
 import { IncomeReportsTable } from "@/components/IncomeReportsTable";
 import { BVTransactionsReport } from "@/components/BVTransactionsReport";
 import AdminProductManagement from "@/components/AdminProductManagement";
+import AdminPurchasesTable from "@/components/AdminPurchasesTable";
 
 interface UserStats {
   totalUsers: number;
@@ -870,6 +871,18 @@ export default function AdminDashboard() {
           >
             <Package className="mr-3 h-5 w-5" />
             <span className="font-medium">Product Management</span>
+          </button>
+
+          {/* Purchases Tracking */}
+          <button 
+            onClick={() => setActiveSection('purchases')}
+            className={`flex items-center w-full px-4 py-3 text-left rounded-lg transition-colors ${
+              activeSection === 'purchases' ? 'bg-white/20 text-white' : 'hover:bg-white/10 text-white/90'
+            }`}
+            data-testid="menu-purchases"
+          >
+            <TrendingUp className="mr-3 h-5 w-5" />
+            <span className="font-medium">All Purchases</span>
           </button>
 
           {/* Withdraw Management Menu */}
@@ -1840,6 +1853,11 @@ export default function AdminDashboard() {
           {/* Product Management Section */}
           {activeSection === 'product-management' && (
             <AdminProductManagement />
+          )}
+
+          {/* Purchases Section */}
+          {activeSection === 'purchases' && (
+            <AdminPurchasesTable />
           )}
 
           {/* Today's Joinings Section */}

@@ -68,7 +68,8 @@ Preferred communication style: Simple, everyday language.
   - CSV export functionality with detailed transaction records
   - Real-time data synchronization
   - User search by display ID, name, or email
-  (October 15, 2025) ✅ WORKING
+  - Bug Fix: Replaced SQL ANY() with Drizzle's inArray() for proper array filtering
+  (October 16, 2025) ✅ WORKING & TESTED
 - **Email Verification**: Secure signup process requiring email confirmation ✅ WORKING
 - **Password Reset**: Email-based password reset with secure token validation ✅ WORKING
 - **Real-time UI**: Optimistic updates and real-time data synchronization

@@ -70,6 +70,15 @@ Preferred communication style: Simple, everyday language.
   - User search by display ID, name, or email
   - Bug Fix: Replaced SQL ANY() with Drizzle's inArray() for proper array filtering
   (October 16, 2025) ✅ WORKING & TESTED
+- **BV Transactions Report**: System-wide BV transaction tracking report for admin oversight (October 16, 2025) ✅ WORKING & TESTED
+  - Complete transaction history for all users in the system
+  - Displays both Direct Income (10% sponsor commission) and Differential Income (matching income from BV calculations)
+  - Shows initiating user (who triggered each BV calculation via their purchase)
+  - Real-time filtering by user (ID/name/email), transaction type, and date range
+  - Summary statistics: total transactions, total direct income, total differential income
+  - CSV export with comprehensive transaction details
+  - Proper joins with users and purchases tables for complete data visibility
+  - Located in Admin Dashboard → Income Reports → BV Transactions Report
 - **BV Propagation System**: Fixed critical database constraint issue preventing BV from flowing up the binary tree
   - Root Cause: monthly_bv table had foreign key constraint pointing to legacy backup table (users_bv_backup) instead of main users table
   - Impact: Purchase BV was credited to buyer's self_bv but failed to propagate to upline parent's left/right BV

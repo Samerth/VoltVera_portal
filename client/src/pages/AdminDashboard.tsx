@@ -763,6 +763,7 @@ export default function AdminDashboard() {
                 >
                   Direct Income
                 </button>
+                {/* Hidden: ROI Income
                 <button 
                   onClick={() => setActiveSection('roi-income')}
                   className={`block w-full px-4 py-2 text-left text-sm rounded hover:bg-white/10 ${
@@ -771,6 +772,8 @@ export default function AdminDashboard() {
                 >
                   ROI Income
                 </button>
+                */}
+                {/* Hidden: Salary Income
                 <button 
                   onClick={() => setActiveSection('salary-income')}
                   className={`block w-full px-4 py-2 text-left text-sm rounded hover:bg-white/10 ${
@@ -779,6 +782,7 @@ export default function AdminDashboard() {
                 >
                   Salary Income
                 </button>
+                */}
                 <button 
                   onClick={() => setActiveSection('payout-summary')}
                   className={`block w-full px-4 py-2 text-left text-sm rounded hover:bg-white/10 ${
@@ -787,6 +791,7 @@ export default function AdminDashboard() {
                 >
                   Payout Summary
                 </button>
+                {/* Hidden: Holiday Reward Summary
                 <button 
                   onClick={() => setActiveSection('holiday-reward')}
                   className={`block w-full px-4 py-2 text-left text-sm rounded hover:bg-white/10 ${
@@ -795,6 +800,7 @@ export default function AdminDashboard() {
                 >
                   Holiday Reward Summary
                 </button>
+                */}
                 <button 
                   onClick={() => setActiveSection('bv-transactions-report')}
                   className={`block w-full px-4 py-2 text-left text-sm rounded hover:bg-white/10 ${
@@ -2079,7 +2085,7 @@ export default function AdminDashboard() {
             />
           )}
 
-          {/* ROI Income Report */}
+          {/* Hidden: ROI Income Report
           {activeSection === 'roi-income' && (
             <IncomeReportsTable
               reportType="roi"
@@ -2087,8 +2093,9 @@ export default function AdminDashboard() {
               description="Sales incentives and bonuses"
             />
           )}
+          */}
 
-          {/* Salary Income Report */}
+          {/* Hidden: Salary Income Report
           {activeSection === 'salary-income' && (
             <IncomeReportsTable
               reportType="salary"
@@ -2096,6 +2103,7 @@ export default function AdminDashboard() {
               description="Consistency bonuses and leadership funds"
             />
           )}
+          */}
 
           {/* BV Transactions Report */}
           {activeSection === 'bv-transactions-report' && (
@@ -2105,7 +2113,6 @@ export default function AdminDashboard() {
           {/* Enhanced Section Content for other sections */}
           {(activeSection === 'user-activities' ||
             activeSection === 'payout-summary' ||
-            activeSection === 'holiday-reward' ||
             activeSection === 'manage-fund' ||
             activeSection === 'pending-fund') && (
             <Card className="hover:shadow-lg transition-shadow">

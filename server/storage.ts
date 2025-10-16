@@ -881,11 +881,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAdminStats() {
-    const [userStats, kycCount, withdrawalCount, franchiseCount] = await Promise.all([
+    const [userStats, kycCount, withdrawalCount, franchiseCount, purchaseCount] = await Promise.all([
       this.getUserStats(),
       db.select({ count: sql<number>`count(*)` }).from(kycDocuments).where(eq(kycDocuments.status, 'pending')),
       db.select({ count: sql<number>`count(*)` }).from(withdrawalRequests).where(eq(withdrawalRequests.status, 'pending')),
-      db.select({ count: sql<number>`count(*)` }).from(franchiseRequests).where(eq(franchiseRequests.status, 'pending'))
+      db.select({ count: sql<number>`count(*)` }).from(franchiseRequests).where(eq(franchiseRequests.status, 'pending')),
+      db.select({ count: sql<number>`count(*)` }).from(purchases)
     ]);
     
     // Calculate total BV in system (excluding admin users)
@@ -915,6 +916,7 @@ export class DatabaseStorage implements IStorage {
       pendingKYC: kycCount[0]?.count || 0,
       withdrawalRequests: withdrawalCount[0]?.count || 0,
       franchiseRequests: franchiseCount[0]?.count || 0,
+      totalPurchases: purchaseCount[0]?.count || 0,
       totalBV: totalBV.toFixed(2),
       monthlyIncome: monthlyIncome.toFixed(2)
     };

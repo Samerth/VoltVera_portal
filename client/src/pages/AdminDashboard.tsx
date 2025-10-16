@@ -47,6 +47,7 @@ interface AdminStats {
   pendingKYC: number;
   withdrawalRequests: number;
   franchiseRequests: number;
+  totalPurchases: number;
   totalBV: string;
   monthlyIncome: string;
 }
@@ -1154,16 +1155,16 @@ export default function AdminDashboard() {
                   </CardContent>
                 </Card>
 
-                <Card className="hover:shadow-lg transition-shadow">
+                <Card className="hover:shadow-lg transition-shadow" onClick={() => setActiveSection('purchases')} style={{ cursor: 'pointer' }}>
                   <CardHeader>
                     <CardTitle className="text-lg font-medium text-gray-800 flex items-center">
-                      <Award className="mr-2 h-5 w-5 text-purple-500" />
-                      Franchise Requests
+                      <Package className="mr-2 h-5 w-5 text-blue-600" />
+                      Total Purchases
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-4xl font-bold text-purple-500">{adminStats?.franchiseRequests || 0}</div>
-                    <p className="text-sm text-gray-500 mt-2">Applications under review</p>
+                    <div className="text-4xl font-bold text-blue-600" data-testid="total-purchases-stat">{adminStats?.totalPurchases || 0}</div>
+                    <p className="text-sm text-gray-500 mt-2">All product orders</p>
                   </CardContent>
                 </Card>
               </div>

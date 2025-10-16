@@ -232,6 +232,49 @@ router.patch('/admin/products/:id', requireAuth, requireAdmin, async (req, res) 
   }
 });
 
+// Get product image upload URL (Admin only)
+router.get('/admin/products/:id/upload-url', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { ObjectStorageService } = await import('./objectStorage');
+    const objectStorageService = new ObjectStorageService();
+    
+    const uploadUrl = await objectStorageService.getObjectEntityUploadURL();
+    res.json({ url: uploadUrl });
+  } catch (error) {
+    console.error('Error getting upload URL:', error);
+    res.status(500).json({ message: 'Failed to get upload URL' });
+  }
+});
+
+// Update product image URL after upload (Admin only)
+router.post('/admin/products/:id/image', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { imageUrl } = req.body;
+    
+    if (!imageUrl) {
+      return res.status(400).json({ message: 'Image URL is required' });
+    }
+    
+    const { ObjectStorageService } = await import('./objectStorage');
+    const objectStorageService = new ObjectStorageService();
+    
+    // Normalize the object path
+    const normalizedPath = await objectStorageService.trySetObjectEntityAclPolicy(imageUrl, {});
+    
+    // Update product with normalized image URL
+    const product = await storage.updateProduct(id, { imageUrl: normalizedPath });
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    
+    res.json(product);
+  } catch (error) {
+    console.error('Error updating product image:', error);
+    res.status(500).json({ message: 'Failed to update product image' });
+  }
+});
+
 // ===== PURCHASE ROUTES =====
 // Create purchase
 router.post('/purchases', requireAuth, async (req, res) => {

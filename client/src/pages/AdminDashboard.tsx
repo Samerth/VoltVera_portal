@@ -31,6 +31,7 @@ import FundHistoryTable from "@/components/FundHistoryTable";
 import FundRequestsTable from "@/components/PendingFundRequestsTable";
 import { IncomeReportsTable } from "@/components/IncomeReportsTable";
 import { BVTransactionsReport } from "@/components/BVTransactionsReport";
+import AdminProductManagement from "@/components/AdminProductManagement";
 
 interface UserStats {
   totalUsers: number;
@@ -858,6 +859,18 @@ export default function AdminDashboard() {
               </div>
             )}
           </div>
+
+          {/* Product Management */}
+          <button 
+            onClick={() => setActiveSection('product-management')}
+            className={`flex items-center w-full px-4 py-3 text-left rounded-lg transition-colors ${
+              activeSection === 'product-management' ? 'bg-white/20 text-white' : 'hover:bg-white/10 text-white/90'
+            }`}
+            data-testid="menu-product-management"
+          >
+            <Package className="mr-3 h-5 w-5" />
+            <span className="font-medium">Product Management</span>
+          </button>
 
           {/* Withdraw Management Menu */}
           <div className="space-y-1">
@@ -1822,6 +1835,11 @@ export default function AdminDashboard() {
                 <RejectedKYCSection />
               </CardContent>
             </Card>
+          )}
+
+          {/* Product Management Section */}
+          {activeSection === 'product-management' && (
+            <AdminProductManagement />
           )}
 
           {/* Today's Joinings Section */}

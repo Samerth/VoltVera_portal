@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 // import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // DISABLED: Removed purchase type tabs
 import { useToast } from "@/hooks/use-toast";
-import { ShoppingCart, Package, Zap, Tv, Fan, Droplets, IndianRupee, Star, TrendingUp, Target, DollarSign } from "lucide-react";
+import { ShoppingCart, Package, Zap, Tv, Fan, Droplets, IndianRupee, Star, TrendingUp, Target, DollarSign, CreditCard } from "lucide-react";
 import { Link } from "wouter";
 
 interface Product {
@@ -69,7 +69,7 @@ export default function ProductCatalog() {
   const [purchaseForm, setPurchaseForm] = useState<PurchaseData>({
     productId: '',
     quantity: 1,
-    paymentMethod: '',
+    paymentMethod: 'wallet', // Always use E-wallet for purchases
     deliveryAddress: ''
   });
 
@@ -111,7 +111,7 @@ export default function ProductCatalog() {
       setPurchaseForm({
         productId: '',
         quantity: 1,
-        paymentMethod: '',
+        paymentMethod: 'wallet', // Always use E-wallet
         deliveryAddress: ''
       });
       queryClient.invalidateQueries({ queryKey: ['/api/purchases'] });
@@ -146,15 +146,16 @@ export default function ProductCatalog() {
   };
 
   const handleSubmitPurchase = () => {
-    if (!purchaseForm.paymentMethod || !purchaseForm.deliveryAddress.trim()) {
+    if (!purchaseForm.deliveryAddress.trim()) {
       toast({
         title: "Incomplete Information",
-        description: "Please fill in all required fields.",
+        description: "Please enter a delivery address.",
         variant: "destructive",
       });
       return;
     }
 
+    // Payment method is always 'wallet' (E-wallet)
     createPurchaseMutation.mutate(purchaseForm);
   };
 
@@ -473,21 +474,13 @@ export default function ProductCatalog() {
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="paymentMethod">Payment Method *</Label>
-                    <Select value={purchaseForm.paymentMethod} onValueChange={(value) => 
-                      setPurchaseForm(prev => ({ ...prev, paymentMethod: value }))
-                    }>
-                      <SelectTrigger data-testid="payment-method">
-                        <SelectValue placeholder="Select payment method" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="upi">UPI</SelectItem>
-                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                        <SelectItem value="card">Credit/Debit Card</SelectItem>
-                        <SelectItem value="wallet">Wallet</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  {/* Payment Method: Always E-wallet (hidden from user) */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-900">Payment Method: E-Wallet</span>
+                    </div>
+                    <p className="text-xs text-blue-700 mt-1">Amount will be deducted from your E-wallet balance</p>
                   </div>
 
                   <div>

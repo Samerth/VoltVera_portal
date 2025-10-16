@@ -783,6 +783,7 @@ export default function AdminDashboard() {
                   Salary Income
                 </button>
                 */}
+                {/* Hidden: Payout Summary
                 <button 
                   onClick={() => setActiveSection('payout-summary')}
                   className={`block w-full px-4 py-2 text-left text-sm rounded hover:bg-white/10 ${
@@ -791,6 +792,7 @@ export default function AdminDashboard() {
                 >
                   Payout Summary
                 </button>
+                */}
                 {/* Hidden: Holiday Reward Summary
                 <button 
                   onClick={() => setActiveSection('holiday-reward')}
@@ -2112,7 +2114,6 @@ export default function AdminDashboard() {
 
           {/* Enhanced Section Content for other sections */}
           {(activeSection === 'user-activities' ||
-            activeSection === 'payout-summary' ||
             activeSection === 'manage-fund' ||
             activeSection === 'pending-fund') && (
             <Card className="hover:shadow-lg transition-shadow">

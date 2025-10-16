@@ -1,0 +1,117 @@
+AdminProductManagement.tsx:327 Image failed to load: /api/images/proxy?url=https%3A%2F%2Fstorage.googleapis.com%2Freplit-objstore-a8a04f99-3003-4b42-9bf4-c89615e9a601%2F.private%2Fuploads%2F845cf9da-ea3e-4b8c-9a56-3c0dbe02f37b
+AdminProductManagement.tsx:327 Image failed to load: https://drive.usercontent.google.com/download?id=1mfuUN50XjQ5qSgnNYjDS-i1vitqHkeej&export=view&authuser=0
+AdminProductManagement.tsx:327 Image failed to load: https://drive.usercontent.google.com/download?id=15o7FFnNqg2HLesN2UYAM5blytbg6xyDy&export=view&authuser=0
+AdminProductManagement.tsx:327 Image failed to load: https://drive.usercontent.google.com/download?id=1cXog4XdwWGm-ezeDnWF-618OD2hMt5cL&export=view&authuser=0
+AdminProductManagement.tsx:327 Image failed to load: https://drive.usercontent.google.com/download?id=10fQOOtf-s3qNxOTQXu2XsEP7FUlPChWI&export=view&authuser=0
+AdminProductManagement.tsx:327 Image failed to load: https://drive.google.com/file/d/10t15bdghE-45ahC2ynV2Z-XAPZTQGRU_/view
+AdminProductManagement.tsx:327 Image failed to load: https://drive.google.com/file/d/1AFX0CiH107YpqJxNnrMuMd1HyVHY2kd8/view
+AdminProductManagement.tsx:373 Getting upload parameters for product: 0e8ea997-73e4-49ee-a543-c3ebcb777ec3
+AdminProductManagement.tsx:384 Upload parameters received: {url: 'https://storage.googleapis.com/replit-objstore-a8a…4bd45cb8fae99c7062bec97&X-Goog-SignedHeaders=host'}
+ObjectUploader.tsx:56 Upload parameters: {method: 'PUT', url: 'https://storage.googleapis.com/replit-objstore-a8a…4bd45cb8fae99c7062bec97&X-Goog-SignedHeaders=host'}
+AdminProductManagement.tsx:397 Upload complete result: {successful: Array(1), failed: Array(0)}
+AdminProductManagement.tsx:400 Uploaded URL: https://storage.googleapis.com/replit-objstore-a8a04f99-3003-4b42-9bf4-c89615e9a601/.private/uploads/b3e03b5f-ddd5-4a7a-9aaf-a2d25ca2aa29?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=heimdall-production%40replit-user-deployments.iam.gserviceaccount.com%2F20251016%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20251016T224904Z&X-Goog-Expires=899&X-Goog-Signature=4d13257baac31855dfa0288b6756a2edfc998627cb1bd91295147cc88b5c1add272f0ee26c7edde0cdf1e8148ed1f2dd9a2348eaffa0aae6e70d58534994ff330ff30c859fa72286f8ea54671b6b5b87dc9b4a95f1fc1acd0ec30b6c2f8b6053bb60cdf28aa20b54403f87762b8ab44e0528feec2f9e6c9a7c64ed6b2bc82bfdd964163864fee25453b50cb815d0b84503254c0f5f3c8bcaf737cb26cfbe1d40f9d63124c024f9bc1ffa316b454d0eda4eca92473c594d563d9859096cb92cb4036beef4f48b72292401e257b8f065dfde9b8ee8817ace28de76a3f677e288c154d7df2b23ec0452a2dc3c2b248daa7b2f25072974bd45cb8fae99c7062bec97&X-Goog-SignedHeaders=host
+AdminProductManagement.tsx:414 Storing base URL for permanent access: https://storage.googleapis.com/replit-objstore-a8a04f99-3003-4b42-9bf4-c89615e9a601/.private/uploads/b3e03b5f-ddd5-4a7a-9aaf-a2d25ca2aa29
+ObjectUploader.tsx:77 File uploaded successfully
+proxy?url=https%3A%2F%2Fstorage.googleapis.com%2Freplit-objstore-a8a04f99-3003-4b42-9bf4-c89615e9a6…:1  GET https://82cb1a2c-57cc-475d-a833-5b12dbae1ec5-00-174fj7lyv1rn5.kirk.replit.dev/api/images/proxy?url=https%3A%2F%2Fstorage.googleapis.com%2Freplit-objstore-a8a04f99-3003-4b42-9bf4-c89615e9a601%2F.private%2Fuploads%2Fb3e03b5f-ddd5-4a7a-9aaf-a2d25ca2aa29 500 (Internal Server Error)
+Image
+setValueForProperty @ chunk-RPCDYKBN.js?v=b42fb9fd:1270
+updateDOMProperties @ chunk-RPCDYKBN.js?v=b42fb9fd:7477
+updateProperties @ chunk-RPCDYKBN.js?v=b42fb9fd:7759
+commitUpdate @ chunk-RPCDYKBN.js?v=b42fb9fd:8419
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17763
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=b42fb9fd:17794
+commitMutationEffects @ chunk-RPCDYKBN.js?v=b42fb9fd:17663
+commitRootImpl @ chunk-RPCDYKBN.js?v=b42fb9fd:19347
+commitRoot @ chunk-RPCDYKBN.js?v=b42fb9fd:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=b42fb9fd:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=b42fb9fd:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=b42fb9fd:18627
+setTimeout
+scheduleFn @ @tanstack_react-query.js?v=b42fb9fd:555
+flush @ @tanstack_react-query.js?v=b42fb9fd:569
+batch @ @tanstack_react-query.js?v=b42fb9fd:587
+dispatch_fn @ @tanstack_react-query.js?v=b42fb9fd:996
+setData @ @tanstack_react-query.js?v=b42fb9fd:696
+onSuccess @ @tanstack_react-query.js?v=b42fb9fd:897
+resolve @ @tanstack_react-query.js?v=b42fb9fd:456
+Promise.then
+run @ @tanstack_react-query.js?v=b42fb9fd:498
+start @ @tanstack_react-query.js?v=b42fb9fd:536
+fetch @ @tanstack_react-query.js?v=b42fb9fd:926
+(anonymous) @ @tanstack_react-query.js?v=b42fb9fd:1726
+(anonymous) @ @tanstack_react-query.js?v=b42fb9fd:1725
+batch @ @tanstack_react-query.js?v=b42fb9fd:583
+refetchQueries @ @tanstack_react-query.js?v=b42fb9fd:1724
+(anonymous) @ @tanstack_react-query.js?v=b42fb9fd:1716
+batch @ @tanstack_react-query.js?v=b42fb9fd:583
+invalidateQueries @ @tanstack_react-query.js?v=b42fb9fd:1705
+onSuccess @ AdminProductManagement.tsx:140
+execute @ @tanstack_react-query.js?v=b42fb9fd:1233
+await in execute
+mutate @ @tanstack_react-query.js?v=b42fb9fd:2630
+(anonymous) @ @tanstack_react-query.js?v=b42fb9fd:3295
+onComplete @ AdminProductManagement.tsx:415
+handleUpload @ ObjectUploader.tsx:72
+await in handleUpload
+handleFileSelect @ ObjectUploader.tsx:95
+callCallback2 @ chunk-RPCDYKBN.js?v=b42fb9fd:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=b42fb9fd:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=b42fb9fd:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=b42fb9fd:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=b42fb9fd:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=b42fb9fd:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=b42fb9fd:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=b42fb9fd:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=b42fb9fd:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=b42fb9fd:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=b42fb9fd:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=b42fb9fd:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=b42fb9fd:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=b42fb9fd:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=b42fb9fd:5449Understand this error
+AdminProductManagement.tsx:327 Image failed to load: /api/images/proxy?url=https%3A%2F%2Fstorage.googleapis.com%2Freplit-objstore-a8a04f99-3003-4b42-9bf4-c89615e9a601%2F.private%2Fuploads%2Fb3e03b5f-ddd5-4a7a-9aaf-a2d25ca2aa29

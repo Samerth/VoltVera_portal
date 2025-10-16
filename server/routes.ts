@@ -4071,7 +4071,8 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
         res.json({ url: uploadUrl });
         return;
       } catch (storageError) {
-        console.warn('Presigned URL generation failed, using fallback:', storageError.message);
+        const error = storageError as Error;
+        console.warn('Presigned URL generation failed, using fallback:', error.message);
         
         // Fallback: Generate a placeholder URL that will be handled by direct upload
         const timestamp = Date.now();
@@ -4115,17 +4116,21 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
     }
   });
 
-  // Proxy route to serve Google Cloud Storage images
-  app.get("/api/images/proxy", async (req, res) => {
+  // Proxy route to serve Google Cloud Storage images (support both GET and HEAD)
+  app.all("/api/images/proxy", async (req, res) => {
     try {
       const { url } = req.query;
       
+      console.log('[Image Proxy] Request:', { method: req.method, url });
+      
       if (!url || typeof url !== 'string') {
+        console.log('[Image Proxy] Error: URL parameter missing or invalid');
         return res.status(400).json({ message: "URL parameter is required" });
       }
 
       // Validate that it's a Google Cloud Storage URL
       if (!url.startsWith('https://storage.googleapis.com/')) {
+        console.log('[Image Proxy] Error: Invalid URL format:', url);
         return res.status(400).json({ message: "Invalid image URL" });
       }
 
@@ -4147,16 +4152,21 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
           finalUrl = signedUrl;
           console.log('Generated signed URL for base URL:', finalUrl);
         } catch (signError) {
-          console.warn('Failed to generate signed URL, using base URL directly:', signError.message);
+          const error = signError as Error;
+          console.warn('Failed to generate signed URL, using base URL directly:', error.message);
           // Continue with the base URL - it might still work if the bucket is public
         }
       }
 
+      console.log('[Image Proxy] Fetching from URL:', finalUrl.substring(0, 100) + '...');
+      
       // Fetch the image from Google Cloud Storage
       const imageResponse = await fetch(finalUrl);
       
+      console.log('[Image Proxy] Response status:', imageResponse.status);
+      
       if (!imageResponse.ok) {
-        console.error(`Failed to fetch image: ${imageResponse.status} ${imageResponse.statusText}`);
+        console.error(`[Image Proxy] Failed to fetch image: ${imageResponse.status} ${imageResponse.statusText}`);
         return res.status(404).json({ message: "Image not found" });
       }
 
@@ -4167,10 +4177,24 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
         'Access-Control-Allow-Origin': '*',
       });
 
-      // Stream the image data
-      imageResponse.body?.pipe(res);
+      // For HEAD requests, just send headers without body
+      if (req.method === 'HEAD') {
+        console.log('[Image Proxy] HEAD request - sending headers only');
+        return res.end();
+      }
+
+      // Stream the image data for GET requests
+      console.log('[Image Proxy] Streaming image data');
+      if (!imageResponse.body) {
+        return res.status(500).json({ message: "No image data" });
+      }
+      
+      // Convert web stream to Node.js stream
+      const { Readable } = await import('stream');
+      const nodeStream = Readable.fromWeb(imageResponse.body as any);
+      nodeStream.pipe(res);
     } catch (error) {
-      console.error("Error proxying image:", error);
+      console.error("[Image Proxy] Error:", error);
       res.status(500).json({ message: "Failed to load image" });
     }
   });

@@ -409,10 +409,10 @@ export default function AdminProductManagement() {
                           });
                           queryClient.invalidateQueries({ queryKey: ['/api/products'] });
                         } else {
-                          // For real uploads, use the full Google Cloud Storage URL directly
-                          // Don't let the server normalize it to a local path
-                          console.log('Using full Google Cloud Storage URL:', uploadedUrl);
-                          uploadImageMutation.mutate({ productId: product.id, imageUrl: uploadedUrl });
+                          // For real uploads, extract the base URL without signed parameters for permanent storage
+                          const baseUrl = uploadedUrl.split('?')[0];
+                          console.log('Storing base URL for permanent access:', baseUrl);
+                          uploadImageMutation.mutate({ productId: product.id, imageUrl: baseUrl });
                         }
                       }
                     } else if (result.failed && result.failed.length > 0) {

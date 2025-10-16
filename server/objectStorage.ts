@@ -103,6 +103,16 @@ export class ObjectStorageService {
     });
   }
 
+  // Gets a download URL for an object entity.
+  async getObjectEntityDownloadURL(bucketName: string, objectName: string): Promise<string> {
+    return await signObjectURL({
+      bucketName,
+      objectName,
+      method: "GET",
+      ttlSec: 3600,
+    });
+  }
+
   // Gets the object entity file from the object path.
   async getObjectEntityFile(objectPath: string): Promise<File> {
     if (!objectPath.startsWith("/objects/")) {

@@ -4129,10 +4129,34 @@ app.get('/api/admin/rejected-withdrawals', isAuthenticated, isAdmin, async (req,
         return res.status(400).json({ message: "Invalid image URL" });
       }
 
+      let finalUrl = url;
+
+      // If this is a base URL without signed parameters, try to generate a signed URL
+      if (!url.includes('X-Goog-Algorithm')) {
+        try {
+          const { ObjectStorageService } = await import('./objectStorage');
+          const objectStorageService = new ObjectStorageService();
+          
+          // Extract bucket and object name from the URL
+          const urlParts = url.replace('https://storage.googleapis.com/', '').split('/');
+          const bucketName = urlParts[0];
+          const objectName = urlParts.slice(1).join('/');
+          
+          // Generate a signed URL for reading
+          const signedUrl = await objectStorageService.getObjectEntityDownloadURL(bucketName, objectName);
+          finalUrl = signedUrl;
+          console.log('Generated signed URL for base URL:', finalUrl);
+        } catch (signError) {
+          console.warn('Failed to generate signed URL, using base URL directly:', signError.message);
+          // Continue with the base URL - it might still work if the bucket is public
+        }
+      }
+
       // Fetch the image from Google Cloud Storage
-      const imageResponse = await fetch(url);
+      const imageResponse = await fetch(finalUrl);
       
       if (!imageResponse.ok) {
+        console.error(`Failed to fetch image: ${imageResponse.status} ${imageResponse.statusText}`);
         return res.status(404).json({ message: "Image not found" });
       }
 

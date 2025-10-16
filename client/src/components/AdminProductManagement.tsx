@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Package, Plus, Edit, Trash2, Upload, Image as ImageIcon, ExternalLink } from "lucide-react";
+import { Package, Plus, Edit, Trash2, Upload, Image as ImageIcon } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -304,30 +304,30 @@ export default function AdminProductManagement() {
             <CardHeader>
               <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden mb-4">
                 {product.imageUrl ? (
-                  product.imageUrl.startsWith('/objects/') ? (
-                    <img
-                      src={product.imageUrl}
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                      data-testid={`img-product-${product.id}`}
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center gap-2 p-4 text-center">
-                      <ExternalLink className="h-8 w-8 text-gray-400" />
-                      <p className="text-xs text-gray-500">External Image</p>
-                      <a
-                        href={product.imageUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-blue-600 hover:underline"
-                      >
-                        View Image
-                      </a>
-                    </div>
-                  )
-                ) : (
+                  <img
+                    src={product.imageUrl}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                    data-testid={`img-product-${product.id}`}
+                    onError={(e) => {
+                      console.log('Image failed to load:', product.imageUrl);
+                      e.currentTarget.style.display = 'none';
+                      const placeholder = e.currentTarget.parentElement?.querySelector('.image-placeholder') as HTMLElement;
+                      if (placeholder) {
+                        placeholder.style.display = 'flex';
+                      }
+                    }}
+                  />
+                ) : null}
+                {!product.imageUrl && (
                   <ImageIcon className="h-16 w-16 text-gray-300" />
                 )}
+                <div 
+                  className={`image-placeholder absolute inset-0 flex items-center justify-center bg-gray-100 ${product.imageUrl ? 'hidden' : 'flex'}`}
+                  style={{ display: product.imageUrl ? 'none' : 'flex' }}
+                >
+                  <ImageIcon className="h-16 w-16 text-gray-300" />
+                </div>
               </div>
               <CardTitle className="text-lg">{product.name}</CardTitle>
               <CardDescription className="line-clamp-2">{product.description}</CardDescription>

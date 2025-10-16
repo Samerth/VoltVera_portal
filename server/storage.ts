@@ -2323,6 +2323,45 @@ export class DatabaseStorage implements IStorage {
     const totalAmount = parseFloat(product.price) * data.quantity;
     const totalBV = parseFloat(product.bv) * data.quantity;
 
+    // CRITICAL: Validate wallet balance for wallet payments
+    if (data.paymentMethod === 'wallet') {
+      // Get user's wallet balance
+      let wallet = await this.getWalletBalance(normalizedUserId);
+      if (!wallet) {
+        // Create wallet if doesn't exist (with 0 balance)
+        wallet = await this.createWalletBalance(normalizedUserId);
+      }
+
+      const currentBalance = parseFloat(wallet.balance);
+      
+      // Check if user has sufficient balance
+      if (currentBalance < totalAmount) {
+        throw new Error(
+          `Insufficient wallet balance. Required: ₹${totalAmount.toFixed(2)}, Available: ₹${currentBalance.toFixed(2)}`
+        );
+      }
+
+      // Deduct amount from wallet balance
+      const newBalance = currentBalance - totalAmount;
+      await db.update(walletBalances)
+        .set({
+          balance: newBalance.toString(),
+          updatedAt: new Date()
+        })
+        .where(eq(walletBalances.userId, normalizedUserId));
+
+      // Create transaction record for wallet deduction
+      await db.insert(transactions).values({
+        userId: normalizedUserId,
+        type: 'purchase' as any,
+        amount: totalAmount.toString(),
+        description: `Product purchase - ${product.name} (Qty: ${data.quantity})`,
+        referenceId: product.id,
+        balanceBefore: currentBalance.toString(),
+        balanceAfter: newBalance.toString()
+      });
+    }
+
     const [purchase] = await db.insert(purchases).values({
       userId: normalizedUserId,  // Use normalized Display ID
       productId: data.productId,
@@ -2383,7 +2422,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createWalletBalance(userId: string): Promise<WalletBalance> {
-    const [wallet] = await db.insert(walletBalances).values({ userId }).returning();
+    // Normalize UUID to Display ID for consistency
+    const normalizedUserId = await this.normalizeToDisplayId(userId);
+    const [wallet] = await db.insert(walletBalances).values({ userId: normalizedUserId }).returning();
     return wallet;
   }
 

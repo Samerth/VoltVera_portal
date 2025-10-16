@@ -410,42 +410,6 @@ function WalletBalanceCard() {
             <p className="text-xs text-gray-500 mt-1">Total withdrawn</p>
           </div>
         </div>
-
-        {/* Quick Actions */}
-        <div className="mt-6 flex gap-3 justify-center">
-          <Link href="/user-dashboard">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => {
-                const dashboard = document.querySelector('[data-tab="deposits"]');
-                if (dashboard) {
-                  (dashboard as HTMLElement).click();
-                }
-              }}
-              data-testid="button-add-funds"
-            >
-              <DollarSign className="h-4 w-4 mr-1" />
-              Add Funds
-            </Button>
-          </Link>
-          <Link href="/user-dashboard">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => {
-                const dashboard = document.querySelector('[data-tab="withdraw"]');
-                if (dashboard) {
-                  (dashboard as HTMLElement).click();
-                }
-              }}
-              data-testid="button-withdraw-funds"
-            >
-              <ArrowUpRight className="h-4 w-4 mr-1" />
-              Withdraw
-            </Button>
-          </Link>
-        </div>
       </CardContent>
     </Card>
   );

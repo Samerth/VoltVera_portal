@@ -50,10 +50,11 @@ export default function AdminPurchasesTable() {
   // Mutation to update delivery status
   const updateDeliveryStatusMutation = useMutation({
     mutationFn: async ({ id, deliveryStatus, trackingId }: { id: string; deliveryStatus: string; trackingId?: string }) => {
-      return await apiRequest(`/api/admin/purchases/${id}/delivery-status`, {
-        method: 'PATCH',
-        body: JSON.stringify({ deliveryStatus, trackingId }),
-      });
+      return await apiRequest(
+        'PATCH',
+        `/api/admin/purchases/${id}/delivery-status`,
+        { deliveryStatus, trackingId }
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/purchases'] });

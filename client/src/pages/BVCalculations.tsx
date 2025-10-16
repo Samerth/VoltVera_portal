@@ -30,8 +30,10 @@ interface BVData {
     newRightBv: string;
     newMatchAmount: string;
     diffIncome: string;
+    directIncome: string;
     rank: string;
     rankPercentage: string;
+    initiatingUserId: string | null;
     createdAt: string;
   }>;
   monthly: Array<{
@@ -265,7 +267,8 @@ export default function BVCalculations() {
                       <TableHead>Left BV</TableHead>
                       <TableHead>Right BV</TableHead>
                       <TableHead>New Match</TableHead>
-                      <TableHead>Income</TableHead>
+                      <TableHead>Direct Income</TableHead>
+                      <TableHead>Differential Income</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -276,7 +279,7 @@ export default function BVCalculations() {
                         </TableCell>
                         <TableCell>
                           <Badge variant="secondary" data-testid={`initiator-${tx.id}`}>
-                            {(tx as any).initiatingUserId || 'N/A'}
+                            {tx.initiatingUserId || 'N/A'}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -301,7 +304,10 @@ export default function BVCalculations() {
                         <TableCell className="text-green-600 font-medium">
                           {formatBV(tx.newMatchAmount)}
                         </TableCell>
-                        <TableCell className="text-blue-600 font-bold" data-testid={`income-${tx.id}`}>
+                        <TableCell className="text-emerald-600 font-bold" data-testid={`direct-income-${tx.id}`}>
+                          {formatCurrency(tx.directIncome)}
+                        </TableCell>
+                        <TableCell className="text-blue-600 font-bold" data-testid={`diff-income-${tx.id}`}>
                           {formatCurrency(tx.diffIncome)}
                         </TableCell>
                       </TableRow>

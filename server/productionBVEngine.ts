@@ -396,7 +396,7 @@ export class ProductionBVEngine {
     })
       .from(bvTransactions)
       .leftJoin(purchases, eq(bvTransactions.purchaseId, purchases.id))
-      .leftJoin(users, eq(purchases.userId, users.id))
+      .leftJoin(users, eq(purchases.userId, users.userId))
       .where(eq(bvTransactions.userId, userId))
       .orderBy(desc(bvTransactions.createdAt))
       .limit(50);

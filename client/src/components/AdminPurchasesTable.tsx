@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, Package, User, Calendar, DollarSign, TrendingUp, RefreshCw, ShoppingCart } from "lucide-react";
+import { Search, Package, User, Calendar, DollarSign, TrendingUp, RefreshCw, ShoppingCart, Save, X, Pencil, Truck } from "lucide-react";
 import { format } from "date-fns";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface PurchaseWithDetails {
   id: string;
@@ -33,13 +35,66 @@ interface PurchaseWithDetails {
 }
 
 export default function AdminPurchasesTable() {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all");
   const [deliveryStatusFilter, setDeliveryStatusFilter] = useState<string>("all");
+  const [editingPurchaseId, setEditingPurchaseId] = useState<string | null>(null);
+  const [editDeliveryStatus, setEditDeliveryStatus] = useState<string>("");
+  const [editTrackingId, setEditTrackingId] = useState<string>("");
 
   const { data: purchases = [], isLoading, refetch } = useQuery<PurchaseWithDetails[]>({
     queryKey: ['/api/admin/purchases'],
   });
+
+  // Mutation to update delivery status
+  const updateDeliveryStatusMutation = useMutation({
+    mutationFn: async ({ id, deliveryStatus, trackingId }: { id: string; deliveryStatus: string; trackingId?: string }) => {
+      return await apiRequest(`/api/admin/purchases/${id}/delivery-status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ deliveryStatus, trackingId }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/purchases'] });
+      toast({
+        title: "Success",
+        description: "Delivery status updated successfully",
+      });
+      setEditingPurchaseId(null);
+      setEditDeliveryStatus("");
+      setEditTrackingId("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update delivery status",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEditDeliveryStatus = (purchase: PurchaseWithDetails) => {
+    setEditingPurchaseId(purchase.id);
+    setEditDeliveryStatus(purchase.deliveryStatus);
+    setEditTrackingId(purchase.trackingId || "");
+  };
+
+  const handleSaveDeliveryStatus = () => {
+    if (editingPurchaseId && editDeliveryStatus) {
+      updateDeliveryStatusMutation.mutate({
+        id: editingPurchaseId,
+        deliveryStatus: editDeliveryStatus,
+        trackingId: editTrackingId || undefined,
+      });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingPurchaseId(null);
+    setEditDeliveryStatus("");
+    setEditTrackingId("");
+  };
 
   // Filter purchases based on search and status filters
   const filteredPurchases = purchases.filter(purchase => {
@@ -287,10 +342,75 @@ export default function AdminPurchasesTable() {
                         <div className="text-xs text-gray-500 mt-1">{purchase.paymentMethod || 'N/A'}</div>
                       </td>
                       <td className="px-4 py-3 text-sm">
-                        {getDeliveryStatusBadge(purchase.deliveryStatus)}
-                        {purchase.trackingId && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            Tracking: {purchase.trackingId}
+                        {editingPurchaseId === purchase.id ? (
+                          <div className="space-y-2 min-w-[200px]">
+                            <Select
+                              value={editDeliveryStatus}
+                              onValueChange={setEditDeliveryStatus}
+                              data-testid={`edit-delivery-status-${purchase.id}`}
+                            >
+                              <SelectTrigger className="h-8">
+                                <SelectValue placeholder="Select status" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pending">Pending</SelectItem>
+                                <SelectItem value="processing">Processing</SelectItem>
+                                <SelectItem value="shipped">Shipped</SelectItem>
+                                <SelectItem value="delivered">Delivered</SelectItem>
+                                <SelectItem value="cancelled">Cancelled</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Input
+                              placeholder="Tracking ID (optional)"
+                              value={editTrackingId}
+                              onChange={(e) => setEditTrackingId(e.target.value)}
+                              className="h-8 text-xs"
+                              data-testid={`edit-tracking-id-${purchase.id}`}
+                            />
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                onClick={handleSaveDeliveryStatus}
+                                disabled={updateDeliveryStatusMutation.isPending}
+                                className="h-7 text-xs px-2"
+                                data-testid={`save-delivery-status-${purchase.id}`}
+                              >
+                                <Save className="h-3 w-3 mr-1" />
+                                Save
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={handleCancelEdit}
+                                disabled={updateDeliveryStatusMutation.isPending}
+                                className="h-7 text-xs px-2"
+                                data-testid={`cancel-delivery-edit-${purchase.id}`}
+                              >
+                                <X className="h-3 w-3 mr-1" />
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              {getDeliveryStatusBadge(purchase.deliveryStatus)}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleEditDeliveryStatus(purchase)}
+                                className="h-6 w-6 p-0"
+                                data-testid={`edit-delivery-btn-${purchase.id}`}
+                              >
+                                <Pencil className="h-3 w-3 text-gray-500" />
+                              </Button>
+                            </div>
+                            {purchase.trackingId && (
+                              <div className="flex items-center gap-1 text-xs text-gray-500">
+                                <Truck className="h-3 w-3" />
+                                {purchase.trackingId}
+                              </div>
+                            )}
                           </div>
                         )}
                       </td>

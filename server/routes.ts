@@ -1543,7 +1543,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin broadcast notification
-  app.post("/api/admin/notifications/broadcast", isAuthenticated, requireAdmin, async (req: any, res) => {
+  app.post("/api/admin/notifications/broadcast", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
       const { title, message } = req.body;
       

@@ -135,6 +135,27 @@ Preferred communication style: Simple, everyday language.
   - Direct BV tooltip: "BV from direct recruits sponsored by this user"
   - Team BV tooltip: "Total BV added to left and right legs (Team BV = Left BV + Right BV)"
   - Resolves the "Different column" ambiguity mentioned in user requirements
+- **Reports Guide & Enhanced Documentation**: Comprehensive help system for understanding all reports (October 17, 2025) ✅ WORKING
+  - **Reports Guide Dialog**: Accessible via header button (📄 icon) in admin dashboard
+    * Complete guide to all 4 reports with clear explanations
+    * Quick decision tree: "Which report should I use?"
+    * Each report section includes: What it shows, Key Metrics, When to use
+    * Comparison table showing report purposes and use cases
+    * Pro tips for admins on effective report usage
+    * Color-coded sections for easy navigation
+  - **Eligibility Column Tooltip**: Interactive help in User Performance Report
+    * HelpCircle (?) icon next to "Eligibility" column header
+    * Explains promotion eligibility status with visual indicators
+    * 🟢 Eligible: Meets both Team BV and Direct recruits requirements
+    * 🟡 Partial: Meets one requirement, needs the other
+    * 🔴 Not Eligible: Needs to meet both requirements
+    * Shows ✓ = Met | ✗ = Not Met notation
+  - **Hidden Redundant Reports**: Direct Income Report removed (redundant with BV Transactions)
+  - **Active Reports** (4 total):
+    1. User Performance Report - User-level performance summaries
+    2. BV Transactions Report - Transaction-level audit trail (includes Direct Income)
+    3. Monthly BV Report - Monthly BV snapshots and tracking
+    4. Fund History - Complete wallet transaction ledger
 
 # External Dependencies
 

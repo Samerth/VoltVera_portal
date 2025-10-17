@@ -137,7 +137,7 @@ export default function AdminPendingUsers() {
                         {user.profileImageUrl ? (
                           <img
                             src={user.profileImageUrl}
-                            alt={user.firstName}
+                            alt={user.firstName || 'User'}
                             className="h-10 w-10 rounded-full object-cover"
                           />
                         ) : (

@@ -36,6 +36,7 @@ import { UserPerformanceReport } from "@/components/UserPerformanceReport";
 import AdminProductManagement from "@/components/AdminProductManagement";
 import AdminPurchasesTable from "@/components/AdminPurchasesTable";
 import BroadcastNotification from "@/components/BroadcastNotification";
+import { ReportsGuide } from "@/components/ReportsGuide";
 
 interface UserStats {
   totalUsers: number;
@@ -64,6 +65,7 @@ export default function AdminDashboard() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('dashboard');
+  const [reportsGuideOpen, setReportsGuideOpen] = useState(false);
   
   // Withdrawal management state
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -1078,6 +1080,24 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setReportsGuideOpen(true)}
+                      className="text-gray-600 hover:text-gray-900"
+                      data-testid="button-reports-guide"
+                    >
+                      <FileText className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Reports Guide - Learn about all reports</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <BroadcastNotification />
               <NotificationCenter />
                                 {/* Add User functionality now handled by AdminReferralLinkGeneration component */}
@@ -2339,6 +2359,12 @@ export default function AdminDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Reports Guide Dialog */}
+      <ReportsGuide 
+        open={reportsGuideOpen} 
+        onOpenChange={setReportsGuideOpen} 
+      />
     </div>
   );
 }

@@ -312,137 +312,142 @@ export default function AdminProductManagement() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {products.map((product) => (
-          <Card key={product.id} data-testid={`card-product-${product.id}`}>
-            <CardHeader>
-              <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden mb-4 relative">
-                {product.imageUrl ? (
-                  <>
-                    <img
-                      src={getImageUrl(product.imageUrl) || ''}
-                      alt={product.name}
-                      className="w-full h-full object-cover image-element"
-                      data-testid={`img-product-${product.id}`}
-                      onError={(e) => {
-                        console.log('Image failed to load:', getImageUrl(product.imageUrl));
-                        e.currentTarget.style.display = 'none';
-                        const placeholder = e.currentTarget.nextElementSibling as HTMLElement;
-                        if (placeholder?.classList.contains('image-placeholder')) {
-                          placeholder.classList.remove('hidden');
-                          placeholder.classList.add('flex');
+        {products.map((product) => {
+          // Capture product ID to prevent closure issues
+          const productId = product.id;
+          
+          return (
+            <Card key={product.id} data-testid={`card-product-${product.id}`}>
+              <CardHeader>
+                <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden mb-4 relative">
+                  {product.imageUrl ? (
+                    <>
+                      <img
+                        src={getImageUrl(product.imageUrl) || ''}
+                        alt={product.name}
+                        className="w-full h-full object-cover image-element"
+                        data-testid={`img-product-${product.id}`}
+                        onError={(e) => {
+                          console.log('Image failed to load:', getImageUrl(product.imageUrl));
+                          e.currentTarget.style.display = 'none';
+                          const placeholder = e.currentTarget.nextElementSibling as HTMLElement;
+                          if (placeholder?.classList.contains('image-placeholder')) {
+                            placeholder.classList.remove('hidden');
+                            placeholder.classList.add('flex');
+                          }
+                        }}
+                      />
+                      <div className="image-placeholder absolute inset-0 hidden items-center justify-center bg-gray-100">
+                        <ImageIcon className="h-16 w-16 text-gray-300" />
+                      </div>
+                    </>
+                  ) : (
+                    <ImageIcon className="h-16 w-16 text-gray-300" />
+                  )}
+                </div>
+                <CardTitle className="text-lg">{product.name}</CardTitle>
+                <CardDescription className="line-clamp-2">{product.description}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Price:</span>
+                    <span className="font-semibold">₹{parseFloat(product.price).toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">BV:</span>
+                    <span className="font-semibold">{product.bv}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Sponsor Income:</span>
+                    <span className="font-semibold">{product.sponsorIncomePercentage}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Category:</span>
+                    <span className="capitalize">{product.category.replace('_', ' ')}</span>
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <ObjectUploader
+                    maxNumberOfFiles={1}
+                    maxFileSize={5 * 1024 * 1024} // 5MB
+                    buttonClassName="flex-1"
+                    onGetUploadParameters={async () => {
+                      try {
+                        console.log('Getting upload parameters for product:', productId);
+                        const response = await fetch(`/api/admin/products/${productId}/upload-url`, {
+                          credentials: 'include',
+                        });
+                        
+                        if (!response.ok) {
+                          const errorData = await response.json();
+                          throw new Error(`Failed to get upload URL: ${errorData.message || response.statusText}`);
                         }
-                      }}
-                    />
-                    <div className="image-placeholder absolute inset-0 hidden items-center justify-center bg-gray-100">
-                      <ImageIcon className="h-16 w-16 text-gray-300" />
-                    </div>
-                  </>
-                ) : (
-                  <ImageIcon className="h-16 w-16 text-gray-300" />
-                )}
-              </div>
-              <CardTitle className="text-lg">{product.name}</CardTitle>
-              <CardDescription className="line-clamp-2">{product.description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Price:</span>
-                  <span className="font-semibold">₹{parseFloat(product.price).toLocaleString('en-IN')}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">BV:</span>
-                  <span className="font-semibold">{product.bv}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Sponsor Income:</span>
-                  <span className="font-semibold">{product.sponsorIncomePercentage}%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Category:</span>
-                  <span className="capitalize">{product.category.replace('_', ' ')}</span>
-                </div>
-              </div>
-              <div className="flex gap-2 mt-4">
-                <ObjectUploader
-                  maxNumberOfFiles={1}
-                  maxFileSize={5 * 1024 * 1024} // 5MB
-                  buttonClassName="flex-1"
-                  onGetUploadParameters={async () => {
-                    try {
-                      console.log('Getting upload parameters for product:', product.id);
-                      const response = await fetch(`/api/admin/products/${product.id}/upload-url`, {
-                        credentials: 'include',
-                      });
-                      
-                      if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(`Failed to get upload URL: ${errorData.message || response.statusText}`);
+                        
+                        const data = await response.json();
+                        console.log('Upload parameters received:', data);
+                        return { method: 'PUT' as const, url: data.url };
+                      } catch (error) {
+                        console.error('Error getting upload parameters:', error);
+                        toast({
+                          title: "Upload Error",
+                          description: `Failed to get upload URL: ${error.message}`,
+                          variant: "destructive",
+                        });
+                        throw error;
                       }
-                      
-                      const data = await response.json();
-                      console.log('Upload parameters received:', data);
-                      return { method: 'PUT' as const, url: data.url };
-                    } catch (error) {
-                      console.error('Error getting upload parameters:', error);
-                      toast({
-                        title: "Upload Error",
-                        description: `Failed to get upload URL: ${error.message}`,
-                        variant: "destructive",
-                      });
-                      throw error;
-                    }
-                  }}
-                  onComplete={(result) => {
-                    console.log('Upload complete result:', result);
-                    if (result.successful && result.successful[0]) {
-                      const uploadedUrl = result.successful[0].uploadURL;
-                      console.log('Uploaded URL:', uploadedUrl);
-                      if (uploadedUrl) {
-                        // Check if this is a fallback URL (contains direct-upload)
-                        if (uploadedUrl.includes('direct-upload')) {
-                          // For fallback URLs, we don't need to call the image mutation
-                          // as the server already updated the product
-                          toast({
-                            title: "Image Updated",
-                            description: "Product image has been updated successfully.",
-                          });
-                          queryClient.invalidateQueries({ queryKey: ['/api/products'] });
-                        } else {
-                          // For real uploads, extract the base URL without signed parameters for permanent storage
-                          const baseUrl = uploadedUrl.split('?')[0];
-                          console.log('Storing base URL for permanent access:', baseUrl);
-                          uploadImageMutation.mutate({ productId: product.id, imageUrl: baseUrl });
+                    }}
+                    onComplete={(result) => {
+                      console.log('Upload complete result:', result);
+                      if (result.successful && result.successful[0]) {
+                        const uploadedUrl = result.successful[0].uploadURL;
+                        console.log('Uploaded URL:', uploadedUrl);
+                        if (uploadedUrl) {
+                          // Check if this is a fallback URL (contains direct-upload)
+                          if (uploadedUrl.includes('direct-upload')) {
+                            // For fallback URLs, we don't need to call the image mutation
+                            // as the server already updated the product
+                            toast({
+                              title: "Image Updated",
+                              description: "Product image has been updated successfully.",
+                            });
+                            queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+                          } else {
+                            // For real uploads, extract the base URL without signed parameters for permanent storage
+                            const baseUrl = uploadedUrl.split('?')[0];
+                            console.log('Storing base URL for permanent access:', baseUrl);
+                            uploadImageMutation.mutate({ productId, imageUrl: baseUrl });
+                          }
                         }
+                      } else if (result.failed && result.failed.length > 0) {
+                        console.error('Upload failed:', result.failed);
+                        toast({
+                          title: "Upload Failed",
+                          description: "Failed to upload image. Please try again.",
+                          variant: "destructive",
+                        });
                       }
-                    } else if (result.failed && result.failed.length > 0) {
-                      console.error('Upload failed:', result.failed);
-                      toast({
-                        title: "Upload Failed",
-                        description: "Failed to upload image. Please try again.",
-                        variant: "destructive",
-                      });
-                    }
-                  }}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Image
-                </ObjectUploader>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedProduct(product);
-                    setIsEditDialogOpen(true);
-                  }}
-                  data-testid={`button-edit-${product.id}`}
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                    }}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Image
+                  </ObjectUploader>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedProduct(product);
+                      setIsEditDialogOpen(true);
+                    }}
+                    data-testid={`button-edit-${product.id}`}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Edit Product Dialog */}

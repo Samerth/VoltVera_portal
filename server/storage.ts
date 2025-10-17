@@ -2327,7 +2327,7 @@ export class DatabaseStorage implements IStorage {
         wallet = await this.createWalletBalance(normalizedUserId);
       }
 
-      const currentBalance = parseFloat(wallet.balance);
+      const currentBalance = parseFloat(wallet.balance || '0');
       
       // Check if user has sufficient balance
       if (currentBalance < totalAmount) {
@@ -4526,7 +4526,7 @@ export class DatabaseStorage implements IStorage {
     
     // Filter by transaction types
     if (filters?.transactionTypes && filters.transactionTypes.length > 0) {
-      conditions.push(inArray(transactions.type, filters.transactionTypes));
+      conditions.push(inArray(transactions.type, filters.transactionTypes as any));
     }
     
     // Filter by date range

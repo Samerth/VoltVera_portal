@@ -1,7 +1,11 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, RefreshCw, TrendingUp, TrendingDown, DollarSign, User, Calendar, FileText } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CheckCircle, RefreshCw, TrendingUp, TrendingDown, DollarSign, User, Calendar, FileText, Filter, Search, X } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 interface Transaction {
@@ -22,13 +26,67 @@ interface Transaction {
 }
 
 export default function FundHistoryTable() {
+  const [searchUserId, setSearchUserId] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [transactionType, setTransactionType] = useState('all');
+  const [appliedFilters, setAppliedFilters] = useState({
+    userId: '',
+    startDate: '',
+    endDate: '',
+    type: 'all'
+  });
+
+  const buildQueryParams = () => {
+    const params = new URLSearchParams();
+    
+    if (appliedFilters.userId) {
+      params.append('userId', appliedFilters.userId);
+    }
+    if (appliedFilters.startDate) {
+      params.append('startDate', appliedFilters.startDate);
+    }
+    if (appliedFilters.endDate) {
+      params.append('endDate', appliedFilters.endDate);
+    }
+    if (appliedFilters.type !== 'all') {
+      params.append('type', appliedFilters.type);
+    }
+    
+    return params.toString();
+  };
+
   const { data: transactions = [], isLoading, refetch } = useQuery<Transaction[]>({
-    queryKey: ["/api/admin/fund-history"],
+    queryKey: ["/api/admin/fund-history", appliedFilters],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/admin/fund-history');
+      const params = buildQueryParams();
+      const url = params ? `/api/admin/fund-history?${params}` : '/api/admin/fund-history';
+      const response = await apiRequest('GET', url);
       return response.json();
     },
   });
+
+  const handleApplyFilters = () => {
+    setAppliedFilters({
+      userId: searchUserId,
+      startDate,
+      endDate,
+      type: transactionType
+    });
+  };
+
+  const handleClearFilters = () => {
+    setSearchUserId('');
+    setStartDate('');
+    setEndDate('');
+    setTransactionType('all');
+    setAppliedFilters({
+      userId: '',
+      startDate: '',
+      endDate: '',
+      type: 'all'
+    });
+  };
 
   const getTransactionIcon = (type: string) => {
     switch (type) {
@@ -128,6 +186,86 @@ export default function FundHistoryTable() {
         </div>
       </CardHeader>
       <CardContent>
+        {/* Filters */}
+        <div className="mb-6 p-4 bg-gray-50 rounded-lg space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Filter className="h-4 w-4 text-gray-600" />
+            <h4 className="font-medium text-gray-700">Filters</h4>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <Label htmlFor="searchUserId">User ID / Email</Label>
+              <Input
+                id="searchUserId"
+                placeholder="Search by User ID or Email"
+                value={searchUserId}
+                onChange={(e) => setSearchUserId(e.target.value)}
+                data-testid="input-search-user-fund"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="transactionType">Transaction Type</Label>
+              <Select value={transactionType} onValueChange={setTransactionType}>
+                <SelectTrigger id="transactionType" data-testid="select-transaction-type">
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="purchase">Purchase</SelectItem>
+                  <SelectItem value="withdrawal">Withdrawal</SelectItem>
+                  <SelectItem value="admin_credit">Admin Credit</SelectItem>
+                  <SelectItem value="admin_debit">Admin Debit</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="startDate">Start Date</Label>
+              <Input
+                id="startDate"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                data-testid="input-start-date-fund"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="endDate">End Date</Label>
+              <Input
+                id="endDate"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                data-testid="input-end-date-fund"
+              />
+            </div>
+          </div>
+          
+          <div className="flex gap-2">
+            <Button
+              onClick={handleApplyFilters}
+              size="sm"
+              className="volt-gradient text-white"
+              data-testid="button-apply-filters-fund"
+            >
+              <Search className="mr-2 h-4 w-4" />
+              Apply Filters
+            </Button>
+            <Button
+              onClick={handleClearFilters}
+              size="sm"
+              variant="outline"
+              data-testid="button-clear-filters-fund"
+            >
+              <X className="mr-2 h-4 w-4" />
+              Clear
+            </Button>
+          </div>
+        </div>
+
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>

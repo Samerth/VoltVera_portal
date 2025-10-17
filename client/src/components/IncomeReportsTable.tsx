@@ -29,8 +29,7 @@ const transactionTypeMap = {
     'leadership_fund',
     'house_fund',
     'millionaire_club',
-    'royalty_income',
-    'admin_credit'
+    'royalty_income'
   ]
 };
 

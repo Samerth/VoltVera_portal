@@ -2348,7 +2348,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { db } = await import("./db");
       const { transactions, users } = await import("@shared/schema");
-      const { desc, eq, sql } = await import("drizzle-orm");
+      const { desc, eq, sql, and, or, gte, lte, like } = await import("drizzle-orm");
+
+      // Get filter parameters
+      const { userId, startDate, endDate, type } = req.query;
 
       // Income transaction types to exclude from fund history
       const incomeTypes = [
@@ -2365,7 +2368,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'royalty_income'
       ];
 
-      // Fetch E-wallet usage transactions only (excludes income types)
+      // Build WHERE conditions
+      const conditions = [];
+      
+      // Exclude income types (always applied)
+      conditions.push(sql`${transactions.type} NOT IN (${sql.join(incomeTypes.map(t => sql.raw(`'${t}'`)), sql.raw(', '))})`);
+
+      // Filter by user ID or email
+      if (userId && typeof userId === 'string') {
+        conditions.push(
+          or(
+            like(users.userId, `%${userId}%`),
+            like(users.email, `%${userId}%`)
+          )
+        );
+      }
+
+      // Filter by date range
+      if (startDate && typeof startDate === 'string') {
+        conditions.push(gte(transactions.createdAt, new Date(startDate)));
+      }
+      if (endDate && typeof endDate === 'string') {
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        conditions.push(lte(transactions.createdAt, endDateTime));
+      }
+
+      // Filter by transaction type
+      if (type && typeof type === 'string' && type !== 'all') {
+        conditions.push(eq(transactions.type, type));
+      }
+
+      // Fetch E-wallet usage transactions with filters
       const fundHistory = await db
         .select({
           id: transactions.id,
@@ -2385,10 +2419,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .from(transactions)
         .leftJoin(users, eq(transactions.userId, users.userId))
-        .where(sql`${transactions.type} NOT IN (${sql.join(incomeTypes.map(t => sql.raw(`'${t}'`)), sql.raw(', '))})`)
+        .where(and(...conditions))
         .orderBy(desc(transactions.createdAt));
 
-      console.log(`Found ${fundHistory.length} E-wallet usage transactions`);
+      console.log(`Found ${fundHistory.length} E-wallet usage transactions with filters`);
 
       res.json(fundHistory);
     } catch (error) {

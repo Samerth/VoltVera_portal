@@ -68,6 +68,10 @@ Preferred communication style: Simple, everyday language.
   - **Monthly Income**: Excludes transactions from admin users
   - **Total Purchases**: Excludes purchases made by admin users
   - Implementation: getUserStats() and getAdminStats() filter out users/transactions with role='admin'
+- **User Management CSV Export Fix** (October 17, 2025): ✅ WORKING
+  - Fixed CSV export to use ₹ (INR) symbol for all monetary values
+  - Previously exported plain numbers that displayed as dollars in spreadsheet applications
+  - Now includes ₹ symbol for: Total Package, E-wallet, Income, Total Withdraw columns
 
 # External Dependencies
 

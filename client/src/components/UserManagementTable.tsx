@@ -160,10 +160,10 @@ export default function UserManagementTable({ users, walletData, withdrawalData 
         user.email,
         '***', // Password placeholder
         user.sponsorUserId || '',
-        user.packageAmount,
-        wallet?.balance || 0,
-        wallet?.totalEarnings || 0,
-        wallet?.totalWithdrawals || 0,
+        `₹${user.packageAmount}`,
+        `₹${wallet?.balance || 0}`,
+        `₹${wallet?.totalEarnings || 0}`,
+        `₹${wallet?.totalWithdrawals || 0}`,
         withdrawal?.status || 'None',
         new Date(user.registrationDate).toLocaleDateString(),
         user.activationDate ? new Date(user.activationDate).toLocaleDateString() : ''

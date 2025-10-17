@@ -2341,16 +2341,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get fund history (all transactions with user details)
+  // Get fund history (E-wallet usage transactions only - excludes income)
   app.get('/api/admin/fund-history', isAuthenticated, isAdmin, async (req, res) => {
     try {
       console.log('=== FETCHING FUND HISTORY ===');
       
       const { db } = await import("./db");
       const { transactions, users } = await import("@shared/schema");
-      const { desc, eq } = await import("drizzle-orm");
+      const { desc, eq, sql } = await import("drizzle-orm");
 
-      // Fetch all transactions with user details, sorted by created_at descending
+      // Income transaction types to exclude from fund history
+      const incomeTypes = [
+        'sponsor_income', 
+        'sales_incentive', 
+        'sales_bonus', 
+        'consistency_bonus', 
+        'franchise_income', 
+        'car_fund', 
+        'travel_fund', 
+        'leadership_fund', 
+        'house_fund', 
+        'millionaire_club', 
+        'royalty_income'
+      ];
+
+      // Fetch E-wallet usage transactions only (excludes income types)
       const fundHistory = await db
         .select({
           id: transactions.id,
@@ -2370,9 +2385,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .from(transactions)
         .leftJoin(users, eq(transactions.userId, users.userId))
+        .where(sql`${transactions.type} NOT IN (${sql.join(incomeTypes.map(t => sql.raw(`'${t}'`)), sql.raw(', '))})`)
         .orderBy(desc(transactions.createdAt));
 
-      console.log(`Found ${fundHistory.length} transactions`);
+      console.log(`Found ${fundHistory.length} E-wallet usage transactions`);
 
       res.json(fundHistory);
     } catch (error) {

@@ -1191,8 +1191,8 @@ export default function AdminDashboard() {
                 </Card>
               </div>
               
-              {/* Recent Activity - Show only if there are actual pending actions */}
-              {((adminStats?.pendingKYC || 0) > 0 || (adminStats?.withdrawalRequests || 0) > 0 || (adminStats?.franchiseRequests || 0) > 0) && (
+              {/* Recent Activity - Hidden as per user request (Oct 17, 2025) */}
+              {/* {((adminStats?.pendingKYC || 0) > 0 || (adminStats?.withdrawalRequests || 0) > 0 || (adminStats?.franchiseRequests || 0) > 0) && (
                 <Card className="mb-6 hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <CardTitle className="flex items-center">
@@ -1248,7 +1248,7 @@ export default function AdminDashboard() {
                     </div>
                   </CardContent>
                 </Card>
-              )}
+              )} */}
             </>
           )}
           

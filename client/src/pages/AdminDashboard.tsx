@@ -143,7 +143,7 @@ export default function AdminDashboard() {
             description: "Rejected withdrawals data has been updated.",
           });
         } else if (activeSection === 'withdraw-personally') {
-          // Refresh withdraw personally form (no specific data to refresh, just show toast)
+          // Refresh admin withdrawal form (no specific data to refresh, just show toast)
           toast({
             title: "Refreshed",
             description: "Withdraw personally form refreshed.",
@@ -940,7 +940,7 @@ export default function AdminDashboard() {
                     activeSection === 'withdraw-personally' ? 'text-yellow-300' : 'text-white/80'
                   }`}
                 >
-                  Withdraw Personally
+                  Admin Withdrawal
                 </button>
               </div>
             )}
@@ -1703,13 +1703,13 @@ export default function AdminDashboard() {
             </Card>
           )}
 
-          {/* Withdraw Personally Section */}
+          {/* Admin Withdrawal Section */}
           {activeSection === 'withdraw-personally' && (
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <CardTitle className="text-lg font-medium text-gray-800 flex items-center">
                   <DollarSign className="mr-2 h-5 w-5 text-volt-light" />
-                  Withdraw Personally
+                  Admin Withdrawal
                 </CardTitle>
                 <p className="text-sm text-gray-600">
                   Create withdrawal requests on behalf of users

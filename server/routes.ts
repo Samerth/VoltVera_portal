@@ -2153,7 +2153,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin create withdrawal request on behalf of user
+  // Admin withdrawal - create withdrawal request on behalf of user
   app.post('/api/admin/withdraw-personally', isAuthenticated, isAdmin, async (req, res) => {
     try {
       const { userId, withdrawalType, amount, remarks } = req.body;

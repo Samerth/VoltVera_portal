@@ -60,6 +60,14 @@ Preferred communication style: Simple, everyday language.
   - **Withdrawal History**: New component in Withdrawal Management showing only withdrawal transactions with filters
   - **Fund History**: Enhanced with comprehensive filters (User ID/Email search, date range, transaction type dropdown) - shows E-wallet usage only (purchases, withdrawals, admin credits/debits), excludes all income transactions
   - **Income Categorization Fix**: Removed admin_credit from income types (it's E-wallet top-up, not income)
+- **Admin Metrics Exclusion** (October 17, 2025): ✅ WORKING
+  - All admin dashboard metrics now exclude admin user data (admin earns only for logic completion)
+  - **Total Users**: Excludes admin accounts from count
+  - **Active Users**: Excludes admin accounts from count  
+  - **Total BV**: Calculated from non-admin users only
+  - **Monthly Income**: Excludes transactions from admin users
+  - **Total Purchases**: Excludes purchases made by admin users
+  - Implementation: getUserStats() and getAdminStats() filter out users/transactions with role='admin'
 
 # External Dependencies
 

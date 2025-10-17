@@ -1254,8 +1254,8 @@ export default function AdminDashboard() {
           
           {activeSection === 'all-members' && (
             <div className="space-y-6">
-              {/* Pending Recruits Section - Show at top */}
-              <AdminPendingRecruits />
+              {/* Pending Recruits Section - Hidden as per user request (Oct 17, 2025) */}
+              {/* <AdminPendingRecruits /> */}
               
               {/* Strategic User Creation Section */}
               <div className="bg-white rounded-lg shadow-sm border p-6">

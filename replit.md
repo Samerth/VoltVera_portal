@@ -54,11 +54,12 @@ Preferred communication style: Simple, everyday language.
 - **ID Normalization**: Seamless support for both UUID and Display ID formats across the system.
 - **BV Propagation**: Correct propagation of Business Volume up the binary tree.
 - **Responsive Design**: Mobile-first adaptive layout.
-- **Transaction Categorization & Dual Income Access** (October 17, 2025): ✅ WORKING
+- **Transaction Categorization & Module Organization** (October 17, 2025): ✅ WORKING
   - **Admin Withdrawal**: Renamed from "Withdraw Personally" for clarity
-  - **Income History in Withdrawal Management**: New tab showing all income transactions for pre-withdrawal review
-  - **Dual Access for Income**: Income accessible in both Withdrawal Management (for withdrawal decisions) and Income Reports (for analysis)
-  - **Fund History - E-wallet Usage Only**: Filtered to show only spending transactions (purchases, withdrawals, admin credits/debits), excludes all income transactions
+  - **Income History**: Moved to Income Reports module for proper categorization
+  - **Withdrawal History**: New component in Withdrawal Management showing only withdrawal transactions with filters
+  - **Fund History**: Enhanced with comprehensive filters (User ID/Email search, date range, transaction type dropdown) - shows E-wallet usage only (purchases, withdrawals, admin credits/debits), excludes all income transactions
+  - **Income Categorization Fix**: Removed admin_credit from income types (it's E-wallet top-up, not income)
 
 # External Dependencies
 

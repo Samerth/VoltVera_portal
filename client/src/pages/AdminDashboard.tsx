@@ -1472,7 +1472,7 @@ export default function AdminDashboard() {
                               </span>
                             </td>
                             <td className="p-3 font-medium">
-                              {withdrawal.type === 'Bank Transfer' ? '₹' : '$'}{withdrawal.amount.toLocaleString()}
+                              ₹{withdrawal.amount.toLocaleString()}
                             </td>
                             <td className="p-3">
                               <div className="text-sm">
@@ -1586,7 +1586,7 @@ export default function AdminDashboard() {
                               </span>
                             </td>
                             <td className="p-3 font-medium">
-                              {withdrawal.type === 'Bank Transfer' ? '₹' : '$'}{withdrawal.amount.toLocaleString()}
+                              ₹{withdrawal.amount.toLocaleString()}
                             </td>
                             <td className="p-3">
                               <div className="text-sm">
@@ -1690,7 +1690,7 @@ export default function AdminDashboard() {
                               </span>
                             </td>
                             <td className="p-3 font-medium">
-                              {withdrawal.type === 'Bank Transfer' ? '₹' : '$'}{withdrawal.amount.toLocaleString()}
+                              ₹{withdrawal.amount.toLocaleString()}
                             </td>
                             <td className="p-3">
                               <p className="text-sm text-red-600 max-w-xs truncate" title={withdrawal.reason}>

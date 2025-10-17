@@ -174,7 +174,7 @@ export default function FranchiseDashboard() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-white/70 text-sm">Monthly Sales</p>
-                        <p className="text-2xl font-bold text-white">$12,340</p>
+                        <p className="text-2xl font-bold text-white">₹12,340</p>
                       </div>
                       <DollarSign className={`h-8 w-8 text-${themeConfig.secondary}`} />
                     </div>

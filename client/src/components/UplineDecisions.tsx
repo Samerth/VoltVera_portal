@@ -188,7 +188,7 @@ export function UplineDecisions() {
                   
                   <div className="text-right">
                     <div className="text-sm text-gray-500 mb-2">Package Amount</div>
-                    <div className="text-lg font-semibold text-green-600">${recruit.packageAmount}</div>
+                    <div className="text-lg font-semibold text-green-600">₹{recruit.packageAmount}</div>
                   </div>
                 </div>
               </div>
@@ -209,12 +209,12 @@ export function UplineDecisions() {
                         <div className="text-center">
                           <div className="text-sm font-medium text-blue-600">LEFT LEG</div>
                           <div className="text-lg font-bold">{recruit.legBalance.leftLeg.count}</div>
-                          <div className="text-xs text-gray-500">${recruit.legBalance.leftLeg.volume.toFixed(0)}</div>
+                          <div className="text-xs text-gray-500">₹{recruit.legBalance.leftLeg.volume.toFixed(0)}</div>
                         </div>
                         <div className="text-center">
                           <div className="text-sm font-medium text-green-600">RIGHT LEG</div>
                           <div className="text-lg font-bold">{recruit.legBalance.rightLeg.count}</div>
-                          <div className="text-xs text-gray-500">${recruit.legBalance.rightLeg.volume.toFixed(0)}</div>
+                          <div className="text-xs text-gray-500">₹{recruit.legBalance.rightLeg.volume.toFixed(0)}</div>
                         </div>
                       </div>
                       <div className="mt-2 text-center">
@@ -229,7 +229,7 @@ export function UplineDecisions() {
                         <div className="space-y-1">
                           <div className="font-medium text-sm">{recruit.recruiterInfo.name}</div>
                           <div className="text-xs text-gray-600">Level {recruit.recruiterInfo.level} • {recruit.recruiterInfo.position} position</div>
-                          <div className="text-xs text-green-600 font-medium">${recruit.recruiterInfo.packageAmount} package</div>
+                          <div className="text-xs text-green-600 font-medium">₹{recruit.recruiterInfo.packageAmount} package</div>
                           <div className="text-xs text-gray-500">
                             Active since {new Date(recruit.recruiterInfo.activationDate).toLocaleDateString()}
                           </div>

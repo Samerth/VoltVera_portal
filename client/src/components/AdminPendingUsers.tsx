@@ -166,7 +166,7 @@ export default function AdminPendingUsers() {
                       </div>
                       <div>
                         <p className="text-xs text-gray-500 uppercase tracking-wide">Package Amount</p>
-                        <p className="text-sm font-medium">${user.packageAmount || '0.00'}</p>
+                        <p className="text-sm font-medium">₹{user.packageAmount || '0.00'}</p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500 uppercase tracking-wide">Sponsor</p>

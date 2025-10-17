@@ -744,7 +744,7 @@ export function AdminPendingRecruits() {
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-500">Package Amount</Label>
-                      <p className="font-medium">${detailsRecruit.packageAmount}</p>
+                      <p className="font-medium">₹{detailsRecruit.packageAmount}</p>
                     </div>
                   </CardContent>
                 </Card>

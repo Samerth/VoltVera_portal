@@ -460,7 +460,7 @@ export default function MyTeam() {
                             </td>
                             <td className="border border-gray-300 dark:border-gray-700 px-4 py-2 text-center">
                               <span className="font-semibold text-green-600 dark:text-green-400">
-                                ${member.packageAmount || '0.00'}
+                                ₹{member.packageAmount || '0.00'}
                               </span>
                             </td>
                             <td className="border border-gray-300 dark:border-gray-700 px-4 py-2 text-center">

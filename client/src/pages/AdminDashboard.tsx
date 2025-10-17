@@ -33,6 +33,7 @@ import { IncomeReportsTable } from "@/components/IncomeReportsTable";
 import { BVTransactionsReport } from "@/components/BVTransactionsReport";
 import AdminProductManagement from "@/components/AdminProductManagement";
 import AdminPurchasesTable from "@/components/AdminPurchasesTable";
+import BroadcastNotification from "@/components/BroadcastNotification";
 
 interface UserStats {
   totalUsers: number;
@@ -1063,6 +1064,7 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              <BroadcastNotification />
               <NotificationCenter />
                                 {/* Add User functionality now handled by AdminReferralLinkGeneration component */}
 

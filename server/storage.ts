@@ -2003,6 +2003,36 @@ export class DatabaseStorage implements IStorage {
     return parseInt(result.count as string) || 0;
   }
 
+  async createBroadcastNotification(title: string, message: string): Promise<number> {
+    const { notifications } = await import('@shared/schema');
+    
+    // Get all active users (excluding admins only)
+    const allUsers = await db.select({ userId: users.userId })
+      .from(users)
+      .where(and(
+        ne(users.role, 'admin'),
+        eq(users.status, 'active')
+      ));
+    
+    if (allUsers.length === 0) {
+      return 0;
+    }
+
+    // Create notification for each user
+    const notificationValues = allUsers.map(user => ({
+      userId: user.userId,
+      type: 'broadcast',
+      title,
+      message,
+      read: false,
+    }));
+
+    await db.insert(notifications).values(notificationValues);
+    
+    console.log(`✅ Broadcast notification sent to ${allUsers.length} users`);
+    return allUsers.length;
+  }
+
   // Binary MLM Tree operations
   async getBinaryTreeData_legacy(userId: string): Promise<any> {
     // Import and use binary tree service

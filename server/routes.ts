@@ -1542,6 +1542,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin broadcast notification
+  app.post("/api/admin/notifications/broadcast", isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const { title, message } = req.body;
+      
+      if (!title || !message) {
+        return res.status(400).json({ message: "Title and message are required" });
+      }
+
+      const recipientCount = await storage.createBroadcastNotification(title, message);
+      
+      res.json({ 
+        message: "Broadcast notification sent successfully",
+        recipientCount 
+      });
+    } catch (error) {
+      console.error("Error sending broadcast notification:", error);
+      res.status(500).json({ message: "Failed to send broadcast notification" });
+    }
+  });
+
   // Referral link endpoints
   // ====================================================================================
   // LEGACY ROUTE - ORIGINALLY FOR BINARY MLM WITH COMPLEX TEMPORARY RECORDS

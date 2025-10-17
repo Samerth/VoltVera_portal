@@ -80,11 +80,8 @@ export default function WithdrawalHistory() {
   };
 
   const getTypeIcon = (withdrawalType: string) => {
-    switch (withdrawalType) {
-      case 'INR': return Building2;
-      case 'USD': return CreditCard;
-      default: return CreditCard;
-    }
+    // Only INR is supported
+    return Building2;
   };
 
   const formatAmount = (amount: string) => {

@@ -102,6 +102,14 @@ Preferred communication style: Simple, everyday language.
   - Quick action buttons for adding funds and withdrawing
   - Real-time synchronization with wallet transactions
   - Located prominently at top of user dashboard
+- **Broadcast Notification System**: Admin can send system-wide notifications to all active users (October 17, 2025) ✅ WORKING
+  - Admin-only feature accessible from dashboard header
+  - Dialog-based form with title (max 100 chars) and message (max 500 chars) inputs
+  - Targets all active non-admin users (includes user, founder, franchisee roles)
+  - Real-time success feedback showing recipient count
+  - Notifications appear in user's notification center
+  - Automatic cache invalidation for real-time updates
+  - Secure API endpoint with admin authentication (POST /api/admin/notifications/broadcast)
 
 # External Dependencies
 

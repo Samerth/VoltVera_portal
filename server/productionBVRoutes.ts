@@ -443,11 +443,11 @@ export function registerProductionBVRoutes(app: Express) {
       // User filter (search by display ID, name, or email)
       if (userIdFilter) {
         // Search in bv_transactions.userId or join with users table for name/email
+        // Use CONCAT_WS with COALESCE for NULL-safe name concatenation
         whereConditions.push(
           sql`(
             ${bvTransactions.userId} ILIKE ${`%${userIdFilter}%`} OR
-            ${users.firstName} ILIKE ${`%${userIdFilter}%`} OR
-            ${users.lastName} ILIKE ${`%${userIdFilter}%`} OR
+            CONCAT_WS(' ', COALESCE(${users.firstName}, ''), COALESCE(${users.lastName}, '')) ILIKE ${`%${userIdFilter}%`} OR
             ${users.email} ILIKE ${`%${userIdFilter}%`}
           )`
         );
@@ -468,11 +468,14 @@ export function registerProductionBVRoutes(app: Express) {
         whereConditions.push(sql`${bvTransactions.createdAt} <= ${endDateTime}`);
       }
 
-      // Build query with joins
+      // Create alias for initiating user
+      const initiatingUser = sql.raw('initiating_user');
+
+      // Build query with proper joins
       const transactionsQuery = db.select({
         id: bvTransactions.id,
         userId: bvTransactions.userId,
-        userName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`,
+        userName: sql<string>`NULLIF(TRIM(CONCAT_WS(' ', COALESCE(${users.firstName}, ''), COALESCE(${users.lastName}, ''))), '')`,
         parentId: bvTransactions.parentId,
         purchaseId: bvTransactions.purchaseId,
         transactionType: bvTransactions.transactionType,
@@ -491,11 +494,17 @@ export function registerProductionBVRoutes(app: Express) {
         directIncome: bvTransactions.directIncome,
         monthId: bvTransactions.monthId,
         createdAt: bvTransactions.createdAt,
-        initiatingUserId: sql<string>`initiating_user.user_id`,
+        // Calculate Direct BV and Team BV from current snapshot
+        directBv: sql<string>`CAST(COALESCE(${lifetimeBvCalculations.directsBv}, '0.00') AS DECIMAL(12,2))`,
+        teamBv: sql<string>`CAST((${bvTransactions.newLeftBv} + ${bvTransactions.newRightBv}) AS DECIMAL(12,2))`,
+        // Get initiating user ID from the purchase (NULL-safe)
+        initiatingUserId: sql<string>`COALESCE(initiating_user.user_id, 'N/A')`,
+        initiatingUserName: sql<string>`NULLIF(TRIM(CONCAT_WS(' ', COALESCE(initiating_user.first_name, ''), COALESCE(initiating_user.last_name, ''))), '')`,
       })
         .from(bvTransactions)
         .leftJoin(users, eq(bvTransactions.userId, users.userId))
         .leftJoin(purchases, eq(bvTransactions.purchaseId, purchases.id))
+        .leftJoin(lifetimeBvCalculations, eq(bvTransactions.userId, lifetimeBvCalculations.userId))
         .leftJoin(
           sql`users AS initiating_user`, 
           sql`${purchases.userId} = initiating_user.user_id`

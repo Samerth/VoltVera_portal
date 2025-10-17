@@ -102,7 +102,10 @@ export function BVTransactionsReport({
       'User ID': tx.userId,
       'User Name': tx.userName || 'N/A',
       'Initiator': tx.initiatingUserId || 'N/A',
+      'Initiator Name': tx.initiatingUserName || 'N/A',
       'Type': tx.transactionType,
+      'Direct BV': tx.directBv || '0.00',
+      'Team BV': tx.teamBv || '0.00',
       'Left BV Change': `${tx.prevLeftBv} → ${tx.newLeftBv}`,
       'Right BV Change': `${tx.prevRightBv} → ${tx.newRightBv}`,
       'New Match': tx.newMatchAmount,
@@ -287,6 +290,8 @@ export function BVTransactionsReport({
                   <TableHead>User Name</TableHead>
                   <TableHead>Initiator</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Direct BV</TableHead>
+                  <TableHead>Team BV</TableHead>
                   <TableHead>Left BV</TableHead>
                   <TableHead>Right BV</TableHead>
                   <TableHead>New Match</TableHead>
@@ -303,16 +308,25 @@ export function BVTransactionsReport({
                     <TableCell>
                       <Badge variant="secondary" data-testid={`user-${tx.id}`}>{tx.userId}</Badge>
                     </TableCell>
-                    <TableCell>{tx.userName || 'N/A'}</TableCell>
+                    <TableCell>{tx.userName || 'Unknown'}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" data-testid={`initiator-${tx.id}`}>
-                        {tx.initiatingUserId || 'N/A'}
-                      </Badge>
+                      <div className="flex flex-col">
+                        <Badge variant="outline" data-testid={`initiator-${tx.id}`} className="mb-1">
+                          {tx.initiatingUserId || 'N/A'}
+                        </Badge>
+                        <span className="text-xs text-gray-500">{tx.initiatingUserName || 'N/A'}</span>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" data-testid={`type-${tx.id}`}>
                         {tx.transactionType.replace('_', ' ').toUpperCase()}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-purple-600 font-medium" data-testid={`direct-bv-${tx.id}`}>
+                      {formatBV(tx.directBv || '0')}
+                    </TableCell>
+                    <TableCell className="text-orange-600 font-medium" data-testid={`team-bv-${tx.id}`}>
+                      {formatBV(tx.teamBv || '0')}
                     </TableCell>
                     <TableCell className="text-sm text-gray-500">
                       {formatBV(tx.prevLeftBv)} → {formatBV(tx.newLeftBv)}

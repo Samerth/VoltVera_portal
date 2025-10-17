@@ -2006,8 +2006,8 @@ export class DatabaseStorage implements IStorage {
   async createBroadcastNotification(title: string, message: string): Promise<number> {
     const { notifications } = await import('@shared/schema');
     
-    // Get all active users (excluding admins only)
-    const allUsers = await db.select({ userId: users.userId })
+    // Get all active users (excluding admins only) - select UUID id for foreign key
+    const allUsers = await db.select({ id: users.id })
       .from(users)
       .where(and(
         ne(users.role, 'admin'),
@@ -2018,9 +2018,9 @@ export class DatabaseStorage implements IStorage {
       return 0;
     }
 
-    // Create notification for each user
+    // Create notification for each user using UUID id (not display userId)
     const notificationValues = allUsers.map(user => ({
-      userId: user.userId,
+      userId: user.id,  // Use UUID id for foreign key reference
       type: 'broadcast',
       title,
       message,

@@ -32,6 +32,7 @@ import FundRequestsTable from "@/components/PendingFundRequestsTable";
 import { IncomeReportsTable } from "@/components/IncomeReportsTable";
 import { BVTransactionsReport } from "@/components/BVTransactionsReport";
 import { MonthlyBVReport } from "@/components/MonthlyBVReport";
+import { UserPerformanceReport } from "@/components/UserPerformanceReport";
 import AdminProductManagement from "@/components/AdminProductManagement";
 import AdminPurchasesTable from "@/components/AdminPurchasesTable";
 import BroadcastNotification from "@/components/BroadcastNotification";
@@ -760,6 +761,15 @@ export default function AdminDashboard() {
             </button>
             {expandedMenus.includes('income') && (
               <div className="ml-8 space-y-1">
+                <button 
+                  onClick={() => setActiveSection('user-performance-report')}
+                  className={`block w-full px-4 py-2 text-left text-sm rounded hover:bg-white/10 ${
+                    activeSection === 'user-performance-report' ? 'text-yellow-300' : 'text-white/80'
+                  }`}
+                  data-testid="menu-user-performance-report"
+                >
+                  User Performance Report
+                </button>
                 <button 
                   onClick={() => setActiveSection('direct-income')}
                   className={`block w-full px-4 py-2 text-left text-sm rounded hover:bg-white/10 ${
@@ -2124,6 +2134,17 @@ export default function AdminDashboard() {
                   )}
                 </CardContent>
               </Card>
+            </div>
+          )}
+
+          {/* User Performance Report */}
+          {activeSection === 'user-performance-report' && (
+            <div>
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">User Performance Report</h2>
+                <p className="text-gray-600 mt-1">Comprehensive user-grouped income, BV metrics, and eligibility tracking</p>
+              </div>
+              <UserPerformanceReport />
             </div>
           )}
 

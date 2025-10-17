@@ -624,8 +624,23 @@ export function registerProductionBVRoutes(app: Express) {
   });
 
   // User Performance Report - Comprehensive user-grouped income and BV data
-  app.get('/api/admin/user-performance-report', requireAuth, requireAdmin, async (req, res) => {
+  app.get('/api/admin/user-performance-report', isAuthenticated, async (req, res) => {
     try {
+      const userId = getActualUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      // Check if user is admin
+      const [user] = await db.select()
+        .from(users)
+        .where(eq(users.userId, userId))
+        .limit(1);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
       const { userId: userFilter, rank: rankFilter, startDate, endDate } = req.query;
 
       // Build base query for all active users

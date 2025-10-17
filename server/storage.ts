@@ -761,11 +761,14 @@ export class DatabaseStorage implements IStorage {
   async getUserStats() {
     const allUsers = await db.select().from(users);
     
+    // Exclude admin users from all counts
+    const nonAdminUsers = allUsers.filter(u => u.role !== 'admin');
+    
     return {
-      totalUsers: allUsers.length,
-      activeUsers: allUsers.filter(u => u.status === 'active').length,
+      totalUsers: nonAdminUsers.length,
+      activeUsers: nonAdminUsers.filter(u => u.status === 'active').length,
       adminUsers: allUsers.filter(u => u.role === 'admin').length,
-      pendingUsers: allUsers.filter(u => u.status === 'pending').length,
+      pendingUsers: nonAdminUsers.filter(u => u.status === 'pending').length,
     };
   }
 

@@ -90,6 +90,32 @@ export default function FundHistoryTable() {
     });
   };
 
+  const getTransactionCategory = (type: string) => {
+    // E-wallet Usage transactions (balance spending)
+    const eWalletUsage = ['purchase', 'admin_debit', 'withdrawal'];
+    
+    // Income transactions (balance earning)
+    const incomeTypes = [
+      'sponsor_income', 'sales_incentive', 'sales_bonus', 
+      'consistency_bonus', 'franchise_income', 'car_fund', 
+      'travel_fund', 'leadership_fund', 'house_fund', 
+      'millionaire_club', 'royalty_income'
+    ];
+
+    // Balance management (admin operations)
+    const balanceManagement = ['admin_credit'];
+
+    if (eWalletUsage.includes(type)) {
+      return { label: 'E-wallet Usage', color: 'bg-purple-100 text-purple-700' };
+    } else if (incomeTypes.includes(type)) {
+      return { label: 'Income', color: 'bg-green-100 text-green-700' };
+    } else if (balanceManagement.includes(type)) {
+      return { label: 'Balance Top-up', color: 'bg-blue-100 text-blue-700' };
+    } else {
+      return { label: 'Other', color: 'bg-gray-100 text-gray-700' };
+    }
+  };
+
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardHeader>
@@ -130,6 +156,7 @@ export default function FundHistoryTable() {
               <thead>
                 <tr className="border-b">
                   <th className="text-left p-3 font-medium text-gray-700">User</th>
+                  <th className="text-left p-3 font-medium text-gray-700">Category</th>
                   <th className="text-left p-3 font-medium text-gray-700">Type</th>
                   <th className="text-left p-3 font-medium text-gray-700">Amount</th>
                   <th className="text-left p-3 font-medium text-gray-700">Description</th>
@@ -138,7 +165,9 @@ export default function FundHistoryTable() {
                 </tr>
               </thead>
               <tbody>
-                {transactions.map((transaction) => (
+                {transactions.map((transaction) => {
+                  const category = getTransactionCategory(transaction.type);
+                  return (
                   <tr key={transaction.id} className="border-b hover:bg-gray-50">
                     <td className="p-3">
                       <div>
@@ -146,6 +175,11 @@ export default function FundHistoryTable() {
                         <p className="text-sm text-gray-500">{transaction.userEmail || 'No email'}</p>
                         <p className="text-xs text-gray-400">ID: {transaction.userDisplayId || transaction.userId}</p>
                       </div>
+                    </td>
+                    <td className="p-3">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${category.color}`}>
+                        {category.label}
+                      </span>
                     </td>
                     <td className="p-3">
                       <div className="flex items-center">
@@ -179,7 +213,8 @@ export default function FundHistoryTable() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

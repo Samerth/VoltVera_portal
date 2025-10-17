@@ -31,6 +31,7 @@ import FundHistoryTable from "@/components/FundHistoryTable";
 import FundRequestsTable from "@/components/PendingFundRequestsTable";
 import { IncomeReportsTable } from "@/components/IncomeReportsTable";
 import { BVTransactionsReport } from "@/components/BVTransactionsReport";
+import { MonthlyBVReport } from "@/components/MonthlyBVReport";
 import AdminProductManagement from "@/components/AdminProductManagement";
 import AdminPurchasesTable from "@/components/AdminPurchasesTable";
 import BroadcastNotification from "@/components/BroadcastNotification";
@@ -815,6 +816,15 @@ export default function AdminDashboard() {
                   data-testid="menu-bv-transactions-report"
                 >
                   BV Transactions Report
+                </button>
+                <button 
+                  onClick={() => setActiveSection('monthly-bv-report')}
+                  className={`block w-full px-4 py-2 text-left text-sm rounded hover:bg-white/10 ${
+                    activeSection === 'monthly-bv-report' ? 'text-yellow-300' : 'text-white/80'
+                  }`}
+                  data-testid="menu-monthly-bv-report"
+                >
+                  Monthly BV Report
                 </button>
               </div>
             )}
@@ -2149,6 +2159,11 @@ export default function AdminDashboard() {
           {/* BV Transactions Report */}
           {activeSection === 'bv-transactions-report' && (
             <BVTransactionsReport />
+          )}
+
+          {/* Monthly BV Report */}
+          {activeSection === 'monthly-bv-report' && (
+            <MonthlyBVReport />
           )}
 
           {/* Enhanced Section Content for other sections */}

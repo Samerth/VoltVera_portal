@@ -96,7 +96,7 @@ export default function AdminDashboard() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((activeSection === 'today-joinings' || activeSection === 'paid-members' || activeSection === 'free-users' || 
            activeSection === 'pending-withdraw' || activeSection === 'approved-withdraw' || activeSection === 'rejected-withdraw' || 
-           activeSection === 'withdraw-personally' || activeSection === 'send-fund' || activeSection === 'fund-history' || 
+           activeSection === 'withdraw-personally' || activeSection === 'income-history-withdraw' || activeSection === 'send-fund' || activeSection === 'fund-history' || 
            activeSection === 'pending-fund-requests' || activeSection === 'approved-fund-requests' || activeSection === 'rejected-fund-requests') && 
           (event.key === 'F5' || (event.ctrlKey && event.key === 'r'))) {
         event.preventDefault();
@@ -146,7 +146,14 @@ export default function AdminDashboard() {
           // Refresh admin withdrawal form (no specific data to refresh, just show toast)
           toast({
             title: "Refreshed",
-            description: "Withdraw personally form refreshed.",
+            description: "Admin withdrawal form refreshed.",
+          });
+        } else if (activeSection === 'income-history-withdraw') {
+          // Invalidate and refetch income history
+          queryClient.invalidateQueries({ queryKey: ["/api/admin/income-transactions"] });
+          toast({
+            title: "Refreshed",
+            description: "Income history data has been updated.",
           });
         } else if (activeSection === 'send-fund') {
           // Refresh send fund form (no specific data to refresh, just show toast)
@@ -942,6 +949,14 @@ export default function AdminDashboard() {
                 >
                   Admin Withdrawal
                 </button>
+                <button 
+                  onClick={() => setActiveSection('income-history-withdraw')}
+                  className={`block w-full px-4 py-2 text-left text-sm rounded hover:bg-white/10 ${
+                    activeSection === 'income-history-withdraw' ? 'text-yellow-300' : 'text-white/80'
+                  }`}
+                >
+                  Income History
+                </button>
               </div>
             )}
           </div>
@@ -1719,6 +1734,15 @@ export default function AdminDashboard() {
                 <WithdrawPersonallyForm />
               </CardContent>
             </Card>
+          )}
+
+          {/* Income History in Withdrawal Section */}
+          {activeSection === 'income-history-withdraw' && (
+            <IncomeReportsTable 
+              reportType="all"
+              title="Income History - All Income Transactions"
+              description="Review all user income before processing withdrawals"
+            />
           )}
 
           {/* Send Fund Section */}

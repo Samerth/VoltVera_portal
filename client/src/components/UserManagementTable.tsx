@@ -150,19 +150,17 @@ export default function UserManagementTable({ users, walletData, withdrawalData 
 
   const exportUserData = () => {
     const csvData = filteredUsers.map(user => {
-      const wallet = walletData[user.id];
-      const withdrawal = withdrawalData[user.id];
+      const wallet = walletData[user.userId || user.id];
+      const withdrawal = withdrawalData[user.userId || user.id];
       
       return [
-        user.id,
+        user.userId || user.id,
         `${user.firstName} ${user.lastName}`,
         user.mobile || '',
         user.email,
         '***', // Password placeholder
-        user.txnPin || '',
         user.sponsorUserId || '',
         user.packageAmount,
-        user.cryptoWalletAddress || '',
         wallet?.balance || 0,
         wallet?.totalEarnings || 0,
         wallet?.totalWithdrawals || 0,
@@ -172,7 +170,7 @@ export default function UserManagementTable({ users, walletData, withdrawalData 
       ].join(',');
     });
     
-    const headers = ['User ID', 'Name', 'Phone', 'Email', 'Password', 'TXN Pin', 'Sponsor User ID', 'Total Package', 'Wallet Address', 'E-wallet', 'Income', 'Total Withdraw', 'Withdraw Status', 'Registration Date', 'Activation Date'];
+    const headers = ['User ID', 'Name', 'Phone', 'Email', 'Password', 'Sponsor User ID', 'Total Package', 'E-wallet', 'Income', 'Total Withdraw', 'Withdraw Status', 'Registration Date', 'Activation Date'];
     const csv = [headers.join(','), ...csvData].join('\n');
     
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -232,10 +230,8 @@ export default function UserManagementTable({ users, walletData, withdrawalData 
                   <TableHead className="min-w-[150px]">Phone</TableHead>
                   <TableHead className="min-w-[200px]">Email</TableHead>
                   <TableHead className="min-w-[120px]">Password</TableHead>
-                  <TableHead className="min-w-[120px]">TXN Pin</TableHead>
                   <TableHead className="min-w-[150px]">Sponsor User ID</TableHead>
                   <TableHead className="min-w-[130px]">Total Package</TableHead>
-                  <TableHead className="min-w-[200px]">Wallet Address</TableHead>
                   <TableHead className="min-w-[120px]">E-wallet</TableHead>
                   <TableHead className="min-w-[120px]">Income</TableHead>
                   <TableHead className="min-w-[120px]">Total Withdraw</TableHead>
@@ -375,24 +371,6 @@ export default function UserManagementTable({ users, walletData, withdrawalData 
                         </div>
                       </TableCell>
 
-                      {/* TXN Pin */}
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <span className="font-mono text-sm">
-                            {user.txnPin ? (showPins[user.id] ? user.txnPin : '••••') : '-'}
-                          </span>
-                          {user.txnPin && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => togglePinVisibility(user.id)}
-                            >
-                              {showPins[user.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-
                       {/* Sponsor User ID */}
                       <TableCell>
                         <span className="font-mono text-sm">{user.sponsorUserId || '-'}</span>
@@ -401,13 +379,6 @@ export default function UserManagementTable({ users, walletData, withdrawalData 
                       {/* Total Package */}
                       <TableCell>
                         <span className="font-medium">₹{parseFloat(user.packageAmount || '0').toLocaleString()}</span>
-                      </TableCell>
-
-                      {/* Wallet Address */}
-                      <TableCell>
-                        <div className="max-w-[200px] truncate font-mono text-sm" title={user.cryptoWalletAddress}>
-                          {user.cryptoWalletAddress || '-'}
-                        </div>
                       </TableCell>
 
                       {/* E-wallet */}

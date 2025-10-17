@@ -682,12 +682,6 @@ export function registerProductionBVRoutes(app: Express) {
           .orderBy(desc(monthlyBv.monthId))
           .limit(1);
 
-        // Get wallet balance
-        const [wallet] = await db.select()
-          .from(db.select().from(sql`wallet_balances`).as('wb'))
-          .where(sql`wb.user_id = ${user.userId}`)
-          .limit(1);
-
         // Calculate total direct income (sponsor_income transactions)
         const directIncomeQuery = await db.execute(sql`
           SELECT COALESCE(SUM(CAST(amount AS DECIMAL(12,2))), 0) as total_direct_income

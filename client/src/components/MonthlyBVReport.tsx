@@ -25,7 +25,14 @@ export function MonthlyBVReport() {
     queryFn: async () => {
       const response = await fetch(`/api/admin/monthly-bv-report?${queryParams.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch monthly BV data');
-      return response.json();
+      const result = await response.json();
+      // Backend can return either raw array or wrapped in {success, data}
+      if (Array.isArray(result)) {
+        return result;
+      } else if (result?.data && Array.isArray(result.data)) {
+        return result.data;
+      }
+      return [];
     },
   });
 

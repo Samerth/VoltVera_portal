@@ -860,15 +860,17 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.role, 'user'));
     const totalBV = nonAdminUsers.reduce((sum, user) => sum + parseFloat(user.totalBV || '0'), 0);
     
-    // Calculate monthly income from actual transactions for current month
+    // Calculate monthly income from actual transactions for current month (excluding admin users)
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     
     const monthlyTransactions = await db.select({ amount: transactions.amount })
       .from(transactions)
+      .innerJoin(users, eq(transactions.userId, users.id))
       .where(
         and(
           gte(transactions.createdAt, firstDayOfMonth),
+          ne(users.role, 'admin'),
           sql`${transactions.type} IN ('sponsor_income', 'sales_incentive', 'sales_bonus', 'consistency_bonus', 'franchise_income', 'car_fund', 'travel_fund', 'leadership_fund', 'house_fund', 'millionaire_club', 'royalty_income', 'admin_credit')`
         )
       );

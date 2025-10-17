@@ -12,7 +12,7 @@ import { apiRequest } from "@/lib/queryClient";
 
 interface WithdrawFormData {
   userId: string;
-  withdrawalType: 'INR' | 'USD';
+  withdrawalType: 'INR';
   amount: string;
   remarks: string;
 }
@@ -29,16 +29,8 @@ export default function WithdrawPersonallyForm() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Helper functions for currency display
-  const getCurrencySymbol = () => {
-    return formData.withdrawalType === 'INR' ? '₹' : '$';
-  };
-
-  const getCurrencyIcon = () => {
-    return formData.withdrawalType === 'INR' ? IndianRupee : DollarSign;
-  };
-
-  const CurrencyIcon = getCurrencyIcon();
+  // Currency is always INR
+  const CurrencyIcon = IndianRupee;
 
   // Mutation for creating withdrawal request
   const createWithdrawalMutation = useMutation({
@@ -180,48 +172,28 @@ export default function WithdrawPersonallyForm() {
               </p>
             </div>
 
-            {/* Withdrawal Type Field */}
-            <div className="space-y-2">
-              <Label htmlFor="withdrawalType" className="text-sm font-medium text-gray-700 flex items-center">
-                <FileText className="mr-2 h-4 w-4" />
-                Withdrawal Type
-              </Label>
-              <Select
-                value={formData.withdrawalType}
-                onValueChange={(value: 'INR' | 'USD') => handleInputChange('withdrawalType', value)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select withdrawal type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="INR">INR (Indian Rupees)</SelectItem>
-                  <SelectItem value="USD">USD (US Dollars)</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-500">
-                Choose the currency type for the withdrawal
-              </p>
-            </div>
+            {/* Withdrawal Type Field - Hidden as only INR is supported */}
+            <input type="hidden" value="INR" />
 
             {/* Amount Field */}
             <div className="space-y-2">
               <Label htmlFor="amount" className="text-sm font-medium text-gray-700 flex items-center">
                 <CurrencyIcon className="mr-2 h-4 w-4" />
-                Amount ({getCurrencySymbol()})
+                Amount (₹)
               </Label>
               <Input
                 id="amount"
                 type="number"
                 step="0.01"
                 min="0"
-                placeholder={`Enter withdrawal amount in ${getCurrencySymbol()}`}
+                placeholder="Enter withdrawal amount in ₹"
                 value={formData.amount}
                 onChange={(e) => handleInputChange('amount', e.target.value)}
                 className="w-full"
                 required
               />
               <p className="text-xs text-gray-500">
-                Enter the amount to be withdrawn in {getCurrencySymbol()}
+                Enter the amount to be withdrawn in ₹
               </p>
             </div>
 

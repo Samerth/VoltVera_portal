@@ -733,14 +733,6 @@ export default function AdminDashboard() {
                 >
                   Free Users
                 </button>
-                <button 
-                  onClick={() => setActiveSection('user-activities')}
-                  className={`block w-full px-4 py-2 text-left text-sm rounded hover:bg-white/10 ${
-                    activeSection === 'user-activities' ? 'text-yellow-300' : 'text-white/80'
-                  }`}
-                >
-                  Users Activities
-                </button>
               </div>
             )}
           </div>
@@ -2188,8 +2180,7 @@ export default function AdminDashboard() {
           )}
 
           {/* Enhanced Section Content for other sections */}
-          {(activeSection === 'user-activities' ||
-            activeSection === 'manage-fund' ||
+          {(activeSection === 'manage-fund' ||
             activeSection === 'pending-fund') && (
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>

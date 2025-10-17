@@ -530,6 +530,98 @@ export function registerProductionBVRoutes(app: Express) {
       });
     }
   });
+
+  // Admin: Get Monthly BV Report with filtering
+  app.get('/api/admin/monthly-bv-report', isAuthenticated, async (req, res) => {
+    try {
+      const userId = getActualUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      // Check if user is admin
+      const [user] = await db.select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      // Get filter parameters
+      const userIdFilter = req.query.userId as string;
+      const monthId = req.query.monthId as string;
+      const startDate = req.query.startDate as string;
+      const endDate = req.query.endDate as string;
+
+      // Build where conditions
+      let whereConditions: any[] = [];
+
+      // User filter (search by display ID, name, or email)
+      if (userIdFilter) {
+        whereConditions.push(
+          sql`(
+            ${monthlyBv.userId} ILIKE ${`%${userIdFilter}%`} OR
+            CONCAT_WS(' ', COALESCE(${users.firstName}, ''), COALESCE(${users.lastName}, '')) ILIKE ${`%${userIdFilter}%`} OR
+            ${users.email} ILIKE ${`%${userIdFilter}%`}
+          )`
+        );
+      }
+
+      // Month ID filter
+      if (monthId) {
+        whereConditions.push(eq(monthlyBv.monthId, parseInt(monthId)));
+      }
+
+      // Date range filter
+      if (startDate) {
+        whereConditions.push(sql`${monthlyBv.monthStartdate} >= ${new Date(startDate)}`);
+      }
+      if (endDate) {
+        whereConditions.push(sql`${monthlyBv.monthEnddate} <= ${new Date(endDate)}`);
+      }
+
+      // Build query with proper joins
+      const monthlyBvQuery = db.select({
+        id: monthlyBv.id,
+        userId: monthlyBv.userId,
+        userName: sql<string>`NULLIF(TRIM(CONCAT_WS(' ', COALESCE(${users.firstName}, ''), COALESCE(${users.lastName}, ''))), '')`,
+        parentId: monthlyBv.parentId,
+        monthId: monthlyBv.monthId,
+        monthStartdate: monthlyBv.monthStartdate,
+        monthEnddate: monthlyBv.monthEnddate,
+        monthBvLeft: monthlyBv.monthBvLeft,
+        monthBvRight: monthlyBv.monthBvRight,
+        monthBvDirects: monthlyBv.monthBvDirects,
+        // Calculate total monthly BV
+        totalMonthBv: sql<string>`CAST((${monthlyBv.monthBvLeft} + ${monthlyBv.monthBvRight}) AS DECIMAL(12,2))`,
+        createdAt: monthlyBv.createdAt,
+        updatedAt: monthlyBv.updatedAt,
+      })
+        .from(monthlyBv)
+        .leftJoin(users, eq(monthlyBv.userId, users.userId));
+
+      // Apply where conditions if any
+      let finalQuery = monthlyBvQuery;
+      if (whereConditions.length > 0) {
+        finalQuery = monthlyBvQuery.where(and(...whereConditions)) as any;
+      }
+
+      // Execute query with ordering (newest first)
+      const monthlyBvData = await finalQuery
+        .orderBy(desc(monthlyBv.monthId), desc(monthlyBv.createdAt))
+        .limit(1000); // Limit to prevent huge responses
+
+      res.json(monthlyBvData);
+    } catch (error) {
+      console.error('Error getting monthly BV report:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
 }
 
 

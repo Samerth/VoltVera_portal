@@ -1101,29 +1101,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
          // Continue with success response even if email fails
        }
       
-      // Send invitation email to recruit
-      try {
-        const { sendRecruitInvitationEmail } = await import('./emailService');
-        const recruiter = await storage.getUser(recruiterId);
-        const recruiterName = recruiter ? `${recruiter.firstName} ${recruiter.lastName}` : 'A team member';
-        
-        const emailSent = await sendRecruitInvitationEmail(
-          recruitData.email,
-          recruitData.fullName,
-          recruiterName,
-          referralLink
-        );
-        
-        if (emailSent) {
-          console.log(`Recruit invitation email sent to ${recruitData.email}`);
-        } else {
-          console.log(`Failed to send email to ${recruitData.email} - Referral link still works`);
-        }
-      } catch (emailError) {
-        console.error('Error sending recruit invitation email:', emailError);
-        // Continue with success response even if email fails
-      }
-      
       res.status(201).json({ 
         message: "Referral link generated and invitation email sent successfully!",
         referralLink,

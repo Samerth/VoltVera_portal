@@ -851,7 +851,11 @@ export class DatabaseStorage implements IStorage {
       db.select({ count: sql<number>`count(*)` }).from(kycDocuments).where(eq(kycDocuments.status, 'pending')),
       db.select({ count: sql<number>`count(*)` }).from(withdrawalRequests).where(eq(withdrawalRequests.status, 'pending')),
       db.select({ count: sql<number>`count(*)` }).from(franchiseRequests).where(eq(franchiseRequests.status, 'pending')),
-      db.select({ count: sql<number>`count(*)` }).from(purchases)
+      // Exclude admin purchases from count
+      db.select({ count: sql<number>`count(*)` })
+        .from(purchases)
+        .innerJoin(users, eq(purchases.userId, users.id))
+        .where(ne(users.role, 'admin'))
     ]);
     
     // Calculate total BV in system (excluding admin users)

@@ -2315,7 +2315,11 @@ export class DatabaseStorage implements IStorage {
       throw new Error('Product not found');
     }
 
-    const totalAmount = parseFloat(product.price) * data.quantity;
+    // Calculate amounts including GST
+    const baseAmount = parseFloat(product.price) * data.quantity;
+    const gstPercentage = parseFloat(product.gst);
+    const gstAmount = (baseAmount * gstPercentage) / 100;
+    const totalAmount = baseAmount + gstAmount; // Total amount INCLUDING GST
     const totalBV = parseFloat(product.bv) * data.quantity;
 
     // CRITICAL: Validate wallet balance for wallet payments
@@ -2350,7 +2354,7 @@ export class DatabaseStorage implements IStorage {
         userId: normalizedUserId,
         type: 'purchase' as any,
         amount: totalAmount.toString(),
-        description: `Product purchase - ${product.name} (Qty: ${data.quantity})`,
+        description: `Product purchase - ${product.name} (Qty: ${data.quantity}, ₹${baseAmount.toFixed(2)} + GST ${gstPercentage}%)`,
         referenceId: product.id,
         balanceBefore: currentBalance.toString(),
         balanceAfter: newBalance.toString()

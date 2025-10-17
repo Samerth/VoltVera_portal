@@ -110,6 +110,31 @@ Preferred communication style: Simple, everyday language.
   - Notifications appear in user's notification center
   - Automatic cache invalidation for real-time updates
   - Secure API endpoint with admin authentication (POST /api/admin/notifications/broadcast)
+- **User Performance Report**: Comprehensive user-grouped income and performance tracking system (October 17, 2025) ✅ WORKING
+  - **Groups all data by user** (not transaction-based) for easy performance evaluation
+  - **Key Metrics Per User**:
+    * Direct Income (total sponsor commissions)
+    * Differential Income (total matching income from BV calculations)
+    * Total Income (combined direct + differential)
+    * Current Rank and rank requirements
+    * Monthly BV metrics (Direct, Left, Right, Team)
+    * Lifetime BV metrics (all fields from lifetime_bv_calculations)
+    * Wallet metrics (balance, total earnings, total withdrawals)
+    * Direct recruits count (total, left, right)
+    * Rewards eligibility indicators (Team BV and Directs requirements)
+  - **Summary Statistics**: Total users, total income by type, eligible users count
+  - **Advanced Filtering**: User search (ID/name/email), rank filter, date range
+  - **CSV Export**: Complete user performance data with all metrics
+  - **Eligibility Badges**: Visual indicators showing if users meet rank requirements
+  - **Admin Decision Support**: Clear data presentation for evaluating performance and approving rewards
+  - Located in Admin Dashboard → Income Reports → User Performance Report (first menu item)
+- **Enhanced BV Transactions Report**: Clarified income column naming with tooltips (October 17, 2025) ✅ WORKING
+  - Added explanatory tooltips for income columns to eliminate confusion
+  - Direct Income tooltip: "Sponsor commission (10%) earned from direct recruits' purchases"
+  - Differential Income tooltip: "Differential/Matching Income from balanced team BV (New Match × Rank %)"
+  - Direct BV tooltip: "BV from direct recruits sponsored by this user"
+  - Team BV tooltip: "Total BV added to left and right legs (Team BV = Left BV + Right BV)"
+  - Resolves the "Different column" ambiguity mentioned in user requirements
 
 # External Dependencies
 

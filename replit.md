@@ -160,6 +160,19 @@ Preferred communication style: Simple, everyday language.
     2. BV Transactions Report - Transaction-level audit trail (includes Direct Income)
     3. Monthly BV Report - Monthly BV snapshots and tracking
     4. Fund History - Complete wallet transaction ledger
+- **Transaction Categorization & Dual Income Access** (October 17, 2025) ✅ WORKING
+  - **Withdraw Personally renamed to Admin Withdrawal**: Clarified admin-initiated withdrawal functionality
+  - **Income History in Withdrawal Management**: New tab showing all income transactions for pre-withdrawal review
+    * Located in Withdraw Management section (Option C implementation)
+    * Displays all income types (sponsor_income, sales_incentive, sales_bonus, etc.)
+    * Helps admins verify income before processing withdrawals
+  - **Income History in Income Reports**: Also accessible via BV Transactions Report
+    * Dual access points for different workflows (withdrawal vs. income analysis)
+  - **Fund History Enhanced Categorization**: Added visual Category column
+    * E-wallet Usage (purple badge): purchase, admin_debit, withdrawal
+    * Income (green badge): sponsor_income, sales_incentive, sales_bonus, all income types
+    * Balance Top-up (blue badge): admin_credit
+    * Clear visual distinction between transaction types for better admin oversight
 
 # External Dependencies
 

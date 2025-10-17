@@ -213,7 +213,7 @@ export default function FundHistoryTable() {
                       </div>
                     </td>
                   </tr>
-                  );
+                  )
                 })}
               </tbody>
             </table>

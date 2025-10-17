@@ -72,13 +72,9 @@ export default function AdminDashboard() {
   const [selectedWithdrawalId, setSelectedWithdrawalId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchType, setSearchType] = useState<'id' | 'name' | 'bv' | 'rank'>('name');
   const [statusFilter, setStatusFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
   const [kycFilter, setKycFilter] = useState('all');
-  const [dateFilterType, setDateFilterType] = useState('registration');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['main']);
 
   // Redirect if not authenticated or not admin
@@ -202,19 +198,15 @@ export default function AdminDashboard() {
     );
   };
 
-  // Fetch users with enhanced search
+  // Fetch users with simplified search
   const { data: users = [], isLoading: usersLoading } = useQuery<User[]>({
-    queryKey: ["/api/admin/users/search", searchQuery, searchType, statusFilter, roleFilter, kycFilter, dateFilterType, dateFrom, dateTo],
+    queryKey: ["/api/admin/users/search", searchQuery, statusFilter, roleFilter, kycFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchQuery) params.append('query', searchQuery);
-      if (searchType) params.append('searchType', searchType);
       if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter);
       if (roleFilter && roleFilter !== 'all') params.append('role', roleFilter);
       if (kycFilter && kycFilter !== 'all') params.append('kycStatus', kycFilter);
-      if (dateFilterType) params.append('dateFilterType', dateFilterType);
-      if (dateFrom) params.append('dateFrom', dateFrom);
-      if (dateTo) params.append('dateTo', dateTo);
       
       const response = await fetch(`/api/admin/users/search?${params.toString()}`, {
         credentials: 'include',
@@ -1284,43 +1276,29 @@ export default function AdminDashboard() {
               
               <div className="bg-white rounded-lg shadow-sm border p-6">
                 <h3 className="text-lg font-medium text-gray-800 mb-6">All Members Management</h3>
-                {/* Enhanced User Search */}
+                {/* Simplified User Search */}
               <div className="bg-gray-50 rounded-lg p-6 mb-6 border border-gray-200">
-                <h4 className="text-md font-medium text-gray-800 mb-4">Advanced User Search</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-                  <div>
-                    <Label htmlFor="searchQuery">Search Query</Label>
+                <h4 className="text-md font-medium text-gray-800 mb-4">Search & Filter Users</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                  <div className="lg:col-span-2">
+                    <Label htmlFor="searchQuery">Search</Label>
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <Input
                         id="searchQuery"
-                        placeholder="Enter search term..."
+                        placeholder="Search by User ID, Name, or Email..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-10"
+                        data-testid="input-search-users"
                       />
                     </div>
                   </div>
                   
                   <div>
-                    <Label htmlFor="searchType">Search Type</Label>
-                    <Select value={searchType} onValueChange={(value: 'id' | 'name' | 'bv' | 'rank') => setSearchType(value)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="name">Name</SelectItem>
-                        <SelectItem value="id">User ID</SelectItem>
-                        <SelectItem value="bv">BV Amount</SelectItem>
-                        <SelectItem value="rank">Rank</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="statusFilter">Status Filter</Label>
+                    <Label htmlFor="statusFilter">Status</Label>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger>
+                      <SelectTrigger data-testid="select-status-filter">
                         <SelectValue placeholder="All Status" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1333,9 +1311,9 @@ export default function AdminDashboard() {
                   </div>
                   
                   <div>
-                    <Label htmlFor="roleFilter">Role Filter</Label>
+                    <Label htmlFor="roleFilter">Role</Label>
                     <Select value={roleFilter} onValueChange={setRoleFilter}>
-                      <SelectTrigger>
+                      <SelectTrigger data-testid="select-role-filter">
                         <SelectValue placeholder="All Roles" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1348,11 +1326,13 @@ export default function AdminDashboard() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="kycFilter">KYC Status</Label>
                     <Select value={kycFilter} onValueChange={setKycFilter}>
-                      <SelectTrigger>
+                      <SelectTrigger data-testid="select-kyc-filter">
                         <SelectValue placeholder="All KYC" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1363,80 +1343,27 @@ export default function AdminDashboard() {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-                
-                {/* Date Range Filters */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                  <div>
-                    <Label htmlFor="dateFilterType">Date Filter Type</Label>
-                    <Select value={dateFilterType} onValueChange={setDateFilterType}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="registration">Registration Date</SelectItem>
-                        <SelectItem value="activation">Activation Date</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                   
-                  <div>
-                    <Label htmlFor="dateFrom">From Date</Label>
-                    <Input
-                      id="dateFrom"
-                      type="date"
-                      value={dateFrom}
-                      onChange={(e) => setDateFrom(e.target.value)}
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="dateTo">To Date</Label>
-                    <Input
-                      id="dateTo"
-                      type="date"
-                      value={dateTo}
-                      onChange={(e) => setDateTo(e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="flex items-end">
+                  <div className="flex items-end justify-between">
+                    <p className="text-sm text-gray-600">
+                      Found {users.length} user{users.length !== 1 ? 's' : ''}
+                      {searchQuery && ` matching "${searchQuery}"`}
+                    </p>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        setDateFrom('');
-                        setDateTo('');
-                        setDateFilterType('registration');
+                        setSearchQuery('');
+                        setStatusFilter('all');
+                        setRoleFilter('all');
+                        setKycFilter('all');
                       }}
+                      data-testid="button-clear-filters"
                     >
-                      Clear Dates
+                      <Filter className="mr-2 h-4 w-4" />
+                      Clear All
                     </Button>
                   </div>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-600">
-                    Found {users.length} user{users.length !== 1 ? 's' : ''}
-                    {searchQuery && ` matching "${searchQuery}"`}
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSearchQuery('');
-                      setSearchType('name');
-                      setStatusFilter('all');
-                      setRoleFilter('all');
-                      setKycFilter('all');
-                      setDateFilterType('registration');
-                      setDateFrom('');
-                      setDateTo('');
-                    }}
-                  >
-                    <Filter className="mr-2 h-4 w-4" />
-                    Clear Filters
-                  </Button>
                 </div>
               </div>
               

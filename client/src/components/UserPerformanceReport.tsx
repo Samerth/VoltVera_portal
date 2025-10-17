@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Download, Search, Filter, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Download, Search, Filter, CheckCircle2, XCircle, AlertCircle, HelpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const rankOptions = [
@@ -117,7 +118,7 @@ export function UserPerformanceReport() {
 
     const csv = [
       headers.join(','),
-      ...csvData.map(row => row.map(cell => `"${cell}"`).join(','))
+      ...csvData.map((row: any[]) => row.map((cell: any) => `"${cell}"`).join(','))
     ].join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -295,7 +296,28 @@ export function UserPerformanceReport() {
                   <TableHead className="text-right">Total Earnings</TableHead>
                   <TableHead className="text-right">Withdrawals</TableHead>
                   <TableHead className="text-center">Directs</TableHead>
-                  <TableHead className="text-center">Eligibility</TableHead>
+                  <TableHead className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <span>Eligibility</span>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p className="font-semibold mb-2">Promotion Eligibility Status</p>
+                            <p className="text-sm mb-2">Shows if user meets requirements for next rank:</p>
+                            <ul className="text-xs space-y-1">
+                              <li>🟢 <strong>Eligible:</strong> Meets both Team BV and Direct recruits requirements</li>
+                              <li>🟡 <strong>Partial:</strong> Meets one requirement, needs the other</li>
+                              <li>🔴 <strong>Not Eligible:</strong> Needs to meet both requirements</li>
+                            </ul>
+                            <p className="text-xs mt-2 text-gray-400">✓ = Met | ✗ = Not Met</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

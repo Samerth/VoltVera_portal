@@ -2396,7 +2396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Filter by transaction type
       if (type && typeof type === 'string' && type !== 'all') {
-        conditions.push(eq(transactions.type, type));
+        conditions.push(sql`${transactions.type} = ${type}`);
       }
 
       // Fetch E-wallet usage transactions with filters

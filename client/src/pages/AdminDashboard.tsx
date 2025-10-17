@@ -29,6 +29,7 @@ import WithdrawPersonallyForm from "@/components/WithdrawPersonallyForm";
 import SendFundForm from "@/components/SendFundForm";
 import FundHistoryTable from "@/components/FundHistoryTable";
 import FundRequestsTable from "@/components/PendingFundRequestsTable";
+import WithdrawalHistoryTable from "@/components/WithdrawalHistoryTable";
 import { IncomeReportsTable } from "@/components/IncomeReportsTable";
 import { BVTransactionsReport } from "@/components/BVTransactionsReport";
 import { MonthlyBVReport } from "@/components/MonthlyBVReport";
@@ -763,6 +764,15 @@ export default function AdminDashboard() {
                 >
                   User Performance Report
                 </button>
+                <button 
+                  onClick={() => setActiveSection('income-history')}
+                  className={`block w-full px-4 py-2 text-left text-sm rounded hover:bg-white/10 ${
+                    activeSection === 'income-history' ? 'text-yellow-300' : 'text-white/80'
+                  }`}
+                  data-testid="menu-income-history"
+                >
+                  Income History
+                </button>
                 {/* Hidden: Direct Income (Oct 17, 2025) - Redundant with BV Transactions Report
                 <button 
                   onClick={() => setActiveSection('direct-income')}
@@ -950,12 +960,13 @@ export default function AdminDashboard() {
                   Admin Withdrawal
                 </button>
                 <button 
-                  onClick={() => setActiveSection('income-history-withdraw')}
+                  onClick={() => setActiveSection('withdrawal-history')}
                   className={`block w-full px-4 py-2 text-left text-sm rounded hover:bg-white/10 ${
-                    activeSection === 'income-history-withdraw' ? 'text-yellow-300' : 'text-white/80'
+                    activeSection === 'withdrawal-history' ? 'text-yellow-300' : 'text-white/80'
                   }`}
+                  data-testid="menu-withdrawal-history"
                 >
-                  Income History
+                  Withdrawal History
                 </button>
               </div>
             )}
@@ -1736,13 +1747,9 @@ export default function AdminDashboard() {
             </Card>
           )}
 
-          {/* Income History in Withdrawal Section */}
-          {activeSection === 'income-history-withdraw' && (
-            <IncomeReportsTable 
-              reportType="all"
-              title="Income History - All Income Transactions"
-              description="Review all user income before processing withdrawals"
-            />
+          {/* Withdrawal History Section */}
+          {activeSection === 'withdrawal-history' && (
+            <WithdrawalHistoryTable />
           )}
 
           {/* Send Fund Section */}
@@ -2111,6 +2118,15 @@ export default function AdminDashboard() {
               </div>
               <UserPerformanceReport />
             </div>
+          )}
+
+          {/* Income History in Reports */}
+          {activeSection === 'income-history' && (
+            <IncomeReportsTable 
+              reportType="all"
+              title="Income History - All Income Transactions"
+              description="Complete history of all income transactions across users"
+            />
           )}
 
           {/* Hidden: Direct Income Report (Oct 17, 2025) - Redundant with BV Transactions Report

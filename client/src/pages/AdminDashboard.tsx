@@ -762,6 +762,7 @@ export default function AdminDashboard() {
                 >
                   User Performance Report
                 </button>
+                {/* Hidden: Direct Income (Oct 17, 2025) - Redundant with BV Transactions Report
                 <button 
                   onClick={() => setActiveSection('direct-income')}
                   className={`block w-full px-4 py-2 text-left text-sm rounded hover:bg-white/10 ${
@@ -770,6 +771,7 @@ export default function AdminDashboard() {
                 >
                   Direct Income
                 </button>
+                */}
                 {/* Hidden: ROI Income
                 <button 
                   onClick={() => setActiveSection('roi-income')}
@@ -2140,7 +2142,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* Direct Income Report */}
+          {/* Hidden: Direct Income Report (Oct 17, 2025) - Redundant with BV Transactions Report
           {activeSection === 'direct-income' && (
             <IncomeReportsTable
               reportType="direct"
@@ -2148,6 +2150,7 @@ export default function AdminDashboard() {
               description="Sponsor income earned from direct recruits"
             />
           )}
+          */}
 
           {/* Hidden: ROI Income Report
           {activeSection === 'roi-income' && (

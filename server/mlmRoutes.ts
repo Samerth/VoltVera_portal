@@ -152,19 +152,15 @@ router.get('/admin/income-reports', requireAuth, requireAdmin, async (req, res) 
   }
 });
 
-// Enhanced user search for admin
+// Simplified user search for admin
 router.get('/admin/users/search', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { query = '', searchType, status, role, kycStatus, dateFilterType, dateFrom, dateTo } = req.query;
+    const { query = '', status, role, kycStatus } = req.query;
     
     const users = await storage.searchUsers(query as string, {
-      searchType: searchType as 'id' | 'name' | 'bv' | 'rank',
       status: status as string,
       role: role as string,
       kycStatus: kycStatus as string,
-      dateFilterType: dateFilterType as string,
-      dateFrom: dateFrom as string,
-      dateTo: dateTo as string,
     });
     
     res.json(users);

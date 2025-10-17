@@ -70,7 +70,6 @@ export interface IStorage {
   getPaidMembers(): Promise<(User & { sponsorUserId: string | null })[]>;
   getFreeUsers(): Promise<(User & { sponsorUserId: string | null })[]>;
   searchUsers(query: string, filters: {
-    searchType?: 'id' | 'name' | 'bv' | 'rank';
     status?: string;
     role?: string;
     kycStatus?: string;
@@ -780,46 +779,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async searchUsers(query: string, filters: {
-    searchType?: 'id' | 'name' | 'bv' | 'rank';
     status?: string;
     role?: string;
     kycStatus?: string;
-    dateFilterType?: string;
-    dateFrom?: string;
-    dateTo?: string;
   }): Promise<(User & { sponsorUserId: string | null })[]> {
     let searchConditions: any[] = [];
     
-    // Only add search conditions if query is provided and not empty
+    // Unified search across User ID, Name, and Email
     if (query && query.trim()) {
-      // Build search conditions based on search type
-      if (filters.searchType === 'id') {
-        searchConditions.push(ilike(users.id, `%${query}%`));
-      } else if (filters.searchType === 'name') {
-        searchConditions.push(
-          or(
-            ilike(users.firstName, `%${query}%`),
-            ilike(users.lastName, `%${query}%`),
-            ilike(sql`concat(${users.firstName}, ' ', ${users.lastName})`, `%${query}%`)
-          )
-        );
-      } else if (filters.searchType === 'bv') {
-        // Search by BV amount - cast decimal to text
-        searchConditions.push(ilike(sql`${users.totalBV}::text`, `%${query}%`));
-      } else if (filters.searchType === 'rank') {
-        searchConditions.push(ilike(sql`${users.currentRank}::text`, `%${query}%`));
-      } else {
-        // Default: search across multiple fields
-        searchConditions.push(
-          or(
-            ilike(users.id, `%${query}%`),
-            ilike(users.firstName, `%${query}%`),
-            ilike(users.lastName, `%${query}%`),
-            ilike(users.email, `%${query}%`),
-            ilike(sql`${users.currentRank}::text`, `%${query}%`)
-          )
-        );
-      }
+      searchConditions.push(
+        or(
+          ilike(users.userId, `%${query}%`),
+          ilike(users.id, `%${query}%`),
+          ilike(users.firstName, `%${query}%`),
+          ilike(users.lastName, `%${query}%`),
+          ilike(sql`concat(${users.firstName}, ' ', ${users.lastName})`, `%${query}%`),
+          ilike(users.email, `%${query}%`)
+        )
+      );
     }
     
     // Add filter conditions
@@ -832,32 +809,6 @@ export class DatabaseStorage implements IStorage {
     }
     if (filters.kycStatus) {
       filterConditions.push(eq(users.kycStatus, filters.kycStatus as any));
-    }
-    
-    // Add date filtering conditions
-    if (filters.dateFilterType && filters.dateFrom && filters.dateTo) {
-      const dateFrom = new Date(filters.dateFrom);
-      const dateTo = new Date(filters.dateTo);
-      dateTo.setHours(23, 59, 59, 999); // Include the entire end date
-      
-      let dateField;
-      switch (filters.dateFilterType) {
-        case 'registration':
-          dateField = users.registrationDate;
-          break;
-        case 'activation':
-          dateField = users.activationDate;
-          break;
-        default:
-          dateField = users.registrationDate;
-      }
-      
-      filterConditions.push(
-        and(
-          gte(dateField, dateFrom),
-          lte(dateField, dateTo)
-        )
-      );
     }
     
     // Combine all conditions

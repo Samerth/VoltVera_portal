@@ -378,22 +378,22 @@ export default function UserManagementTable({ users, walletData, withdrawalData 
 
                       {/* Total Package */}
                       <TableCell>
-                        <span className="font-medium">₹{parseFloat(user.packageAmount || '0').toLocaleString()}</span>
+                        <span className="font-medium">₹{parseFloat(user.packageAmount || '0').toLocaleString('en-IN')}</span>
                       </TableCell>
 
                       {/* E-wallet */}
                       <TableCell>
-                        <span className="font-medium">₹{(wallet?.balance || 0).toLocaleString()}</span>
+                        <span className="font-medium">₹{(wallet?.balance || 0).toLocaleString('en-IN')}</span>
                       </TableCell>
 
                       {/* Income */}
                       <TableCell>
-                        <span className="font-medium text-green-600">₹{(wallet?.totalEarnings || 0).toLocaleString()}</span>
+                        <span className="font-medium text-green-600">₹{(wallet?.totalEarnings || 0).toLocaleString('en-IN')}</span>
                       </TableCell>
 
                       {/* Total Withdraw */}
                       <TableCell>
-                        <span className="font-medium text-blue-600">₹{(wallet?.totalWithdrawals || 0).toLocaleString()}</span>
+                        <span className="font-medium text-blue-600">₹{(wallet?.totalWithdrawals || 0).toLocaleString('en-IN')}</span>
                       </TableCell>
 
                       {/* Registration Date */}

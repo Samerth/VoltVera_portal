@@ -1,0 +1,86 @@
+Here's a clearer and more professional version of your prompt, refined for clarity, grammar, and precision. This version can be shared with a developer, analyst, or BI team for implementation:
+
+---
+
+### **Improved Prompt**
+
+Please revise and optimize the **Direct Income Report** and related reports with the following objectives and guidelines:
+
+---
+
+### **Primary Objectives**
+
+1. **Group Data by User**
+
+   * Ensure all income data is grouped by user.
+   * Clearly show user-specific metrics to allow easy tracking and comparison.
+
+2. **Fix the “Different” Column Issue**
+
+   * Resolve any issues or ambiguities with the "Different" column (e.g., mislabeling, incorrect calculations, or unclear purpose).
+
+3. **Highlight Key User Metrics**
+   Reports should clearly show the following per user:
+
+   * **Direct Income**
+   * **Rank**
+   * **Monthly and Lifetime BVM**
+   * **Team Volume (monthly and lifetime if applicable)**
+   * **Withdrawal Amounts**
+   * **Rewards Eligibility (based on criteria such as rank, BVM, etc.)**
+
+4. **Simplify Admin Decision-Making**
+
+   * Structure the data and visual presentation to make it easy for the admin to:
+
+     * Evaluate user performance
+     * Verify reward eligibility
+     * Audit income and withdrawal records
+     * Understand business-wide trends
+
+---
+
+### **Report Validation & Testing**
+
+* **Thoroughly test** all reports to ensure:
+
+  * Data visibility is complete and accurate
+  * Filters are functional and responsive
+  * Totals, groupings, and calculations are correct
+  * No broken UI components or misaligned columns
+
+* Confirm that reports **accurately reflect business logic**, including income rules, BVM calculations, team qualifications, and reward thresholds.
+
+---
+
+### **Permissions & Flow**
+
+* **Ensure that no existing workflows or data integrity are broken**.
+* Retain all critical report functionalities currently in use.
+
+---
+
+### **Report Enhancements**
+
+* You are encouraged to **create new reports or dashboards** if required to better represent:
+
+  * User income flows
+  * Qualification tracking
+  * Reward milestones
+  * Team performance breakdowns
+
+---
+
+### **General Guidelines**
+
+* Prioritize clarity, accuracy, and performance.
+* Use meaningful labels and descriptions in all report headers and filters.
+* Ensure all numeric fields are properly formatted (e.g., currency, percentages, totals).
+
+---
+
+Let me know once the above is completed, or if you need clarification on any metric or logic.
+
+---
+
+Let me know if you'd like a version adapted for a Jira task, Trello card, or formal technical specification.

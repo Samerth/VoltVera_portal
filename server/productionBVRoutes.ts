@@ -622,6 +622,165 @@ export function registerProductionBVRoutes(app: Express) {
       });
     }
   });
+
+  // User Performance Report - Comprehensive user-grouped income and BV data
+  app.get('/api/admin/user-performance-report', requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { userId: userFilter, rank: rankFilter, startDate, endDate } = req.query;
+
+      // Build base query for all active users
+      let userQuery = db.select({
+        userId: users.userId,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        currentRank: users.currentRank,
+        status: users.status,
+        leftDirects: users.leftDirects,
+        rightDirects: users.rightDirects,
+        totalDirects: users.totalDirects,
+        registrationDate: users.registrationDate,
+        activationDate: users.activationDate,
+      }).from(users)
+        .where(and(
+          ne(users.role, 'admin'),
+          userFilter ? sql`(${users.userId} ILIKE ${`%${userFilter}%`} OR 
+                           CONCAT_WS(' ', ${users.firstName}, ${users.lastName}) ILIKE ${`%${userFilter}%`} OR 
+                           ${users.email} ILIKE ${`%${userFilter}%`})` : sql`true`,
+          rankFilter ? eq(users.currentRank, rankFilter as any) : sql`true`
+        ));
+
+      const allUsers = await userQuery;
+
+      // Get aggregated data for each user
+      const userPerformanceData = await Promise.all(allUsers.map(async (user) => {
+        // Get lifetime BV calculations
+        const [lifetimeBV] = await db.select()
+          .from(lifetimeBvCalculations)
+          .where(eq(lifetimeBvCalculations.userId, user.userId))
+          .limit(1);
+
+        // Get latest monthly BV
+        const [latestMonthlyBV] = await db.select()
+          .from(monthlyBv)
+          .where(eq(monthlyBv.userId, user.userId))
+          .orderBy(desc(monthlyBv.monthId))
+          .limit(1);
+
+        // Get wallet balance
+        const [wallet] = await db.select()
+          .from(db.select().from(sql`wallet_balances`).as('wb'))
+          .where(sql`wb.user_id = ${user.userId}`)
+          .limit(1);
+
+        // Calculate total direct income (sponsor_income transactions)
+        const directIncomeQuery = await db.execute(sql`
+          SELECT COALESCE(SUM(CAST(amount AS DECIMAL(12,2))), 0) as total_direct_income
+          FROM transactions
+          WHERE user_id = ${user.userId}
+          AND type = 'sponsor_income'
+          ${startDate ? sql`AND created_at >= ${startDate}` : sql``}
+          ${endDate ? sql`AND created_at <= ${endDate}` : sql``}
+        `);
+        const totalDirectIncome = directIncomeQuery.rows[0]?.total_direct_income || '0.00';
+
+        // Calculate total differential income from lifetime BV
+        const totalDifferentialIncome = lifetimeBV?.diffIncome || '0.00';
+
+        // Get wallet data with safe fallback
+        const walletQuery = await db.execute(sql`
+          SELECT balance, total_earnings, total_withdrawals
+          FROM wallet_balances
+          WHERE user_id = ${user.userId}
+          LIMIT 1
+        `);
+        const walletData = walletQuery.rows[0] || { 
+          balance: '0.00', 
+          total_earnings: '0.00', 
+          total_withdrawals: '0.00' 
+        };
+
+        // Get rank configuration for eligibility check
+        const [rankConfig] = await db.select()
+          .from(rankConfigurations)
+          .where(eq(rankConfigurations.rankName, user.currentRank || 'Executive'))
+          .limit(1);
+
+        // Calculate team BV and check eligibility
+        const teamBV = parseFloat(lifetimeBV?.teamBv || '0');
+        const minTeamBV = parseFloat(rankConfig?.minTeamBv || '0');
+        const minDirects = rankConfig?.minDirects || 0;
+        
+        const meetsTeamBV = teamBV >= minTeamBV;
+        const meetsDirects = (user.totalDirects || 0) >= minDirects;
+        const isEligible = meetsTeamBV && meetsDirects;
+
+        return {
+          userId: user.userId,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'N/A',
+          email: user.email,
+          currentRank: user.currentRank || 'Executive',
+          status: user.status,
+          
+          // Direct metrics
+          totalDirects: user.totalDirects || 0,
+          leftDirects: user.leftDirects || 0,
+          rightDirects: user.rightDirects || 0,
+          
+          // Income metrics
+          totalDirectIncome,
+          totalDifferentialIncome,
+          totalIncome: (parseFloat(totalDirectIncome) + parseFloat(totalDifferentialIncome)).toFixed(2),
+          
+          // Monthly BV metrics
+          monthlyDirectBV: latestMonthlyBV?.monthBvDirects || '0.00',
+          monthlyLeftBV: latestMonthlyBV?.monthBvLeft || '0.00',
+          monthlyRightBV: latestMonthlyBV?.monthBvRight || '0.00',
+          monthlyTeamBV: latestMonthlyBV ? 
+            (parseFloat(latestMonthlyBV.monthBvLeft || '0') + parseFloat(latestMonthlyBV.monthBvRight || '0')).toFixed(2) : 
+            '0.00',
+          
+          // Lifetime BV metrics
+          lifetimeDirectBV: lifetimeBV?.selfBv || '0.00',
+          lifetimeLeftBV: lifetimeBV?.leftBv || '0.00',
+          lifetimeRightBV: lifetimeBV?.rightBv || '0.00',
+          lifetimeTeamBV: lifetimeBV?.teamBv || '0.00',
+          lifetimeMatchingBV: lifetimeBV?.matchingBv || '0.00',
+          lifetimeCarryForwardLeft: lifetimeBV?.carryForwardLeft || '0.00',
+          lifetimeCarryForwardRight: lifetimeBV?.carryForwardRight || '0.00',
+          
+          // Wallet metrics
+          currentBalance: walletData.balance,
+          totalEarnings: walletData.total_earnings,
+          totalWithdrawals: walletData.total_withdrawals,
+          
+          // Eligibility metrics
+          requiredTeamBV: rankConfig?.minTeamBv || '0.00',
+          requiredDirects: rankConfig?.minDirects || 0,
+          meetsTeamBV,
+          meetsDirects,
+          isEligible,
+          
+          // Dates
+          registrationDate: user.registrationDate,
+          activationDate: user.activationDate,
+        };
+      }));
+
+      // Sort by total income (highest first)
+      userPerformanceData.sort((a, b) => parseFloat(b.totalIncome) - parseFloat(a.totalIncome));
+
+      res.json(userPerformanceData);
+    } catch (error) {
+      console.error('Error getting user performance report:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
 }
 
 

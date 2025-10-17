@@ -9,7 +9,7 @@ import {
   rankConfigurations,
   purchases
 } from '../shared/schema';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, desc, sql, ne } from 'drizzle-orm';
 import { impersonationTokens } from './impersonation';
 
 // Helper function to get the actual user ID (supports both session and impersonation)

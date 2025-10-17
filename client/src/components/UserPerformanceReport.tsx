@@ -31,7 +31,7 @@ export function UserPerformanceReport() {
   const buildQueryParams = () => {
     const params = new URLSearchParams();
     if (appliedFilters.user) params.append('userId', appliedFilters.user);
-    if (appliedFilters.rank) params.append('rank', appliedFilters.rank);
+    if (appliedFilters.rank && appliedFilters.rank !== 'all') params.append('rank', appliedFilters.rank);
     if (appliedFilters.startDate) params.append('startDate', appliedFilters.startDate);
     if (appliedFilters.endDate) params.append('endDate', appliedFilters.endDate);
     return params.toString();
@@ -226,7 +226,7 @@ export function UserPerformanceReport() {
                 <SelectValue placeholder="All Ranks" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Ranks</SelectItem>
+                <SelectItem value="all">All Ranks</SelectItem>
                 {rankOptions.map(rank => (
                   <SelectItem key={rank} value={rank}>{rank}</SelectItem>
                 ))}

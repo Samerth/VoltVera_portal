@@ -66,11 +66,11 @@ export default function MyTeam() {
     enabled: !!user,
   });
 
-  // Fetch pending recruits
-  const { data: pendingRecruits = [] } = useQuery<any[]>({
-    queryKey: ["/api/team/pending-recruits"],
-    enabled: !!user,
-  });
+  // Fetch pending recruits - HIDDEN per user request
+  // const { data: pendingRecruits = [] } = useQuery<any[]>({
+  //   queryKey: ["/api/team/pending-recruits"],
+  //   enabled: !!user,
+  // });
 
   // All users now use simple referral link generation - no complex workflow needed
 
@@ -197,7 +197,7 @@ export default function MyTeam() {
                 <Label htmlFor="position">Placement Position</Label>
                 <Select 
                   value={form.watch("position")} 
-                  onValueChange={(value) => form.setValue("position", value)}
+                  onValueChange={(value) => form.setValue("position", value as "left" | "right")}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Choose placement position" />
@@ -357,8 +357,8 @@ export default function MyTeam() {
 
           {/* Direct Recruits Tab */}
           <TabsContent value="direct" className="space-y-6">
-            {/* Pending Recruits Section */}
-            {pendingRecruits.length > 0 && (
+            {/* Pending Recruits Section - HIDDEN per user request */}
+            {/* {pendingRecruits.length > 0 && (
               <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20 dark:border-yellow-800">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
@@ -402,7 +402,7 @@ export default function MyTeam() {
                   </div>
                 </CardContent>
               </Card>
-            )}
+            )} */}
 
             <Card>
               <CardHeader>

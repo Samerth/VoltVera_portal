@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Download, Search, Filter } from "lucide-react";
+import { RefreshCw, Download, Search, Filter, HelpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface BVTransactionsReportProps {
   title?: string;
@@ -290,13 +291,61 @@ export function BVTransactionsReport({
                   <TableHead>User Name</TableHead>
                   <TableHead>Initiator</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Direct BV</TableHead>
-                  <TableHead>Team BV</TableHead>
+                  <TableHead>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger className="flex items-center gap-1">
+                          Direct BV
+                          <HelpCircle className="w-3 h-3" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>BV from direct recruits sponsored by this user</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </TableHead>
+                  <TableHead>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger className="flex items-center gap-1">
+                          Team BV
+                          <HelpCircle className="w-3 h-3" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Total BV added to left and right legs (Team BV = Left BV + Right BV)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </TableHead>
                   <TableHead>Left BV</TableHead>
                   <TableHead>Right BV</TableHead>
                   <TableHead>New Match</TableHead>
-                  <TableHead>Direct Income</TableHead>
-                  <TableHead>Diff Income</TableHead>
+                  <TableHead>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger className="flex items-center gap-1">
+                          Direct Income
+                          <HelpCircle className="w-3 h-3" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Sponsor commission (10%) earned from direct recruits' purchases</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </TableHead>
+                  <TableHead>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger className="flex items-center gap-1">
+                          Diff Income
+                          <HelpCircle className="w-3 h-3" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Differential/Matching Income from balanced team BV (New Match × Rank %)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

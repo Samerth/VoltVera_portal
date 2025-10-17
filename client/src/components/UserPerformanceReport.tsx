@@ -91,9 +91,9 @@ export function UserPerformanceReport() {
       user.email,
       user.currentRank,
       user.status,
-      user.totalDirectIncome,
-      user.totalDifferentialIncome,
-      user.totalIncome,
+      `₹${user.totalDirectIncome}`,
+      `₹${user.totalDifferentialIncome}`,
+      `₹${user.totalIncome}`,
       user.monthlyDirectBV,
       user.monthlyLeftBV,
       user.monthlyRightBV,
@@ -105,9 +105,9 @@ export function UserPerformanceReport() {
       user.lifetimeMatchingBV,
       user.lifetimeCarryForwardLeft,
       user.lifetimeCarryForwardRight,
-      user.currentBalance,
-      user.totalEarnings,
-      user.totalWithdrawals,
+      `₹${user.currentBalance}`,
+      `₹${user.totalEarnings}`,
+      `₹${user.totalWithdrawals}`,
       user.totalDirects,
       user.leftDirects,
       user.rightDirects,
@@ -135,7 +135,7 @@ export function UserPerformanceReport() {
   };
 
   const formatCurrency = (value: string | number) => {
-    return `$${parseFloat(value.toString()).toFixed(2)}`;
+    return `₹${parseFloat(value.toString()).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const getEligibilityBadge = (user: any) => {

@@ -72,6 +72,13 @@ Preferred communication style: Simple, everyday language.
   - Fixed CSV export to use ₹ (INR) symbol for all monetary values
   - Previously exported plain numbers that displayed as dollars in spreadsheet applications
   - Now includes ₹ symbol for: Total Package, E-wallet, Income, Total Withdraw columns
+- **Rank Configuration Update** (October 18, 2025): ✅ WORKING
+  - Updated all rank configurations to match official requirements
+  - **Differential Income Percentages**: Executive 6%, Bronze Star 10%, Gold Star 12%, Emerald Star 14%, Ruby Star 16%, Diamond 18%, Wise President 20%, President 22%, Ambassador 24%, Deputy Director 26%, Director 28%, Founder 30%
+  - **Team BV Ranges**: Updated from thousands to lakhs/crores (e.g., Bronze Star 1.25L, Gold Star 2.5L, Emerald Star 9L, Ruby Star 18L, Diamond 45L, etc.)
+  - **Bonus Amounts**: Added all rank achievement bonuses (Bronze ₹5K to Founder ₹3.5Cr)
+  - **Tour Rewards**: Added tour rewards for each rank (LDP, Goa, Jaipur, Thailand, Dubai, Switzerland, Australia, Tokyo, California)
+  - Production BV engine automatically uses database configurations; test engine percentages updated
 
 # External Dependencies
 

@@ -1,0 +1,122 @@
+[
+  {
+    "id": "88c7cac8-fa8a-4b5a-8c30-58ec5fc5e362",
+    "rank_name": "Executive",
+    "percentage": "0.0600",
+    "min_team_bv": "0.00",
+    "min_directs": 0,
+    "bonus_amount": "0.00",
+    "tour_rewards": null,
+    "is_active": true,
+    "created_at": "2025-10-12T23:02:39.925Z",
+    "updated_at": "2025-10-12T23:02:39.925Z"
+  },
+  {
+    "id": "34b959c9-7faf-42e8-b499-11e6ba1d220b",
+    "rank_name": "Bronze Star",
+    "percentage": "0.1000",
+    "min_team_bv": "125000.00",
+    "min_directs": 0,
+    "bonus_amount": "5000.00",
+    "tour_rewards": "LDP",
+    "is_active": true,
+    "created_at": "2025-10-12T23:02:39.925Z",
+    "updated_at": "2025-10-12T23:02:39.925Z"
+  },
+  {
+    "id": "e707f80b-2700-4f59-bf6f-418a38fe4b37",
+    "rank_name": "Gold Star",
+    "percentage": "0.1200",
+    "min_team_bv": "250000.00",
+    "min_directs": 0,
+    "bonus_amount": "10000.00",
+    "tour_rewards": "LDP 2 days",
+    "is_active": true,
+    "created_at": "2025-10-12T23:02:39.925Z",
+    "updated_at": "2025-10-12T23:02:39.925Z"
+  },
+  {
+    "id": "01664b2b-63ce-49c2-9ef2-363fad9c41ad",
+    "rank_name": "Emerald Star",
+    "percentage": "0.1400",
+    "min_team_bv": "900000.00",
+    "min_directs": 0,
+    "bonus_amount": "36000.00",
+    "tour_rewards": "Goa 3 days 2 nights",
+    "is_active": true,
+    "created_at": "2025-10-12T23:02:39.925Z",
+    "updated_at": "2025-10-12T23:02:39.925Z"
+  },
+  {
+    "id": "36264287-3c27-4636-80f5-8eeca71352bc",
+    "rank_name": "Ruby Star",
+    "percentage": "0.1600",
+    "min_team_bv": "1800000.00",
+    "min_directs": 0,
+    "bonus_amount": "90000.00",
+    "tour_rewards": "Jaipur",
+    "is_active": true,
+    "created_at": "2025-10-12T23:02:39.925Z",
+    "updated_at": "2025-10-12T23:02:39.925Z"
+  },
+  {
+    "id": "2f4d9bb1-dacb-4dba-aeb6-f31467766bf7",
+    "rank_name": "Diamond",
+    "percentage": "0.1800",
+    "min_team_bv": "4500000.00",
+    "min_directs": 0,
+    "bonus_amount": "225000.00",
+    "tour_rewards": "Thailand 5 days 4 nights",
+    "is_active": true,
+    "created_at": "2025-10-12T23:02:39.925Z",
+    "updated_at": "2025-10-12T23:02:39.925Z"
+  },
+  {
+    "id": "be05e839-e21a-4b97-a727-02975950c8f1",
+    "rank_name": "Wise President",
+    "percentage": "0.2000",
+    "min_team_bv": "9000000.00",
+    "min_directs": 0,
+    "bonus_amount": "360000.00",
+    "tour_rewards": "Dubai with family",
+    "is_active": true,
+    "created_at": "2025-10-12T23:02:39.925Z",
+    "updated_at": "2025-10-12T23:02:39.925Z"
+  },
+  {
+    "id": "6443c25b-d2ba-4445-a8bd-d29304e72fc5",
+    "rank_name": "President",
+    "percentage": "0.2200",
+    "min_team_bv": "27000000.00",
+    "min_directs": 0,
+    "bonus_amount": "810000.00",
+    "tour_rewards": "Switzerland",
+    "is_active": true,
+    "created_at": "2025-10-12T23:02:39.925Z",
+    "updated_at": "2025-10-12T23:02:39.925Z"
+  },
+  {
+    "id": "d4ef233b-44b3-4cdb-862b-625630e07d24",
+    "rank_name": "Ambassador",
+    "percentage": "0.2400",
+    "min_team_bv": "81000000.00",
+    "min_directs": 0,
+    "bonus_amount": "1620000.00",
+    "tour_rewards": "Foreign tour with family",
+    "is_active": true,
+    "created_at": "2025-10-12T23:02:39.925Z",
+    "updated_at": "2025-10-12T23:02:39.925Z"
+  },
+  {
+    "id": "1d8a358d-2ed1-4471-a33e-bd49cf67531e",
+    "rank_name": "Deputy Director",
+    "percentage": "0.2600",
+    "min_team_bv": "243000000.00",
+    "min_directs": 0,
+    "bonus_amount": "2500000.00",
+    "tour_rewards": "Australia",
+    "is_active": true,
+    "created_at": "2025-10-12T23:02:39.925Z",
+    "updated_at": "2025-10-12T23:02:39.925Z"
+  }
+]

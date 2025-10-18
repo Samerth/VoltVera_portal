@@ -4,20 +4,20 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 
 // Test BV Calculation Engine
 export class BVTestEngine {
-  // Rank-based percentage mapping
+  // Rank-based percentage mapping (Differential Income %)
   private readonly RANK_PERCENTAGES = {
-    'Executive': 0.06,      // 6%
-    'Bronze Star': 0.08,   // 8%
-    'Gold Star': 0.10,      // 10%
-    'Emerald Star': 0.12,   // 12%
-    'Ruby Star': 0.15,      // 15%
-    'Diamond': 0.18,        // 18%
-    'Wise President': 0.20, // 20%
-    'President': 0.22,      // 22%
-    'Ambassador': 0.25,     // 25%
-    'Deputy Director': 0.28, // 28%
-    'Director': 0.30,       // 30%
-    'Founder': 0.35         // 35%
+    'Executive': 0.06,      // 6% (0 - 1.25 lakh)
+    'Bronze Star': 0.10,    // 10% (1.25 - 2.5 lakh)
+    'Gold Star': 0.12,      // 12% (2.5 - 9 lakh)
+    'Emerald Star': 0.14,   // 14% (9 - 18 lakh)
+    'Ruby Star': 0.16,      // 16% (18 - 45 lakh)
+    'Diamond': 0.18,        // 18% (45 - 90 lakh)
+    'Wise President': 0.20, // 20% (90 lakh - 2.7 crore)
+    'President': 0.22,      // 22% (2.7 - 8.1 crore)
+    'Ambassador': 0.24,     // 24% (8.1 - 24.3 crore)
+    'Deputy Director': 0.26,// 26% (24.3 - 90 crore)
+    'Director': 0.28,       // 28% (90 - 270 crore)
+    'Founder': 0.30         // 30% (270 crore+)
   };
 
   // Create test user

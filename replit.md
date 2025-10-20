@@ -79,6 +79,18 @@ Preferred communication style: Simple, everyday language.
   - **Bonus Amounts**: Added all rank achievement bonuses (Bronze ₹5K to Founder ₹3.5Cr)
   - **Tour Rewards**: Added tour rewards for each rank (LDP, Goa, Jaipur, Thailand, Dubai, Switzerland, Australia, Tokyo, California)
   - Production BV engine automatically uses database configurations; test engine percentages updated
+- **Critical Bug Fixes** (October 20, 2025): ✅ FIXED
+  - **Fund History Amount Display Bug**: Fixed transaction amounts display to show debits as negative (red) and credits as positive (green) based on transaction type, not amount sign
+    - **Issue**: Purchase/withdrawal transactions showed as positive amounts (+₹4,484) causing user confusion
+    - **Fix**: Updated `formatAmount` function to check transaction type (purchase, withdrawal, admin_debit = debit/red; admin_credit = credit/green)
+    - **Result**: All debit transactions now correctly display with negative symbol and red color (-₹4,484.00)
+  - **Direct Income Double-Crediting Bug**: Fixed critical issue where direct income (sponsor_income) was incorrectly updating BOTH E-wallet balance AND totalEarnings
+    - **Issue**: When child purchased product, parent's E-wallet and Income showed same value (both getting credited)
+    - **Expected**: Only totalEarnings (Income) should increase for MLM income; E-wallet (balance) only for purchases
+    - **Fix**: Updated `creditWallet` function in productionBVEngine.ts to differentiate income types from E-wallet credits
+    - **Income Types** (only update totalEarnings): sponsor_income, sales_bonus, sales_incentive, consistency_bonus, franchise_income, car_fund, travel_fund, leadership_fund, house_fund, millionaire_club, royalty_income
+    - **E-wallet Credits** (update both balance and totalEarnings): admin_credit only
+    - **Result**: Direct income and differential income now correctly credit ONLY the Income column, NOT E-wallet balance
 
 # External Dependencies
 

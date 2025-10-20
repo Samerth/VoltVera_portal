@@ -351,10 +351,33 @@ export class ProductionBVEngine {
 
     const currentBalance = parseFloat(wallet?.balance || '0');
     const currentEarnings = parseFloat(wallet?.totalEarnings || '0');
-    const newBalance = currentBalance + amount;
-    const newEarnings = currentEarnings + amount;
+    
+    // Determine if this is an income type (only updates totalEarnings) or E-wallet credit (updates both)
+    const incomeTypes = [
+      'sponsor_income', 'sales_bonus', 'sales_incentive', 'consistency_bonus',
+      'franchise_income', 'car_fund', 'travel_fund', 'leadership_fund',
+      'house_fund', 'millionaire_club', 'royalty_income'
+    ];
+    const isIncomeType = incomeTypes.includes(type);
+    
+    let newBalance: number;
+    let newEarnings: number;
+    
+    if (isIncomeType) {
+      // Income types: ONLY update totalEarnings (income), NOT E-wallet balance
+      newBalance = currentBalance; // ✅ Balance remains unchanged
+      newEarnings = currentEarnings + amount; // ✅ Only income increases
+    } else if (type === 'admin_credit') {
+      // Admin credit: Update BOTH balance and totalEarnings (E-wallet top-up)
+      newBalance = currentBalance + amount;
+      newEarnings = currentEarnings + amount;
+    } else {
+      // Default case: Only update totalEarnings
+      newBalance = currentBalance;
+      newEarnings = currentEarnings + amount;
+    }
 
-    // Update wallet balance
+    // Update wallet
     await db.update(walletBalances)
       .set({
         balance: newBalance.toString(),

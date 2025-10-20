@@ -128,12 +128,14 @@ export default function FundHistoryTable() {
 
   const formatAmount = (amount: string, type: string) => {
     const numAmount = parseFloat(amount);
-    const isNegative = numAmount < 0;
     const displayAmount = Math.abs(numAmount);
     
+    // Determine if it's a debit (negative) or credit (positive) based on transaction type
+    const isDebit = type === 'purchase' || type === 'withdrawal' || type === 'admin_debit';
+    
     return (
-      <span className={`font-medium ${isNegative ? 'text-red-600' : 'text-green-600'}`}>
-        {isNegative ? '-' : '+'}₹{displayAmount.toLocaleString()}
+      <span className={`font-medium ${isDebit ? 'text-red-600' : 'text-green-600'}`}>
+        {isDebit ? '-' : '+'}₹{displayAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </span>
     );
   };

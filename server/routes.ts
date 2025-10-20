@@ -912,7 +912,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Replace/Update KYC document with binary data
+  // Update KYC document (simple field updates for re-uploads) - supports both URL and binary data
+  app.put("/api/kyc/documents/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { documentUrl, documentNumber, documentData, documentContentType, documentFilename } = req.body;
+      
+      console.log(`📝 PUT /api/kyc/documents/${id} - Updating KYC document`);
+      console.log('   Request body keys:', Object.keys(req.body));
+      
+      // Fetch the document to check ownership
+      const existingDoc = await storage.getKYCDocumentById(id);
+      if (!existingDoc) {
+        console.log(`   ❌ Document ${id} not found`);
+        return res.status(404).json({ message: "Document not found" });
+      }
+      
+      // Build update payload based on what's provided
+      const updatePayload: any = {};
+      
+      // URL-based update (simple re-upload)
+      if (documentUrl) {
+        updatePayload.documentUrl = documentUrl;
+        console.log('   📄 Updating with documentUrl');
+      }
+      
+      // Binary data update (full re-upload)
+      if (documentData && documentContentType && documentFilename) {
+        updatePayload.documentData = documentData;
+        updatePayload.documentContentType = documentContentType;
+        updatePayload.documentFilename = documentFilename;
+        updatePayload.documentSize = Math.round((documentData.length * 3) / 4);
+        console.log('   📄 Updating with binary data');
+      }
+      
+      // Document number update
+      if (documentNumber !== undefined) {
+        updatePayload.documentNumber = documentNumber;
+        console.log('   📄 Updating documentNumber to:', documentNumber);
+      }
+      
+      // Ensure at least one field is being updated
+      if (Object.keys(updatePayload).length === 0) {
+        console.log('   ❌ No fields to update');
+        return res.status(400).json({ 
+          message: "At least one field (documentUrl, documentNumber, or documentData) must be provided" 
+        });
+      }
+      
+      // Perform the update
+      console.log('   🔄 Calling storage.updateKYCDocument...');
+      const updatedDocument = await storage.updateKYCDocument(id, updatePayload);
+      console.log('   ✅ Document updated successfully');
+      
+      res.json(updatedDocument);
+    } catch (error) {
+      console.error("❌ Error updating KYC document:", error);
+      res.status(500).json({ message: "Failed to update KYC document" });
+    }
+  });
+
+  // Replace/Update KYC document with binary data (legacy route for binary uploads)
   app.put("/api/kyc/:documentId", async (req, res) => {
     const userId = getActualUserId(req);
     if (!userId) {

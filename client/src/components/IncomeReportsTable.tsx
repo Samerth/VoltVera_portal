@@ -106,13 +106,30 @@ export function IncomeReportsTable({ reportType, title, description }: IncomeRep
     }, 0).toFixed(2);
   };
 
+  const formatIncomeType = (type: string) => {
+    const typeMap: { [key: string]: string } = {
+      'sponsor_income': 'Direct Income',
+      'sales_bonus': 'Differential Income',
+      'sales_incentive': 'Sales Incentive',
+      'consistency_bonus': 'Consistency Bonus',
+      'franchise_income': 'Franchise Income',
+      'car_fund': 'Car Fund',
+      'travel_fund': 'Travel Fund',
+      'leadership_fund': 'Leadership Fund',
+      'house_fund': 'House Fund',
+      'millionaire_club': 'Millionaire Club',
+      'royalty_income': 'Royalty Income'
+    };
+    return typeMap[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
   const exportToCSV = () => {
     const csvData = reports.map((report: any) => ({
       'User ID': report.userDisplayId,
       'User Name': report.userName,
       'Email': report.userEmail,
-      'Transaction Type': report.type,
-      'Amount': report.amount,
+      'Income Type': formatIncomeType(report.type),
+      'Amount': `₹${parseFloat(report.amount).toFixed(2)}`,
       'Description': report.description,
       'Reference ID': report.referenceId || 'N/A',
       'Date': new Date(report.createdAt).toLocaleDateString(),
@@ -295,7 +312,7 @@ export function IncomeReportsTable({ reportType, title, description }: IncomeRep
                     </td>
                     <td className="p-3">
                       <span className="px-2 py-1 rounded-full text-xs font-medium bg-volt-light/20 text-volt-dark">
-                        {report.type.replace(/_/g, ' ').toUpperCase()}
+                        {formatIncomeType(report.type)}
                       </span>
                     </td>
                     <td className="p-3 font-medium text-volt-light" data-testid={`text-amount-${report.id}`}>

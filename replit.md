@@ -91,6 +91,14 @@ Preferred communication style: Simple, everyday language.
     - **Income Types** (only update totalEarnings): sponsor_income, sales_bonus, sales_incentive, consistency_bonus, franchise_income, car_fund, travel_fund, leadership_fund, house_fund, millionaire_club, royalty_income
     - **E-wallet Credits** (update both balance and totalEarnings): admin_credit only
     - **Result**: Direct income and differential income now correctly credit ONLY the Income column, NOT E-wallet balance
+  - **Income History Report Bug**: Fixed blank user names and confusing income type terminology in Income Reports
+    - **Issue 1**: User names, IDs, and emails were blank in Income History Report
+    - **Root Cause**: SQL join was using `transactions.userId` (Display ID) with `users.id` (UUID), which never matched
+    - **Fix**: Changed join condition from `eq(transactions.userId, users.id)` to `eq(transactions.userId, users.userId)` in storage.ts
+    - **Issue 2**: Income types showed as "SPONSOR INCOME" and "SALES BONUS" which was confusing
+    - **Fix**: Added `formatIncomeType()` function to map database values to user-friendly names
+    - **Mappings**: sponsor_income → "Direct Income", sales_bonus → "Differential Income", and all other income types to readable names
+    - **Result**: Income reports now correctly show user details and display user-friendly income type names consistent with user portal
 
 # External Dependencies
 

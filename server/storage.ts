@@ -4572,7 +4572,7 @@ export class DatabaseStorage implements IStorage {
         createdAt: transactions.createdAt,
       })
       .from(transactions)
-      .leftJoin(users, eq(transactions.userId, users.id))
+      .leftJoin(users, eq(transactions.userId, users.userId))
       .orderBy(desc(transactions.createdAt));
     
     if (conditions.length > 0) {

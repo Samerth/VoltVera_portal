@@ -37,9 +37,19 @@ interface TeamBusinessMetrics {
 export function TeamBusinessStages() {
   const { user } = useAuth();
 
+  // Fetch rank configurations from database
+  const { data: rankConfigs, isLoading: isLoadingRanks } = useQuery({
+    queryKey: ['/api/rank-configurations'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/rank-configurations');
+      return response.json();
+    },
+    enabled: !!user,
+  });
+
   // Fetch team business metrics
   const { data: metrics, isLoading } = useQuery<TeamBusinessMetrics>({
-    queryKey: ["/api/team/business-metrics"],
+    queryKey: ["/api/team/business-metrics", rankConfigs],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/team/stats');
       const data = await response.json();
@@ -50,21 +60,17 @@ export function TeamBusinessStages() {
       const leftBV = parseFloat(data.leftBV || '0');
       const rightBV = parseFloat(data.rightBV || '0');
       
-      // Define rank requirements (you can adjust these based on your MLM plan)
-      const rankRequirements = {
-        'Executive': { teamBV: '0', leftBV: '0', rightBV: '0', directRecruits: 0 },
-        'Bronze Star': { teamBV: '10000', leftBV: '5000', rightBV: '5000', directRecruits: 2 },
-        'Gold Star': { teamBV: '25000', leftBV: '12500', rightBV: '12500', directRecruits: 4 },
-        'Emerald Star': { teamBV: '50000', leftBV: '25000', rightBV: '25000', directRecruits: 6 },
-        'Ruby Star': { teamBV: '100000', leftBV: '50000', rightBV: '50000', directRecruits: 8 },
-        'Diamond': { teamBV: '250000', leftBV: '125000', rightBV: '125000', directRecruits: 10 },
-        'Wise President': { teamBV: '500000', leftBV: '250000', rightBV: '250000', directRecruits: 12 },
-        'President': { teamBV: '1000000', leftBV: '500000', rightBV: '500000', directRecruits: 15 },
-        'Ambassador': { teamBV: '2500000', leftBV: '1250000', rightBV: '1250000', directRecruits: 20 },
-        'Deputy Director': { teamBV: '5000000', leftBV: '2500000', rightBV: '2500000', directRecruits: 25 },
-        'Director': { teamBV: '10000000', leftBV: '5000000', rightBV: '5000000', directRecruits: 30 },
-        'Founder': { teamBV: '25000000', leftBV: '12500000', rightBV: '12500000', directRecruits: 40 }
-      };
+      // Build rank requirements from database configurations
+      const rankRequirements: Record<string, { teamBV: string; leftBV: string; rightBV: string; directRecruits: number }> = {};
+      rankConfigs.forEach((config: any) => {
+        const teamBvValue = parseFloat(config.minTeamBv || '0');
+        rankRequirements[config.rankName] = {
+          teamBV: config.minTeamBv || '0',
+          leftBV: (teamBvValue / 2).toString(), // 50% on left leg
+          rightBV: (teamBvValue / 2).toString(), // 50% on right leg
+          directRecruits: config.minDirects || 0
+        };
+      });
       
       const ranks = Object.keys(rankRequirements);
       const currentRankIndex = ranks.indexOf(currentRank);
@@ -92,10 +98,10 @@ export function TeamBusinessStages() {
         nextRankRequirements: nextRankReq
       };
     },
-    enabled: !!user,
+    enabled: !!user && !!rankConfigs,
   });
 
-  if (isLoading) {
+  if (isLoading || isLoadingRanks) {
     return (
       <Card>
         <CardContent className="p-8">

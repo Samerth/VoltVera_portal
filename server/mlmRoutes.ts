@@ -1029,4 +1029,21 @@ router.patch('/profile', requireAuth, async (req, res) => {
   }
 });
 
+// ===== RANK CONFIGURATION ROUTES =====
+// Get all rank configurations for user dashboard
+router.get('/rank-configurations', requireAuth, async (req, res) => {
+  try {
+    const { rankConfigurations } = await import('@shared/schema');
+    const configs = await db
+      .select()
+      .from(rankConfigurations)
+      .where(eq(rankConfigurations.isActive, true));
+    
+    res.json(configs);
+  } catch (error) {
+    console.error('Error fetching rank configurations:', error);
+    res.status(500).json({ message: 'Failed to fetch rank configurations' });
+  }
+});
+
 export default router;

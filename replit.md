@@ -110,6 +110,11 @@ Preferred communication style: Simple, everyday language.
     - **Root Cause**: SQL join was using `eq(purchases.userId, users.id)` (Display ID with UUID), which never matched
     - **Fix**: Changed join to `eq(purchases.userId, users.userId)` to correctly match Display IDs
     - **Result**: All admin dashboard metrics now display accurate real-time data from production calculations
+  - **User Dashboard Rank Requirements Bug**: Fixed incorrect rank requirements showing hardcoded values instead of database configurations
+    - **Issue**: User dashboard showed wrong requirements for next rank (e.g., Bronze Star requirement showed ₹10,000 instead of ₹125,000)
+    - **Root Cause**: Rank requirements were hardcoded in TeamBusinessStages component instead of fetching from rank_configurations table
+    - **Fix**: Created `/api/rank-configurations` endpoint to fetch from database; updated frontend to use real-time data
+    - **Result**: User dashboard now shows accurate rank requirements from database (Bronze Star ₹1.25L, Gold Star ₹2.5L, etc.) matching official MLM plan
 
 # External Dependencies
 

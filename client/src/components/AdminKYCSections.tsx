@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Shield, Eye, CheckCircle, XCircle, Clock, FileText } from 'lucide-react';
+import { Shield, Eye, CheckCircle, XCircle, Clock, FileText, RefreshCw } from 'lucide-react';
 
 interface UserKYCData {
   kycId: string;
@@ -73,6 +73,13 @@ export const PendingKYCSection: React.FC = () => {
 
   useEffect(() => {
     fetchPendingKYC();
+    
+    // Auto-refresh every 30 seconds to catch status changes
+    const intervalId = setInterval(() => {
+      fetchPendingKYC();
+    }, 30000);
+    
+    return () => clearInterval(intervalId);
   }, []);
 
   // Fetch documents for a specific user
@@ -221,6 +228,25 @@ export const PendingKYCSection: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <div className="text-sm text-gray-600">
+          Showing {userKYCData.length} pending KYC request{userKYCData.length !== 1 ? 's' : ''} • Auto-refreshes every 30s
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            setLoading(true);
+            fetchPendingKYC();
+          }}
+          disabled={loading}
+          data-testid="button-refresh-pending-kyc"
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </div>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse border border-gray-300">
           <thead>
@@ -932,6 +958,13 @@ export const RejectedKYCSection: React.FC = () => {
 
   useEffect(() => {
     fetchRejectedKYC();
+    
+    // Auto-refresh every 30 seconds to catch status changes
+    const intervalId = setInterval(() => {
+      fetchRejectedKYC();
+    }, 30000);
+    
+    return () => clearInterval(intervalId);
   }, []);
 
   // Fetch documents for a specific user
@@ -1049,6 +1082,25 @@ export const RejectedKYCSection: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <div className="text-sm text-gray-600">
+          Showing {userKYCData.length} rejected KYC request{userKYCData.length !== 1 ? 's' : ''} • Auto-refreshes every 30s
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            setLoading(true);
+            fetchRejectedKYC();
+          }}
+          disabled={loading}
+          data-testid="button-refresh-rejected-kyc"
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </div>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse border border-gray-300">
           <thead>

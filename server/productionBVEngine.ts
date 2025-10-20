@@ -124,7 +124,9 @@ export class ProductionBVEngine {
     await db.update(lifetimeBvCalculations)
       .set({
         selfBv: newSelfBV.toString(),
-        teamBv: (parseFloat(currentRecord.leftBv || '0') + parseFloat(currentRecord.rightBv || '0') + newSelfBV).toString(),
+        // IMPORTANT: teamBV should ONLY include downline (left + right), NOT self purchases
+        // Self BV doesn't count toward rank qualification
+        teamBv: (parseFloat(currentRecord.leftBv || '0') + parseFloat(currentRecord.rightBv || '0')).toString(),
         updatedAt: now
       })
       .where(eq(lifetimeBvCalculations.userId, userId));

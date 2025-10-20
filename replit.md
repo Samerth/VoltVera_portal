@@ -125,6 +125,17 @@ Preferred communication style: Simple, everyday language.
       2. Added `checkAndUpdateRank()` method to productionBVEngine.ts - automatically checks if user qualifies for higher rank based on current team BV
       3. Modified `processBVMatching()` to call `checkAndUpdateRank()` before calculating differential income, ensuring percentage uses updated rank
     - **Result**: Users now get correct differential income percentage immediately when they qualify for new rank (Executive 6% → Bronze Star 10% → Gold Star 12%, etc.)
+  - **Self BV Incorrectly Counting Toward Rank Qualification Bug** (October 20, 2025): ✅ FIXED
+    - **Issue**: Users were getting promoted to higher ranks just by purchasing large packages for themselves, without building any downline
+    - **Example**: User VV2QGOIP purchased Master Franchise (1,250,000 BV) and immediately got promoted to Emerald Star with ₹36,000 bonus, despite having no downline
+    - **Root Cause**: `updateSelfBV()` in productionBVEngine.ts line 127 was calculating `teamBV = leftBV + rightBV + selfBV` (WRONG - included user's own purchases in team BV)
+    - **Fix**: Changed teamBV calculation to `teamBV = leftBV + rightBV` (only downline BV counts)
+    - **Result**: 
+      - ✅ Rank qualification now requires actual downline/team building
+      - ✅ Self purchases increase selfBV but NOT teamBV
+      - ✅ Users only get promoted when their DOWNLINE generates BV
+      - ✅ No more false rank promotions from buying packages for themselves
+    - **Impact**: Users who were incorrectly promoted via self-purchases in production may need manual rank/bonus adjustment
 
 # External Dependencies
 

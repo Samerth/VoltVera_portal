@@ -16,6 +16,7 @@ import {
   achievers,
   cheques,
   news,
+  lifetimeBvCalculations,
   type User,
   type UpsertUser,
   type CreateUser,
@@ -851,26 +852,33 @@ export class DatabaseStorage implements IStorage {
       db.select({ count: sql<number>`count(*)` }).from(kycDocuments).where(eq(kycDocuments.status, 'pending')),
       db.select({ count: sql<number>`count(*)` }).from(withdrawalRequests).where(eq(withdrawalRequests.status, 'pending')),
       db.select({ count: sql<number>`count(*)` }).from(franchiseRequests).where(eq(franchiseRequests.status, 'pending')),
-      // Exclude admin purchases from count
+      // Exclude admin purchases from count - FIXED: Join using Display ID
       db.select({ count: sql<number>`count(*)` })
         .from(purchases)
-        .innerJoin(users, eq(purchases.userId, users.id))
+        .innerJoin(users, eq(purchases.userId, users.userId))
         .where(ne(users.role, 'admin'))
     ]);
     
-    // Calculate total BV in system (excluding admin users)
-    const nonAdminUsers = await db.select({ totalBV: users.totalBV })
-      .from(users)
-      .where(eq(users.role, 'user'));
-    const totalBV = nonAdminUsers.reduce((sum, user) => sum + parseFloat(user.totalBV || '0'), 0);
+    // Calculate total BV in system from lifetimeBvCalculations (excluding admin users)
+    const bvRecords = await db
+      .select({ 
+        teamBv: lifetimeBvCalculations.teamBv,
+        userId: lifetimeBvCalculations.userId 
+      })
+      .from(lifetimeBvCalculations)
+      .innerJoin(users, eq(lifetimeBvCalculations.userId, users.userId))
+      .where(ne(users.role, 'admin'));
+    
+    const totalBV = bvRecords.reduce((sum, record) => sum + parseFloat(record.teamBv || '0'), 0);
     
     // Calculate monthly income from actual transactions for current month (excluding admin users)
+    // FIXED: Join using Display ID
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     
     const monthlyTransactions = await db.select({ amount: transactions.amount })
       .from(transactions)
-      .innerJoin(users, eq(transactions.userId, users.id))
+      .innerJoin(users, eq(transactions.userId, users.userId))
       .where(
         and(
           gte(transactions.createdAt, firstDayOfMonth),

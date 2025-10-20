@@ -99,6 +99,17 @@ Preferred communication style: Simple, everyday language.
     - **Fix**: Added `formatIncomeType()` function to map database values to user-friendly names
     - **Mappings**: sponsor_income → "Direct Income", sales_bonus → "Differential Income", and all other income types to readable names
     - **Result**: Income reports now correctly show user details and display user-friendly income type names consistent with user portal
+  - **Admin Dashboard Metrics Bug**: Fixed incorrect data display for Total BV, Monthly Income, and Total Purchases
+    - **Issue 1**: Total Business Volume showed 0 or incorrect values
+    - **Root Cause**: Was reading from outdated `users.totalBV` column instead of `lifetimeBvCalculations.teamBv`
+    - **Fix**: Updated to query `lifetimeBvCalculations` table and sum `teamBv` from all non-admin users
+    - **Issue 2**: Monthly Income showed 0 or incorrect values
+    - **Root Cause**: SQL join was using `eq(transactions.userId, users.id)` (Display ID with UUID), which never matched
+    - **Fix**: Changed join to `eq(transactions.userId, users.userId)` to correctly match Display IDs
+    - **Issue 3**: Total Purchases showed 0 or incorrect values
+    - **Root Cause**: SQL join was using `eq(purchases.userId, users.id)` (Display ID with UUID), which never matched
+    - **Fix**: Changed join to `eq(purchases.userId, users.userId)` to correctly match Display IDs
+    - **Result**: All admin dashboard metrics now display accurate real-time data from production calculations
 
 # External Dependencies
 

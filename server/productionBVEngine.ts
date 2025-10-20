@@ -7,7 +7,8 @@ import {
   lifetimeBvCalculations, // PRODUCTION BV TABLE
   monthlyBv, // PRODUCTION BV TABLE
   bvTransactions, // PRODUCTION BV TABLE
-  rankConfigurations // MAIN PRODUCTION TABLE
+  rankConfigurations, // MAIN PRODUCTION TABLE
+  rankAchievements // MAIN PRODUCTION TABLE
 } from '../shared/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 
@@ -220,10 +221,14 @@ export class ProductionBVEngine {
     const newMatchingBV = Math.min(newLeftBV, newRightBV);
     const newMatch = Math.max(0, newMatchingBV - prevMatchingBV);
 
-    // Get rank percentage from rank_configurations table
+    // Check and auto-update rank based on current team BV
+    const teamBV = newLeftBV + newRightBV;
+    const updatedRank = await this.checkAndUpdateRank(userId, teamBV, user.currentRank || 'Executive');
+
+    // Get rank percentage from rank_configurations table (using potentially updated rank)
     const rankConfig = await db.select()
       .from(rankConfigurations)
-      .where(eq(rankConfigurations.rankName, user.currentRank || 'Executive'))
+      .where(eq(rankConfigurations.rankName, updatedRank))
       .limit(1);
 
     const rankPercentage = rankConfig.length > 0 ? parseFloat(rankConfig[0].percentage) : 0.05;
@@ -249,7 +254,7 @@ export class ProductionBVEngine {
       })
       .where(eq(lifetimeBvCalculations.userId, userId));
 
-    // Create BV transaction record for audit trail
+    // Create BV transaction record for audit trail (using updated rank)
     await db.insert(bvTransactions).values({
       userId: userId,
       parentId: user.parentId,
@@ -264,7 +269,7 @@ export class ProductionBVEngine {
       newMatchAmount: newMatch.toString(),
       carryForwardLeft: carryForwardLeft.toString(),
       carryForwardRight: carryForwardRight.toString(),
-      rank: user.currentRank || 'Executive',
+      rank: updatedRank,
       rankPercentage: rankPercentage.toString(),
       diffIncome: diffIncome.toString(),
       directIncome: directIncome.toString(),
@@ -285,7 +290,7 @@ export class ProductionBVEngine {
     // Credit differential income if any
     if (diffIncome > 0) {
       await this.creditWallet(userId, diffIncome, 'sales_bonus', purchaseId);
-      console.log(`💎 Differential income: ${diffIncome} to ${userId} (${user.currentRank} - ${rankPercentage * 100}%)`);
+      console.log(`💎 Differential income: ${diffIncome} to ${userId} (${updatedRank} - ${rankPercentage * 100}%)`);
     }
 
     console.log(`📈 BV Update for ${userId}:`);
@@ -301,6 +306,102 @@ export class ProductionBVEngine {
   async getUserByDisplayId(userId: string) {
     const [user] = await db.select().from(users).where(eq(users.userId, userId));
     return user;
+  }
+
+  /**
+   * Check if user qualifies for a higher rank based on team BV and auto-update if eligible
+   * @param userId - Display ID of the user
+   * @param teamBV - Current team BV (left + right)
+   * @param currentRank - User's current rank
+   * @returns The user's current or newly updated rank
+   */
+  async checkAndUpdateRank(userId: string, teamBV: number, currentRank: string): Promise<string> {
+    // Rank criteria based on team BV requirements
+    const rankOrder = [
+      { rank: 'Executive', minBV: 0 },
+      { rank: 'Bronze Star', minBV: 125000 },
+      { rank: 'Gold Star', minBV: 250000 },
+      { rank: 'Emerald Star', minBV: 900000 },
+      { rank: 'Ruby Star', minBV: 1800000 },
+      { rank: 'Diamond', minBV: 4500000 },
+      { rank: 'Wise President', minBV: 9000000 },
+      { rank: 'President', minBV: 27000000 },
+      { rank: 'Ambassador', minBV: 81000000 },
+      { rank: 'Deputy Director', minBV: 243000000 },
+      { rank: 'Director', minBV: 900000000 },
+      { rank: 'Founder', minBV: 2700000000 }
+    ];
+
+    // Find the highest rank user qualifies for
+    let qualifiedRank = 'Executive';
+    for (const rankData of rankOrder) {
+      if (teamBV >= rankData.minBV) {
+        qualifiedRank = rankData.rank;
+      } else {
+        break;
+      }
+    }
+
+    // Check if user qualifies for a higher rank than current
+    const currentRankIndex = rankOrder.findIndex(r => r.rank === currentRank);
+    const qualifiedRankIndex = rankOrder.findIndex(r => r.rank === qualifiedRank);
+
+    if (qualifiedRankIndex > currentRankIndex) {
+      // User qualifies for a higher rank - update it
+      console.log(`🎖️ Auto-updating rank for ${userId}: ${currentRank} → ${qualifiedRank} (Team BV: ${teamBV})`);
+      
+      // Update user's current rank
+      await db.update(users)
+        .set({ currentRank: qualifiedRank as any, updatedAt: new Date() })
+        .where(eq(users.userId, userId));
+
+      // Get BV breakdown for rank achievement
+      const lifetimeData = await db.select()
+        .from(lifetimeBvCalculations)
+        .where(eq(lifetimeBvCalculations.userId, userId))
+        .limit(1);
+
+      const leftBV = lifetimeData[0]?.leftBv || '0';
+      const rightBV = lifetimeData[0]?.rightBv || '0';
+
+      // Calculate rank achievement bonus
+      const rankBonuses: { [key: string]: number } = {
+        'Executive': 0,
+        'Bronze Star': 5000,
+        'Gold Star': 10000,
+        'Emerald Star': 36000,
+        'Ruby Star': 90000,
+        'Diamond': 225000,
+        'Wise President': 360000,
+        'President': 810000,
+        'Ambassador': 1620000,
+        'Deputy Director': 2500000,
+        'Director': 10000000,
+        'Founder': 35000000,
+      };
+      const bonus = rankBonuses[qualifiedRank] || 0;
+
+      // Create rank achievement record
+      await db.insert(rankAchievements).values({
+        userId: userId,
+        rank: qualifiedRank as any,
+        teamBV: teamBV.toString(),
+        leftBV: leftBV,
+        rightBV: rightBV,
+        bonus: bonus.toString(),
+      });
+
+      // Credit rank achievement bonus to wallet
+      if (bonus > 0) {
+        await this.creditWallet(userId, bonus, 'sales_bonus', undefined);
+        console.log(`🎁 Rank Achievement Bonus: ₹${bonus} credited to ${userId} for ${qualifiedRank}`);
+      }
+
+      return qualifiedRank;
+    }
+
+    // No rank update needed
+    return currentRank;
   }
 
   /**

@@ -115,6 +115,16 @@ Preferred communication style: Simple, everyday language.
     - **Root Cause**: Rank requirements were hardcoded in TeamBusinessStages component instead of fetching from rank_configurations table
     - **Fix**: Created `/api/rank-configurations` endpoint to fetch from database; updated frontend to use real-time data
     - **Result**: User dashboard now shows accurate rank requirements from database (Bronze Star ₹1.25L, Gold Star ₹2.5L, etc.) matching official MLM plan
+  - **Differential Income Percentage Not Updating Bug** (October 20, 2025): ✅ FIXED
+    - **Issue**: Differential income calculations used wrong percentage after parent became Bronze Star (stayed at 6% instead of updating to 10%)
+    - **Root Causes**:
+      1. `createRankAchievement()` in storage.ts used wrong SQL join - `eq(users.id, userId)` compared Display ID with UUID, so rank updates never happened
+      2. No automatic rank checking during BV processing - ranks only checked after buyer's purchase, not parent's BV updates
+    - **Fixes Applied**:
+      1. Fixed `createRankAchievement()` to use `eq(users.userId, userId)` for correct Display ID matching
+      2. Added `checkAndUpdateRank()` method to productionBVEngine.ts - automatically checks if user qualifies for higher rank based on current team BV
+      3. Modified `processBVMatching()` to call `checkAndUpdateRank()` before calculating differential income, ensuring percentage uses updated rank
+    - **Result**: Users now get correct differential income percentage immediately when they qualify for new rank (Executive 6% → Bronze Star 10% → Gold Star 12%, etc.)
 
 # External Dependencies
 

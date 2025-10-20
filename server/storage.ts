@@ -4169,7 +4169,7 @@ export class DatabaseStorage implements IStorage {
     // Update user's current rank
     await db.update(users)
       .set({ currentRank: rank })
-      .where(eq(users.id, userId));
+      .where(eq(users.userId, userId));
 
     // Credit rank achievement bonus
     if (bonus > 0) {

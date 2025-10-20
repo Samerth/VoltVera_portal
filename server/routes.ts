@@ -914,11 +914,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Update KYC document (simple field updates for re-uploads) - supports both URL and binary data
   app.put("/api/kyc/documents/:id", async (req, res) => {
+    // SECURITY: Require authentication
+    const userId = getActualUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized - Authentication required" });
+    }
+    
     try {
       const { id } = req.params;
       const { documentUrl, documentNumber, documentData, documentContentType, documentFilename } = req.body;
       
-      console.log(`📝 PUT /api/kyc/documents/${id} - Updating KYC document`);
+      console.log(`📝 PUT /api/kyc/documents/${id} - User ${userId} updating KYC document`);
       console.log('   Request body keys:', Object.keys(req.body));
       
       // Fetch the document to check ownership
@@ -926,6 +932,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!existingDoc) {
         console.log(`   ❌ Document ${id} not found`);
         return res.status(404).json({ message: "Document not found" });
+      }
+      
+      // SECURITY: Verify ownership or admin access
+      const user = await storage.getUserById(userId);
+      const isAdmin = user?.role === 'admin';
+      const isOwner = existingDoc.userId === userId;
+      
+      if (!isOwner && !isAdmin) {
+        console.log(`   ❌ Access denied: User ${userId} does not own document ${id} and is not admin`);
+        return res.status(403).json({ message: "Forbidden - You can only update your own documents" });
+      }
+      
+      console.log(`   ✅ Access granted: ${isAdmin ? 'Admin' : 'Owner'} updating document`);
+      
+      // SECURITY: Validate request body with strict schema
+      const updateSchema = z.object({
+        documentUrl: z.string().optional(),
+        documentNumber: z.string().optional(),
+        documentData: z.string().optional(),
+        documentContentType: z.string().optional(),
+        documentFilename: z.string().optional(),
+      }).strict().refine(
+        (data) => data.documentUrl || data.documentNumber || data.documentData,
+        { message: "At least one field (documentUrl, documentNumber, or documentData) must be provided" }
+      );
+      
+      const validation = updateSchema.safeParse(req.body);
+      if (!validation.success) {
+        console.log('   ❌ Validation failed:', validation.error.errors);
+        return res.status(400).json({ 
+          message: "Invalid request body", 
+          errors: validation.error.errors 
+        });
       }
       
       // Build update payload based on what's provided
@@ -952,18 +991,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('   📄 Updating documentNumber to:', documentNumber);
       }
       
-      // Ensure at least one field is being updated
-      if (Object.keys(updatePayload).length === 0) {
-        console.log('   ❌ No fields to update');
-        return res.status(400).json({ 
-          message: "At least one field (documentUrl, documentNumber, or documentData) must be provided" 
-        });
-      }
-      
       // Perform the update
       console.log('   🔄 Calling storage.updateKYCDocument...');
       const updatedDocument = await storage.updateKYCDocument(id, updatePayload);
-      console.log('   ✅ Document updated successfully');
+      console.log(`   ✅ Document updated successfully by user ${userId} (${isAdmin ? 'admin' : 'owner'})`);
+      
+      // AUDIT LOG: Log the update action
+      console.log(`📝 AUDIT: User ${userId} updated KYC document ${id} for user ${existingDoc.userId}`);
       
       res.json(updatedDocument);
     } catch (error) {

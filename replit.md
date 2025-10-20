@@ -76,3 +76,27 @@ Preferred communication style: Simple, everyday language.
 - **connect-pg-simple**: PostgreSQL session store.
 - **Memoizee**: Function memoization.
 - **SendGrid**: Email services.
+
+# Recent Bug Fixes
+
+## KYC System Bugs (October 20, 2025)
+
+### 1. KYC Re-upload Status Display Bug ✅ FIXED
+- **Issue**: Admin panel showed stale KYC status after users re-uploaded documents
+- **Root Cause**: Frontend caching - no auto-refresh mechanism
+- **Fix**: Added 30-second auto-refresh + manual refresh button to both Pending and Rejected KYC admin sections
+- **Files**: `client/src/components/AdminKYCSections.tsx`
+
+### 2. Multi-Document Re-Upload Reversion Bug ✅ FIXED
+- **Issue**: Users re-uploading multiple KYC documents after rejection would have their status incorrectly revert:
+  - 1st re-upload: 'rejected' → 'pending' ✅
+  - 2nd re-upload: 'pending' → 'rejected' ❌ (BUG)
+  - 3rd+ re-uploads: continued reverting ❌
+- **Root Cause**: Backend logic only checked if user WAS rejected (`wasRejected`), not if currently pending (`isPending`)
+  - So 2nd re-upload used normal logic, found other rejected docs, reverted user status
+- **Fix**: 
+  1. Added `isPending` check in `storage.ts updateKYCDocument()` (lines 3429-3431, 3493-3495)
+  2. Changed condition from `if (wasRejected)` to `if (wasRejected || isPending)`
+  3. Added missing API route `PUT /api/kyc/documents/:id` for simple field updates (server/routes.ts lines 918-976)
+- **Verification**: E2E test confirmed users can re-upload all documents and stay in 'pending' throughout
+- **Files**: `server/storage.ts`, `server/routes.ts`

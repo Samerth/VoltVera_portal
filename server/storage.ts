@@ -3424,7 +3424,8 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, currentDoc.userId));
 
     const wasRejected = currentUser?.kycStatus === 'rejected';
-    console.log(`🔄 Updating KYC document ${id} for user ${currentDoc.userId}. Was rejected: ${wasRejected}`);
+    const isPending = currentUser?.kycStatus === 'pending';
+    console.log(`🔄 Updating KYC document ${id} for user ${currentDoc.userId}. Was rejected: ${wasRejected}, Currently pending: ${isPending}`);
 
     const updateData: any = {
       status: 'pending' as const, // Reset status to pending when updated
@@ -3483,13 +3484,14 @@ export class DatabaseStorage implements IStorage {
       // Determine overall KYC status
       let overallKYCStatus = 'pending';
       
-      // If this is a re-verification request (user was previously rejected), 
-      // always set to pending to bring it back for admin review
-      if (wasRejected) {
+      // FIX: If user is re-uploading documents (was rejected OR currently pending),
+      // keep them in pending status to allow multiple document re-uploads
+      // without reverting back to rejected status
+      if (wasRejected || isPending) {
         overallKYCStatus = 'pending';
-        console.log(`🔄 Re-verification request detected for user ${updatedDoc.userId} - setting status to pending`);
+        console.log(`🔄 Re-verification/update request detected for user ${updatedDoc.userId} - keeping status as pending (wasRejected: ${wasRejected}, isPending: ${isPending})`);
       } else {
-        // Normal logic for non-rejected users
+        // Normal logic for new users or approved users
         if (allUserKYC.some(doc => doc.status === 'rejected')) {
           overallKYCStatus = 'rejected';
         } else if (allUserKYC.length > 0 && allUserKYC.every(doc => doc.status === 'approved')) {
@@ -3528,7 +3530,7 @@ export class DatabaseStorage implements IStorage {
       }
       
       // Create notification for re-verification request
-      if (overallKYCStatus === 'pending' && wasRejected) {
+      if (overallKYCStatus === 'pending' && (wasRejected || isPending)) {
         const { notifications } = await import('@shared/schema');
         await db.insert(notifications).values({
           userId: updatedDoc.userId,

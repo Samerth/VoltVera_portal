@@ -326,7 +326,7 @@ export class ProductionBVEngine {
       { rank: 'Emerald Star', minBV: 900000 },
       { rank: 'Ruby Star', minBV: 1800000 },
       { rank: 'Diamond', minBV: 4500000 },
-      { rank: 'Wise President', minBV: 9000000 },
+      { rank: 'Vice President', minBV: 9000000 },
       { rank: 'President', minBV: 27000000 },
       { rank: 'Ambassador', minBV: 81000000 },
       { rank: 'Deputy Director', minBV: 243000000 },
@@ -366,7 +366,7 @@ export class ProductionBVEngine {
       const leftBV = lifetimeData[0]?.leftBv || '0';
       const rightBV = lifetimeData[0]?.rightBv || '0';
 
-      // Calculate rank achievement bonus
+      // Calculate rank achievement bonuses (including all skipped ranks)
       const rankBonuses: { [key: string]: number } = {
         'Executive': 0,
         'Bronze Star': 5000,
@@ -374,29 +374,41 @@ export class ProductionBVEngine {
         'Emerald Star': 36000,
         'Ruby Star': 90000,
         'Diamond': 225000,
-        'Wise President': 360000,
+        'Vice President': 360000,
         'President': 810000,
         'Ambassador': 1620000,
         'Deputy Director': 2500000,
         'Director': 10000000,
         'Founder': 35000000,
       };
-      const bonus = rankBonuses[qualifiedRank] || 0;
 
-      // Create rank achievement record
-      await db.insert(rankAchievements).values({
-        userId: userId,
-        rank: qualifiedRank as any,
-        teamBV: teamBV.toString(),
-        leftBV: leftBV,
-        rightBV: rightBV,
-        bonus: bonus.toString(),
-      });
+      // Award bonuses for ALL ranks from current+1 to qualified rank
+      let totalBonus = 0;
+      const ranksAchieved: string[] = [];
+      
+      for (let i = currentRankIndex + 1; i <= qualifiedRankIndex; i++) {
+        const achievedRank = rankOrder[i].rank;
+        const bonus = rankBonuses[achievedRank] || 0;
+        totalBonus += bonus;
+        ranksAchieved.push(achievedRank);
+        
+        // Create rank achievement record for EACH rank achieved (including skipped ones)
+        await db.insert(rankAchievements).values({
+          userId: userId,
+          rank: achievedRank as any,
+          teamBV: teamBV.toString(),
+          leftBV: leftBV,
+          rightBV: rightBV,
+          bonus: bonus.toString(),
+        });
+        
+        console.log(`🎖️ Rank Achieved: ${achievedRank} - Bonus: ₹${bonus}`);
+      }
 
-      // Credit rank achievement bonus to wallet
-      if (bonus > 0) {
-        await this.creditWallet(userId, bonus, 'sales_bonus', undefined);
-        console.log(`🎁 Rank Achievement Bonus: ₹${bonus} credited to ${userId} for ${qualifiedRank}`);
+      // Credit total accumulated bonuses to wallet
+      if (totalBonus > 0) {
+        await this.creditWallet(userId, totalBonus, 'sales_bonus', undefined);
+        console.log(`🎁 Total Rank Achievement Bonuses: ₹${totalBonus} credited to ${userId} for advancing ${ranksAchieved.join(' → ')}`);
       }
 
       return qualifiedRank;

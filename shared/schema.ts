@@ -33,7 +33,7 @@ export const userRoleEnum = pgEnum('user_role', ['admin', 'user', 'founder', 'mi
 export const userStatusEnum = pgEnum('user_status', ['invited', 'registered', 'active', 'inactive', 'pending', 'rejected', 'suspended']);
 
 // Rank enum for MLM progression
-export const rankEnum = pgEnum('rank', ['Executive', 'Bronze Star', 'Gold Star', 'Emerald Star', 'Ruby Star', 'Diamond', 'Wise President', 'President', 'Ambassador', 'Deputy Director', 'Director', 'Founder']);
+export const rankEnum = pgEnum('rank', ['Executive', 'Bronze Star', 'Gold Star', 'Emerald Star', 'Ruby Star', 'Diamond', 'Vice President', 'President', 'Ambassador', 'Deputy Director', 'Director', 'Founder']);
 
 // Transaction type enum
 export const transactionTypeEnum = pgEnum('transaction_type', ['sponsor_income', 'sales_incentive', 'sales_bonus', 'consistency_bonus', 'franchise_income', 'car_fund', 'travel_fund', 'leadership_fund', 'house_fund', 'millionaire_club', 'royalty_income', 'withdrawal', 'purchase', 'admin_credit', 'admin_debit']);

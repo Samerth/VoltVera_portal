@@ -404,7 +404,7 @@ export default function BVTestSimulation() {
                   <SelectItem value="Emerald Star">Emerald Star (12%)</SelectItem>
                   <SelectItem value="Ruby Star">Ruby Star (15%)</SelectItem>
                   <SelectItem value="Diamond">Diamond (18%)</SelectItem>
-                  <SelectItem value="Wise President">Wise President (20%)</SelectItem>
+                  <SelectItem value="Vice President">Vice President (20%)</SelectItem>
                   <SelectItem value="President">President (22%)</SelectItem>
                   <SelectItem value="Ambassador">Ambassador (25%)</SelectItem>
                   <SelectItem value="Deputy Director">Deputy Director (28%)</SelectItem>

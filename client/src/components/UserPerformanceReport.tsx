@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const rankOptions = [
   'Executive', 'Bronze Star', 'Gold Star', 'Emerald Star', 'Ruby Star', 
-  'Diamond', 'Wise President', 'President', 'Ambassador', 
+  'Diamond', 'Vice President', 'President', 'Ambassador', 
   'Deputy Director', 'Director', 'Founder'
 ];
 

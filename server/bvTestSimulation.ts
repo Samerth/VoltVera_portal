@@ -12,7 +12,7 @@ export class BVTestEngine {
     'Emerald Star': 0.14,   // 14% (9 - 18 lakh)
     'Ruby Star': 0.16,      // 16% (18 - 45 lakh)
     'Diamond': 0.18,        // 18% (45 - 90 lakh)
-    'Wise President': 0.20, // 20% (90 lakh - 2.7 crore)
+    'Vice President': 0.20, // 20% (90 lakh - 2.7 crore)
     'President': 0.22,      // 22% (2.7 - 8.1 crore)
     'Ambassador': 0.24,     // 24% (8.1 - 24.3 crore)
     'Deputy Director': 0.26,// 26% (24.3 - 90 crore)

@@ -135,7 +135,7 @@ export function TeamBusinessStages() {
       'Emerald Star': <Star className="h-5 w-5 text-emerald-500" />,
       'Ruby Star': <Star className="h-5 w-5 text-red-500" />,
       'Diamond': <Trophy className="h-5 w-5 text-blue-500" />,
-      'Wise President': <Crown className="h-5 w-5 text-purple-500" />,
+      'Vice President': <Crown className="h-5 w-5 text-purple-500" />,
       'President': <Crown className="h-5 w-5 text-purple-600" />,
       'Ambassador': <Award className="h-5 w-5 text-indigo-500" />,
       'Deputy Director': <Zap className="h-5 w-5 text-amber-500" />,
@@ -347,7 +347,7 @@ export function TeamBusinessStages() {
                 <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
                   4
                 </div>
-                <span className="font-medium">Wise President → President → Ambassador</span>
+                <span className="font-medium">Vice President → President → Ambassador</span>
               </div>
               <Badge variant="outline">Executive Phase</Badge>
             </div>

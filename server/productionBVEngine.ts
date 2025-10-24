@@ -186,10 +186,12 @@ export class ProductionBVEngine {
     const prevLeftBV = parseFloat(currentRecord.leftBv || '0');
     const prevRightBV = parseFloat(currentRecord.rightBv || '0');
     const prevMatchingBV = parseFloat(currentRecord.matchingBv || '0');
+    const prevDirectsBV = parseFloat(currentRecord.directsBv || '0');
 
     // Calculate new BV state
     let newLeftBV = prevLeftBV;
     let newRightBV = prevRightBV;
+    let newDirectsBV = prevDirectsBV;
     const bvAmountNum = parseFloat(bvAmount);
 
     // Add BV to appropriate leg based on child's position
@@ -210,12 +212,13 @@ export class ProductionBVEngine {
       const buyerSponsorId = await this.normalizeToDisplayId(buyer?.sponsorId);
       
       if (buyerSponsorId === userId) {
-        // Buyer is a direct recruit - update directs BV and calculate direct income
+        // Buyer is a direct recruit - update directs BV (both monthly AND lifetime)
+        newDirectsBV += bvAmountNum;  // CRITICAL FIX: Accumulate lifetime Direct BV
         await this.updateMonthlyBV(userId, { directsBvIncrement: bvAmountNum });
         // Use provided sponsor percentage or default to 10%
         const percentage = sponsorPercentage || 0.1;
         directIncome = bvAmountNum * percentage;
-        console.log(`👥 Direct recruit BV: ${bvAmountNum} added to ${userId}'s directs`);
+        console.log(`👥 Direct recruit BV: ${bvAmountNum} added to ${userId}'s directs (Lifetime: ${prevDirectsBV} → ${newDirectsBV})`);
         console.log(`💰 Direct income for transaction: ${directIncome} (${percentage * 100}%) to ${userId}`);
       }
     }
@@ -247,6 +250,7 @@ export class ProductionBVEngine {
       .set({
         leftBv: newLeftBV.toString(),
         rightBv: newRightBV.toString(),
+        directsBv: newDirectsBV.toString(),  // CRITICAL FIX: Save lifetime Direct BV
         matchingBv: newMatchingBV.toString(),
         newMatch: newMatch.toString(),
         carryForwardLeft: carryForwardLeft.toString(),

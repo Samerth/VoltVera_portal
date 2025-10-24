@@ -151,6 +151,18 @@ Fixed critical bugs where `selfBv` (user's own purchases) was being incorrectly 
 - ✅ Confirmed Direct BV (`directsBv`/`monthBvDirects`) is used for fund eligibility and direct income
 - ✅ Confirmed `selfBv` is now ONLY used for tracking/display purposes
 
+## Critical Direct BV Accumulation Bug (October 24, 2025)
+
+### Bug #4: Lifetime directsBv Never Accumulates ✅ FIXED
+- **Issue**: `server/productionBVEngine.ts` line 256 was missing `directsBv` in lifetime calculations update
+- **Impact**: Lifetime Direct BV from direct recruits' purchases was never accumulated, always showing 0
+- **Fix**: 
+  - Added `prevDirectsBV` tracking (line 192)
+  - Increment `newDirectsBV` when direct recruit purchases (line 219)  
+  - Save `directsBv` to database (line 256)
+- **File**: `server/productionBVEngine.ts`
+- **Root Cause**: Code updated monthly `monthBvDirects` but forgot to update lifetime `directsBv` field
+
 ## KYC System Bugs (October 20, 2025)
 
 ### 1. KYC Re-upload Status Display Bug ✅ FIXED

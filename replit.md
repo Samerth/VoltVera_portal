@@ -77,6 +77,40 @@ Preferred communication style: Simple, everyday language.
 - **Memoizee**: Function memoization.
 - **SendGrid**: Email services.
 
+# Recent Features
+
+## Fund Eligibility on Monthly BV Report (October 24, 2025)
+
+### Overview
+Enhanced the Monthly BV Report with fund eligibility detection and filtering, allowing admins to identify users qualified for Car Fund, Travel Fund, Leadership Fund, House Fund, and Millionaire Club based on PPT requirements.
+
+### Implementation
+- **Backend** (`server/productionBVRoutes.ts`):
+  - Added `fundEligibility` object to each monthly BV record
+  - Calculates eligibility based on rank, direct BV (self-repurchase), and team BV
+  - Returns eligibility flags for all 5 fund types
+  
+- **Frontend** (`client/src/components/MonthlyBVReport.tsx`):
+  - Added fund filter dropdown (All/Car/Travel/Leadership/House/Millionaire)
+  - New summary cards showing count of users eligible for each fund
+  - Added fund eligibility columns to table with colored badges (✓ or -)
+  - Enhanced CSV export with all fund eligibility data
+  - Filter dynamically updates table, statistics, and export
+
+### Fund Requirements (from PPT)
+| Fund | Rank | Direct BV/Month | Team BV/Month | Downline Achievers Required |
+|------|------|-----------------|---------------|----------------------------|
+| Car Fund | Emerald Star | 2,250 | 12,000 | None |
+| Travel Fund | Ruby Star | 3,375 | 25,000 | 1 Car Fund |
+| Leadership Fund | Diamond | 4,500 | 45,000 | 1 Car + 1 Travel |
+| House Fund | Director | 6,750 | 75,000 | 1 Car + 1 Travel + 1 Leadership |
+| Millionaire Club | Founder | 11,250 | 150,000 | 1 Car + 1 Travel + 1 Leadership + 1 Royalty |
+
+### Notes
+- "Self Repurchase" = Direct BV (purchases by direct recruits = `monthBvDirects`)
+- Downline achiever requirements not yet implemented (basic rank + BV criteria only)
+- All funds reward 3% of Company Total BV according to PPT
+
 # Recent Bug Fixes
 
 ## KYC System Bugs (October 20, 2025)

@@ -775,7 +775,7 @@ export function registerProductionBVRoutes(app: Express) {
             '0.00',
           
           // Lifetime BV metrics
-          lifetimeDirectBV: lifetimeBV?.selfBv || '0.00',
+          lifetimeDirectBV: lifetimeBV?.directsBv || '0.00',  // CORRECTED: Use directsBv (purchases by direct recruits), NOT selfBv (user's own purchases)
           lifetimeLeftBV: lifetimeBV?.leftBv || '0.00',
           lifetimeRightBV: lifetimeBV?.rightBv || '0.00',
           lifetimeTeamBV: lifetimeBV?.teamBv || '0.00',

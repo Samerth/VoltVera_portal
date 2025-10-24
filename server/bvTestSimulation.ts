@@ -263,7 +263,9 @@ export class BVTestEngine {
     await db.update(lifetimeBvCalculations)
       .set({
         selfBv: newSelfBV.toString(),
-        teamBv: (parseFloat(currentRecord.leftBv || '0') + parseFloat(currentRecord.rightBv || '0') + newSelfBV).toString(),
+        // CRITICAL FIX: teamBv should ONLY include downline (left + right), NOT user's own purchases (selfBv)
+        // User's own purchases should NEVER be used in any calculation
+        teamBv: (parseFloat(currentRecord.leftBv || '0') + parseFloat(currentRecord.rightBv || '0')).toString(),
         updatedAt: now
       })
       .where(eq(lifetimeBvCalculations.userId, userId));

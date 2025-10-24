@@ -163,6 +163,15 @@ Fixed critical bugs where `selfBv` (user's own purchases) was being incorrectly 
 - **File**: `server/productionBVEngine.ts`
 - **Root Cause**: Code updated monthly `monthBvDirects` but forgot to update lifetime `directsBv` field
 
+## Package Amount Tracking Bug (October 24, 2025)
+
+### Bug #5: packageAmount Always 0 ✅ FIXED
+- **Issue**: `users.packageAmount` field was defined but never populated during BV calculations
+- **Impact**: Dashboard always showed packageAmount as 0 instead of the user's matched BV value
+- **Fix**: Added `packageAmount: newMatchingBV.toString()` to users table update in `processBVMatching` (line 296)
+- **File**: `server/productionBVEngine.ts`
+- **Business Logic**: packageAmount now tracks the user's cumulative matched BV (min of left and right legs)
+
 ## KYC System Bugs (October 20, 2025)
 
 ### 1. KYC Re-upload Status Display Bug ✅ FIXED

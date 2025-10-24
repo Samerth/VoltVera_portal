@@ -167,11 +167,11 @@ export class BVTestEngine {
       await this.updateSelfBV(data.userId, bvAmount.toString(), purchase.id, data.monthId);
       console.log(`📊 Updated self_bv for ${data.userId}: +${bvAmount}`);
 
-      // Step 2: Direct income to PARENT (10% of BV)
-      if (user.parentId) {
+      // Step 2: Direct income to SPONSOR (10% of BV) - FIXED: was going to parent instead of sponsor
+      if (user.sponsorId) {
         const directIncome = bvAmount * 0.1;
-        await this.updateWalletBalance(user.parentId, directIncome, 'sponsor_income', purchase.id);
-        console.log(`💰 Direct income: ${directIncome} to parent ${user.parentId}`);
+        await this.updateWalletBalance(user.sponsorId, directIncome, 'sponsor_income', purchase.id);
+        console.log(`💰 Direct income: ${directIncome} to sponsor ${user.sponsorId}`);
       }
 
       // Step 3: Process BV calculations for all uplines (BV flows UP the tree)
@@ -193,8 +193,8 @@ export class BVTestEngine {
         const childPosition = childUser?.position as 'left' | 'right';
         console.log(`📍 Child ${childUserId} position relative to ${currentUserId}: ${childPosition}`);
         
-        // Process BV calculations for this upline
-        await this.processBVCalculations(currentUserId, bvAmount.toString(), purchase.id, data.monthId, childPosition);
+        // Process BV calculations for this upline, passing buyer ID for direct recruit tracking
+        await this.processBVCalculations(currentUserId, bvAmount.toString(), purchase.id, data.monthId, childPosition, data.userId);
         
         // Move up the tree: current user becomes the child for the next iteration
         childUserId = currentUserId;
@@ -296,7 +296,7 @@ export class BVTestEngine {
   }
 
   // Process BV calculations for a user
-  async processBVCalculations(userId: string, bvAmount: string, purchaseId: string, monthId: number, childPosition?: 'left' | 'right') {
+  async processBVCalculations(userId: string, bvAmount: string, purchaseId: string, monthId: number, childPosition?: 'left' | 'right', buyerUserId?: string) {
     const user = await this.getUser(userId);
     if (!user) return;
 
@@ -323,16 +323,29 @@ export class BVTestEngine {
     const prevLeftBV = parseFloat(currentRecord.leftBv || '0');
     const prevRightBV = parseFloat(currentRecord.rightBv || '0');
     const prevMatchingBV = parseFloat(currentRecord.matchingBv || '0');
+    const prevDirectsBV = parseFloat(currentRecord.directsBv || '0');
 
     // Calculate new BV state
     let newLeftBV = prevLeftBV;
     let newRightBV = prevRightBV;
+    let newDirectsBV = prevDirectsBV;
+    const bvAmountNum = parseFloat(bvAmount);
 
     // Add BV to appropriate leg based on child's position
     if (childPosition === 'left') {
-      newLeftBV += parseFloat(bvAmount);
+      newLeftBV += bvAmountNum;
     } else if (childPosition === 'right') {
-      newRightBV += parseFloat(bvAmount);
+      newRightBV += bvAmountNum;
+    }
+
+    // Check if buyer is a direct recruit (sponsored by this upline) - NEW TRACKING
+    if (buyerUserId) {
+      const buyer = await this.getUser(buyerUserId);
+      if (buyer && buyer.sponsorId === userId) {
+        // Buyer is a direct recruit - update directs BV
+        newDirectsBV += bvAmountNum;
+        console.log(`👥 Direct recruit BV: ${bvAmountNum} added to ${userId}'s directs (Lifetime: ${prevDirectsBV} → ${newDirectsBV})`);
+      }
     }
 
     // Calculate matching BV
@@ -358,6 +371,7 @@ export class BVTestEngine {
       .set({
         leftBv: newLeftBV.toString(),
         rightBv: newRightBV.toString(),
+        directsBv: newDirectsBV.toString(),  // Track lifetime Direct BV
         matchingBv: newMatchingBV.toString(),
         newMatch: newMatch.toString(),
         carryForwardLeft: carryForwardLeft.toString(),

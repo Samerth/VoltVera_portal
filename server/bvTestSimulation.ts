@@ -396,6 +396,7 @@ export class BVTestEngine {
         leftBV: newLeftBV.toString(),
         rightBV: newRightBV.toString(),
         totalBV: (newLeftBV + newRightBV).toString(),
+        packageAmount: newMatchingBV.toString(),  // Track matched BV as package amount
         updatedAt: new Date()
       })
       .where(eq(usersBvTest.id, user.id));

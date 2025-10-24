@@ -290,6 +290,7 @@ export class ProductionBVEngine {
         leftBV: newLeftBV.toString(),
         rightBV: newRightBV.toString(),
         totalBV: (newLeftBV + newRightBV).toString(),
+        packageAmount: newMatchingBV.toString(),  // Track matched BV as package amount
         updatedAt: new Date()
       })
       .where(eq(users.userId, userId));

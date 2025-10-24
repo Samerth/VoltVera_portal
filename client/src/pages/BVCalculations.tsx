@@ -201,18 +201,27 @@ export default function BVCalculations() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Self BV</span>
-                  <span className="font-medium">{formatBV(lifetime?.selfBv || '0')}</span>
+                  <span className="text-sm text-gray-600">Your Own Purchases</span>
+                  <span className="font-medium text-gray-500">{formatBV(lifetime?.selfBv || '0')}</span>
+                </div>
+                <div className="text-xs text-gray-400 -mt-2 mb-2">
+                  (Not used for rank qualification or income)
                 </div>
                 <Separator />
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Directs BV</span>
-                  <span className="font-medium">{formatBV(lifetime?.directsBv || '0')}</span>
+                  <span className="text-sm text-gray-600">Direct Recruits' Purchases</span>
+                  <span className="font-medium text-purple-600">{formatBV(lifetime?.directsBv || '0')}</span>
+                </div>
+                <div className="text-xs text-purple-400 -mt-2 mb-2">
+                  (Used for fund eligibility)
                 </div>
                 <Separator />
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Team BV</span>
-                  <span className="font-medium">{formatBV(lifetime?.teamBv || '0')}</span>
+                  <span className="text-sm text-gray-600">Team BV (Downline)</span>
+                  <span className="font-medium text-blue-600">{formatBV(lifetime?.teamBv || '0')}</span>
+                </div>
+                <div className="text-xs text-blue-400 -mt-2 mb-2">
+                  (Used for rank qualification and matching income)
                 </div>
               </CardContent>
             </Card>

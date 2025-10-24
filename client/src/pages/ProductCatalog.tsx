@@ -538,27 +538,27 @@ export default function ProductCatalog() {
 
                   {/* BV Impact Preview */}
                   {bvData?.lifetime && (
-                    <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                      <h4 className="font-medium mb-2 text-green-800 flex items-center gap-2">
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                      <h4 className="font-medium mb-2 text-blue-800 flex items-center gap-2">
                         <TrendingUp className="h-4 w-4" />
                         BV Impact Preview
                       </h4>
-                      <div className="text-sm space-y-1 text-green-700">
+                      <div className="text-sm space-y-1 text-blue-700">
                         <div className="flex justify-between">
-                          <span>Current Self BV:</span>
+                          <span>Your Own Purchases (current):</span>
                           <span>{parseFloat(bvData.lifetime.selfBv || '0').toLocaleString()} BV</span>
                         </div>
                         <div className="flex justify-between font-medium">
-                          <span>After Purchase (Self BV):</span>
-                          <span className="text-green-600">
+                          <span>After This Purchase:</span>
+                          <span className="text-blue-600">
                             {(parseFloat(bvData.lifetime.selfBv || '0') + (parseFloat(selectedProduct.bv) * purchaseForm.quantity)).toLocaleString()} BV
                           </span>
                         </div>
-                        <div className="text-xs text-green-600 mt-2">
-                          * This purchase will increase your Self BV by {(parseFloat(selectedProduct.bv) * purchaseForm.quantity).toLocaleString()} BV
+                        <div className="text-xs text-gray-500 mt-2 italic">
+                          Note: Your own purchases are tracked for records but do NOT count for rank qualification or income
                         </div>
-                        <div className="text-xs text-gray-600 mt-1">
-                          * Your upline will receive this BV in their weaker leg
+                        <div className="text-xs text-blue-600 mt-2">
+                          ✓ Your upline will receive this BV in their weaker leg (used for their income)
                         </div>
                       </div>
                     </div>

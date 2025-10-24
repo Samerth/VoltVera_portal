@@ -596,6 +596,8 @@ export function registerProductionBVRoutes(app: Express) {
         monthBvDirects: monthlyBv.monthBvDirects,
         // Calculate total monthly BV
         totalMonthBv: sql<string>`CAST((${monthlyBv.monthBvLeft} + ${monthlyBv.monthBvRight}) AS DECIMAL(12,2))`,
+        // Add user rank for fund eligibility
+        currentRank: users.currentRank,
         createdAt: monthlyBv.createdAt,
         updatedAt: monthlyBv.updatedAt,
       })
@@ -613,7 +615,28 @@ export function registerProductionBVRoutes(app: Express) {
         .orderBy(desc(monthlyBv.monthId), desc(monthlyBv.createdAt))
         .limit(1000); // Limit to prevent huge responses
 
-      res.json(monthlyBvData);
+      // Calculate fund eligibility for each record
+      const enrichedData = monthlyBvData.map(record => {
+        const directBV = parseFloat(record.monthBvDirects || '0');
+        const teamBV = parseFloat(record.totalMonthBv || '0');
+        const rank = record.currentRank || 'Executive';
+
+        // Fund eligibility criteria
+        const fundEligibility = {
+          carFund: rank === 'Emerald Star' && directBV >= 2250 && teamBV >= 12000,
+          travelFund: rank === 'Ruby Star' && directBV >= 3375 && teamBV >= 25000,
+          leadershipFund: rank === 'Diamond' && directBV >= 4500 && teamBV >= 45000,
+          houseFund: rank === 'Director' && directBV >= 6750 && teamBV >= 75000,
+          millionaireClub: rank === 'Founder' && directBV >= 11250 && teamBV >= 150000,
+        };
+
+        return {
+          ...record,
+          fundEligibility,
+        };
+      });
+
+      res.json(enrichedData);
     } catch (error) {
       console.error('Error getting monthly BV report:', error);
       res.status(500).json({ 

@@ -12,6 +12,7 @@ export function MonthlyBVReport() {
   const [monthIdFilter, setMonthIdFilter] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [fundFilter, setFundFilter] = useState<string>('all');
 
   // Build query params
   const queryParams = new URLSearchParams();
@@ -41,7 +42,19 @@ export function MonthlyBVReport() {
     setMonthIdFilter('');
     setStartDate('');
     setEndDate('');
+    setFundFilter('all');
   };
+
+  // Filter data based on fund eligibility
+  const filteredData = monthlyBvData.filter((record: any) => {
+    if (fundFilter === 'all') return true;
+    if (fundFilter === 'car' && record.fundEligibility?.carFund) return true;
+    if (fundFilter === 'travel' && record.fundEligibility?.travelFund) return true;
+    if (fundFilter === 'leadership' && record.fundEligibility?.leadershipFund) return true;
+    if (fundFilter === 'house' && record.fundEligibility?.houseFund) return true;
+    if (fundFilter === 'millionaire' && record.fundEligibility?.millionaireClub) return true;
+    return false;
+  });
 
   const formatBV = (bv: string) => {
     return `${parseFloat(bv).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} BV`;
@@ -56,15 +69,21 @@ export function MonthlyBVReport() {
   };
 
   const exportToCSV = () => {
-    const csvData = monthlyBvData.map((record: any) => ({
+    const csvData = filteredData.map((record: any) => ({
       'User ID': record.userId,
       'User Name': record.userName || 'N/A',
       'Month ID': record.monthId,
       'Month Period': `${formatDate(record.monthStartdate)} - ${formatDate(record.monthEnddate)}`,
+      'Rank': record.currentRank || 'Executive',
       'Direct BV': record.monthBvDirects || '0.00',
       'Left BV': record.monthBvLeft || '0.00',
       'Right BV': record.monthBvRight || '0.00',
       'Total Team BV': record.totalMonthBv || '0.00',
+      'Car Fund': record.fundEligibility?.carFund ? 'Eligible' : 'Not Eligible',
+      'Travel Fund': record.fundEligibility?.travelFund ? 'Eligible' : 'Not Eligible',
+      'Leadership Fund': record.fundEligibility?.leadershipFund ? 'Eligible' : 'Not Eligible',
+      'House Fund': record.fundEligibility?.houseFund ? 'Eligible' : 'Not Eligible',
+      'Millionaire Club': record.fundEligibility?.millionaireClub ? 'Eligible' : 'Not Eligible',
     }));
 
     const headers = Object.keys(csvData[0] || {}).join(',');
@@ -82,16 +101,23 @@ export function MonthlyBVReport() {
     window.URL.revokeObjectURL(url);
   };
 
-  // Calculate summary statistics
-  const totalDirectBV = monthlyBvData.reduce((sum: number, record: any) => 
+  // Calculate summary statistics from filtered data
+  const totalDirectBV = filteredData.reduce((sum: number, record: any) => 
     sum + parseFloat(record.monthBvDirects || '0'), 0
   );
-  const totalLeftBV = monthlyBvData.reduce((sum: number, record: any) => 
+  const totalLeftBV = filteredData.reduce((sum: number, record: any) => 
     sum + parseFloat(record.monthBvLeft || '0'), 0
   );
-  const totalRightBV = monthlyBvData.reduce((sum: number, record: any) => 
+  const totalRightBV = filteredData.reduce((sum: number, record: any) => 
     sum + parseFloat(record.monthBvRight || '0'), 0
   );
+  
+  // Count fund eligible users
+  const carFundEligible = filteredData.filter((r: any) => r.fundEligibility?.carFund).length;
+  const travelFundEligible = filteredData.filter((r: any) => r.fundEligibility?.travelFund).length;
+  const leadershipFundEligible = filteredData.filter((r: any) => r.fundEligibility?.leadershipFund).length;
+  const houseFundEligible = filteredData.filter((r: any) => r.fundEligibility?.houseFund).length;
+  const millionaireClubEligible = filteredData.filter((r: any) => r.fundEligibility?.millionaireClub).length;
 
   return (
     <Card>
@@ -104,7 +130,7 @@ export function MonthlyBVReport() {
       <CardContent>
         {/* Filters */}
         <div className="mb-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div>
               <label className="text-sm font-medium mb-1 block">User (ID/Name/Email)</label>
               <Input
@@ -141,6 +167,22 @@ export function MonthlyBVReport() {
                 data-testid="input-end-date"
               />
             </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Fund Eligibility</label>
+              <select
+                className="w-full h-10 px-3 rounded-md border border-gray-300 bg-white text-sm"
+                value={fundFilter}
+                onChange={(e) => setFundFilter(e.target.value)}
+                data-testid="select-fund-filter"
+              >
+                <option value="all">All Users</option>
+                <option value="car">Car Fund Eligible</option>
+                <option value="travel">Travel Fund Eligible</option>
+                <option value="leadership">Leadership Fund Eligible</option>
+                <option value="house">House Fund Eligible</option>
+                <option value="millionaire">Millionaire Club Eligible</option>
+              </select>
+            </div>
           </div>
           <div className="flex gap-2">
             <Button 
@@ -167,32 +209,68 @@ export function MonthlyBVReport() {
 
         {/* Summary Statistics */}
         {monthlyBvData.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600">Total Records</p>
-              <p className="text-2xl font-bold text-blue-600" data-testid="text-total-records">
-                {monthlyBvData.length}
-              </p>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">Total Records</p>
+                <p className="text-2xl font-bold text-blue-600" data-testid="text-total-records">
+                  {filteredData.length}
+                </p>
+              </div>
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">Total Direct BV</p>
+                <p className="text-2xl font-bold text-purple-600" data-testid="text-total-direct-bv">
+                  {formatBV(totalDirectBV.toString())}
+                </p>
+              </div>
+              <div className="bg-green-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">Total Left BV</p>
+                <p className="text-2xl font-bold text-green-600" data-testid="text-total-left-bv">
+                  {formatBV(totalLeftBV.toString())}
+                </p>
+              </div>
+              <div className="bg-orange-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">Total Right BV</p>
+                <p className="text-2xl font-bold text-orange-600" data-testid="text-total-right-bv">
+                  {formatBV(totalRightBV.toString())}
+                </p>
+              </div>
             </div>
-            <div className="bg-purple-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600">Total Direct BV</p>
-              <p className="text-2xl font-bold text-purple-600" data-testid="text-total-direct-bv">
-                {formatBV(totalDirectBV.toString())}
-              </p>
+
+            {/* Fund Eligibility Summary */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+              <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                <p className="text-xs text-gray-600 mb-1">Car Fund</p>
+                <p className="text-xl font-bold text-yellow-700" data-testid="text-car-fund-count">
+                  {carFundEligible}
+                </p>
+              </div>
+              <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-200">
+                <p className="text-xs text-gray-600 mb-1">Travel Fund</p>
+                <p className="text-xl font-bold text-indigo-700" data-testid="text-travel-fund-count">
+                  {travelFundEligible}
+                </p>
+              </div>
+              <div className="bg-pink-50 p-3 rounded-lg border border-pink-200">
+                <p className="text-xs text-gray-600 mb-1">Leadership Fund</p>
+                <p className="text-xl font-bold text-pink-700" data-testid="text-leadership-fund-count">
+                  {leadershipFundEligible}
+                </p>
+              </div>
+              <div className="bg-teal-50 p-3 rounded-lg border border-teal-200">
+                <p className="text-xs text-gray-600 mb-1">House Fund</p>
+                <p className="text-xl font-bold text-teal-700" data-testid="text-house-fund-count">
+                  {houseFundEligible}
+                </p>
+              </div>
+              <div className="bg-red-50 p-3 rounded-lg border border-red-200">
+                <p className="text-xs text-gray-600 mb-1">Millionaire Club</p>
+                <p className="text-xl font-bold text-red-700" data-testid="text-millionaire-fund-count">
+                  {millionaireClubEligible}
+                </p>
+              </div>
             </div>
-            <div className="bg-green-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600">Total Left BV</p>
-              <p className="text-2xl font-bold text-green-600" data-testid="text-total-left-bv">
-                {formatBV(totalLeftBV.toString())}
-              </p>
-            </div>
-            <div className="bg-orange-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600">Total Right BV</p>
-              <p className="text-2xl font-bold text-orange-600" data-testid="text-total-right-bv">
-                {formatBV(totalRightBV.toString())}
-              </p>
-            </div>
-          </div>
+          </>
         )}
 
         {/* Loading State */}
@@ -211,48 +289,82 @@ export function MonthlyBVReport() {
 
         {/* Data Table */}
         {!isLoading && monthlyBvData.length > 0 && (
-          <div className="border rounded-lg overflow-hidden">
+          <div className="border rounded-lg overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>User ID</TableHead>
                   <TableHead>User Name</TableHead>
+                  <TableHead>Rank</TableHead>
                   <TableHead>Month ID</TableHead>
-                  <TableHead>Month Period</TableHead>
                   <TableHead>Direct BV</TableHead>
-                  <TableHead>Left BV</TableHead>
-                  <TableHead>Right BV</TableHead>
-                  <TableHead>Total Team BV</TableHead>
+                  <TableHead>Team BV</TableHead>
+                  <TableHead className="text-center">Car Fund</TableHead>
+                  <TableHead className="text-center">Travel</TableHead>
+                  <TableHead className="text-center">Leadership</TableHead>
+                  <TableHead className="text-center">House</TableHead>
+                  <TableHead className="text-center">Millionaire</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {monthlyBvData.map((record: any) => (
+                {filteredData.map((record: any) => (
                   <TableRow key={record.id}>
                     <TableCell>
                       <Badge variant="secondary" data-testid={`user-${record.id}`}>
                         {record.userId}
                       </Badge>
                     </TableCell>
-                    <TableCell>{record.userName || 'Unknown'}</TableCell>
+                    <TableCell className="whitespace-nowrap">{record.userName || 'Unknown'}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">
+                        {record.currentRank || 'Executive'}
+                      </Badge>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline" data-testid={`month-${record.id}`}>
                         {record.monthId}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-gray-500">
-                      {formatDate(record.monthStartdate)} - {formatDate(record.monthEnddate)}
-                    </TableCell>
                     <TableCell className="text-purple-600 font-medium" data-testid={`direct-bv-${record.id}`}>
                       {formatBV(record.monthBvDirects)}
                     </TableCell>
-                    <TableCell className="text-green-600 font-medium" data-testid={`left-bv-${record.id}`}>
-                      {formatBV(record.monthBvLeft)}
-                    </TableCell>
-                    <TableCell className="text-orange-600 font-medium" data-testid={`right-bv-${record.id}`}>
-                      {formatBV(record.monthBvRight)}
-                    </TableCell>
                     <TableCell className="text-blue-600 font-bold" data-testid={`total-bv-${record.id}`}>
                       {formatBV(record.totalMonthBv)}
+                    </TableCell>
+                    <TableCell className="text-center" data-testid={`car-fund-${record.id}`}>
+                      {record.fundEligibility?.carFund ? (
+                        <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">✓</Badge>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center" data-testid={`travel-fund-${record.id}`}>
+                      {record.fundEligibility?.travelFund ? (
+                        <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200">✓</Badge>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center" data-testid={`leadership-fund-${record.id}`}>
+                      {record.fundEligibility?.leadershipFund ? (
+                        <Badge className="bg-pink-100 text-pink-800 hover:bg-pink-200">✓</Badge>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center" data-testid={`house-fund-${record.id}`}>
+                      {record.fundEligibility?.houseFund ? (
+                        <Badge className="bg-teal-100 text-teal-800 hover:bg-teal-200">✓</Badge>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center" data-testid={`millionaire-fund-${record.id}`}>
+                      {record.fundEligibility?.millionaireClub ? (
+                        <Badge className="bg-red-100 text-red-800 hover:bg-red-200">✓</Badge>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

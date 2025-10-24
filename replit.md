@@ -106,8 +106,15 @@ Enhanced the Monthly BV Report with fund eligibility detection and filtering, al
 | House Fund | Director | 6,750 | 75,000 | 1 Car + 1 Travel + 1 Leadership |
 | Millionaire Club | Founder | 11,250 | 150,000 | 1 Car + 1 Travel + 1 Leadership + 1 Royalty |
 
+### Important Terminology
+- **"Self Repurchase" / "Self Purchase" / "User Purchase"** = Direct BV (purchases by **direct recruits**, stored in `monthBvDirects`)
+  - This is NOT the user's own product purchases
+  - This is BV from purchases made by users they directly recruited
+- **selfBv** (database field) = The user's own product purchases (does NOT count for rank qualification)
+- **Direct BV** (`monthBvDirects`) = Purchases by direct recruits (DOES count for fund eligibility)
+- **Team BV** = Total downline purchases (left + right legs, excluding user's own purchases)
+
 ### Notes
-- "Self Repurchase" = Direct BV (purchases by direct recruits = `monthBvDirects`)
 - Downline achiever requirements not yet implemented (basic rank + BV criteria only)
 - All funds reward 3% of Company Total BV according to PPT
 

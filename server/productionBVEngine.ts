@@ -124,8 +124,9 @@ export class ProductionBVEngine {
     await db.update(lifetimeBvCalculations)
       .set({
         selfBv: newSelfBV.toString(),
-        // IMPORTANT: teamBV should ONLY include downline (left + right), NOT self purchases
-        // Self BV doesn't count toward rank qualification
+        // IMPORTANT: teamBV = only downline purchases (left + right), NOT the user's own purchases (selfBv)
+        // The user's own purchases (selfBv) don't count toward rank qualification
+        // NOTE: "Direct BV" (monthBvDirects) = purchases by direct recruits, which IS different from selfBv
         teamBv: (parseFloat(currentRecord.leftBv || '0') + parseFloat(currentRecord.rightBv || '0')).toString(),
         updatedAt: now
       })

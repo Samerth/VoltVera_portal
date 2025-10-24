@@ -120,6 +120,37 @@ Enhanced the Monthly BV Report with fund eligibility detection and filtering, al
 
 # Recent Bug Fixes
 
+## Critical BV Calculation Bugs (October 24, 2025)
+
+### Overview
+Fixed critical bugs where `selfBv` (user's own purchases) was being incorrectly used in calculations. Per business requirements, user's own purchases should NEVER be used for any calculations - only Direct BV (purchases by direct recruits) should be used.
+
+### Bugs Fixed
+
+#### 1. User Performance Report - Wrong BV Source ✅ FIXED
+- **Issue**: `server/productionBVRoutes.ts` line 781 was using `selfBv` for "Lifetime Direct BV"
+- **Impact**: Reports showed user's own purchases instead of their direct recruits' purchases
+- **Fix**: Changed `lifetimeBV?.selfBv` to `lifetimeBV?.directsBv`
+- **File**: `server/productionBVRoutes.ts`
+
+#### 2. Test Simulation - selfBv Included in Team BV ✅ FIXED
+- **Issue**: `server/bvTestSimulation.ts` line 271 was adding `selfBv` to `teamBV` calculation
+- **Impact**: Test simulations showed inflated team BV values
+- **Fix**: Removed `+ newSelfBV` from teamBV formula (now only `left + right`)
+- **File**: `server/bvTestSimulation.ts`
+
+#### 3. Frontend Labels - Confusing Terminology ✅ FIXED
+- **Issue**: UI displayed "Self BV" without clarifying it's not used for calculations
+- **Impact**: Users might think their own purchases count for ranks/income
+- **Fix**: Updated labels to "Your Own Purchases" with notes that it's "Not used for rank qualification or income"
+- **Files**: `client/src/pages/BVCalculations.tsx`, `client/src/pages/ProductCatalog.tsx`
+
+### Verification
+- ✅ Confirmed `checkAndUpdateRank` only uses `teamBV` (left + right downline) for rank qualification
+- ✅ Confirmed `teamBV` calculation excludes `selfBv` everywhere
+- ✅ Confirmed Direct BV (`directsBv`/`monthBvDirects`) is used for fund eligibility and direct income
+- ✅ Confirmed `selfBv` is now ONLY used for tracking/display purposes
+
 ## KYC System Bugs (October 20, 2025)
 
 ### 1. KYC Re-upload Status Display Bug ✅ FIXED

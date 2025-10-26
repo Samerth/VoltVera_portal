@@ -80,7 +80,7 @@ export const users = pgTable("users", {
   order: integer("order").default(0), // Order within position (0, 1, 2...N)
   
   // Team Management Fields
-  packageAmount: decimal("package_amount", { precision: 10, scale: 2 }).default('0.00'),
+  packageAmount: varchar("package_amount").default('0.00'),  // Fixed: Match actual DB column type
   registrationDate: timestamp("registration_date").defaultNow(),
   activationDate: timestamp("activation_date"),
   idStatus: varchar("id_status").default('Inactive'),

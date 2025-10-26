@@ -172,6 +172,16 @@ Fixed critical bugs where `selfBv` (user's own purchases) was being incorrectly 
 - **File**: `server/productionBVEngine.ts`
 - **Business Logic**: packageAmount now tracks the user's cumulative matched BV (min of left and right legs)
 
+## Team BV Display Bug (October 26, 2025)
+
+### Bug #6: Team BV Showing Total Instead of Matched BV ✅ FIXED
+- **Issue**: Dashboard "Team BV" displayed the sum of left + right legs instead of the matched BV (minimum of both legs)
+- **Impact**: Users saw inflated Team BV numbers that didn't reflect actual income-generating BV
+- **Fix**: Updated `getTeamStats()` in `server/storage.ts` (line 1168-1178) to calculate and return matched BV: `Math.min(leftBV, rightBV)`
+- **File**: `server/storage.ts`
+- **Business Logic**: Team BV now correctly shows only the matched portion that generates differential income
+- **Example**: If Left=21000 and Right=21000, Team BV now shows 21,000 (matched) instead of 42,000 (total)
+
 ## KYC System Bugs (October 20, 2025)
 
 ### 1. KYC Re-upload Status Display Bug ✅ FIXED

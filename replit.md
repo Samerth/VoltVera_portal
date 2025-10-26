@@ -163,14 +163,18 @@ Fixed critical bugs where `selfBv` (user's own purchases) was being incorrectly 
 - **File**: `server/productionBVEngine.ts`
 - **Root Cause**: Code updated monthly `monthBvDirects` but forgot to update lifetime `directsBv` field
 
-## Package Amount Tracking Bug (October 24, 2025)
+## Package Amount Tracking Bug (October 26, 2025)
 
 ### Bug #5: packageAmount Always 0 ✅ FIXED
 - **Issue**: `users.packageAmount` field was defined but never populated during BV calculations
 - **Impact**: Dashboard always showed packageAmount as 0 instead of the user's matched BV value
-- **Fix**: Added `packageAmount: newMatchingBV.toString()` to users table update in `processBVMatching` (line 296)
-- **File**: `server/productionBVEngine.ts`
+- **Fix Applied**:
+  1. **Schema Fix**: Changed packageAmount type from `decimal` to `varchar` to match actual database column
+  2. **Code Fix**: Added `packageAmount: newMatchingBV.toString()` to users table update in `processBVMatching` (line 293)
+  3. **Data Backfill**: Ran SQL UPDATE to backfill packageAmount for existing users from their matching_bv in lifetime_bv_calculations table
+- **Files**: `server/productionBVEngine.ts`, `shared/schema.ts`
 - **Business Logic**: packageAmount now tracks the user's cumulative matched BV (min of left and right legs)
+- **SQL Backfill Query**: `UPDATE users SET package_amount = lbc.matching_bv FROM lifetime_bv_calculations lbc WHERE users.user_id = lbc.user_id`
 
 ## Team BV Display Bug (October 26, 2025)
 

@@ -1162,12 +1162,17 @@ export class DatabaseStorage implements IStorage {
       throw new Error(`User not found: ${userId}`);
     }
     
+    // Calculate matched BV (minimum of left and right legs)
+    const leftBV = parseFloat(user.leftBV || '0');
+    const rightBV = parseFloat(user.rightBV || '0');
+    const matchedBV = Math.min(leftBV, rightBV);
+    
     const result = {
       directRecruits: directMembers.length,
       totalDownline: allDownline.length,
       activeMembers: allDownline.filter(u => u.status === 'active').length,
       currentRank: user.currentRank || 'Executive',
-      teamBV: user.totalBV || '0.00',
+      teamBV: matchedBV.toFixed(2),  // FIXED: Return matched BV instead of total BV
       leftBV: user.leftBV || '0.00',
       rightBV: user.rightBV || '0.00',
       totalDirects: user.totalDirects || 0,

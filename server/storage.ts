@@ -493,7 +493,7 @@ export class DatabaseStorage implements IStorage {
     return usersWithSponsorIds as (User & { sponsorUserId: string | null })[];
   }
 
-  // Get paid members (users with approved KYC, bank details, and package amount > 0)
+  // Get paid members (users with approved KYC, bank details, and who have made any transactions)
   async getPaidMembers(): Promise<(User & { sponsorUserId: string | null })[]> {
     console.log('Looking for paid members...');
     
@@ -544,8 +544,8 @@ export class DatabaseStorage implements IStorage {
         sql`${users.bankName} IS NOT NULL AND ${users.bankName} != ''`,
         sql`${users.bankAccountHolderName} IS NOT NULL AND ${users.bankAccountHolderName} != ''`,
         
-        // Condition 5: Package amount should not be null and greater than 0
-        sql`${users.packageAmount} IS NOT NULL AND CAST(${users.packageAmount} AS DECIMAL) > 0`
+        // Condition 5: User has made at least one transaction (any type)
+        sql`EXISTS (SELECT 1 FROM transactions WHERE transactions.user_id = ${users.id})`
       )
     )
     .orderBy(desc(users.activationDate));
@@ -557,9 +557,9 @@ export class DatabaseStorage implements IStorage {
         id: u.id, 
         userId: u.userId, 
         email: u.email, 
-        packageAmount: u.packageAmount,
         kycStatus: u.kycStatus,
-        hasBankDetails: !!(u.bankAccountNumber && u.bankIFSC && u.bankName && u.bankAccountHolderName)
+        hasBankDetails: !!(u.bankAccountNumber && u.bankIFSC && u.bankName && u.bankAccountHolderName),
+        hasTransactions: true // All results have transactions by definition
       }))
     );
     

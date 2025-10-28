@@ -78,6 +78,23 @@ Preferred communication style: Simple, everyday language.
 - **Memoizee**: Function memoization.
 - **SendGrid**: Email services.
 
+# Recent Changes (October 28, 2025)
+
+## Feature Update: Paid Members Logic Changed ✅ UPDATED
+- **Change**: Modified "Paid Members" section criteria in admin dashboard
+- **Previous Logic**: 
+  - Active status + Approved KYC + Complete bank details + **Package Amount > 0**
+- **New Logic**:
+  - Active status + Approved KYC + Complete bank details + **Has made at least one transaction**
+- **Rationale**: Package amount represents cumulative matched BV, but actual fund transfers are a better indicator of active paid members
+- **Implementation**:
+  1. **Backend**: Updated `getPaidMembers()` in `server/storage.ts` (line 499-583)
+     - Replaced package amount check with: `EXISTS (SELECT 1 FROM transactions WHERE transactions.user_id = users.id)`
+  2. **Frontend**: Updated descriptions in `client/src/pages/AdminDashboard.tsx` (lines 1957, 1973)
+     - Changed from "active package" to "who have made transactions"
+- **Files**: `server/storage.ts`, `client/src/pages/AdminDashboard.tsx`
+- **Free Users Logic**: Unchanged - still shows users with package amount = 0 or null
+
 # Recent Bug Fixes (October 28, 2025)
 
 ## Bug #9: packageAmount Field Out of Sync ✅ FIXED

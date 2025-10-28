@@ -1951,7 +1951,7 @@ export default function AdminDashboard() {
                     Paid Members
                   </CardTitle>
                   <p className="text-sm text-gray-600">
-                    Users with approved KYC, complete bank details, and active package
+                    Users with approved KYC, complete bank details, and who have made transactions
                   </p>
                 </CardHeader>
                 <CardContent>
@@ -1967,7 +1967,7 @@ export default function AdminDashboard() {
                       </div>
                       <h3 className="text-lg font-semibold text-gray-800 mb-2">No Paid Members</h3>
                       <p className="text-gray-600 mb-4">
-                        No users meet the paid member criteria. Users need approved KYC, complete bank details, and an active package.
+                        No users meet the paid member criteria. Users need approved KYC, complete bank details, and at least one transaction.
                       </p>
                       <TooltipProvider>
                         <Tooltip>

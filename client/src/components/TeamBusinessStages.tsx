@@ -20,7 +20,8 @@ import { apiRequest } from "@/lib/queryClient";
 interface TeamBusinessMetrics {
   currentRank: string;
   nextRank: string;
-  teamBV: string;
+  matchedBV: string;  // For income display
+  totalTeamBV: string;  // For rank qualification
   leftBV: string;
   rightBV: string;
   totalDirects: number;
@@ -56,7 +57,8 @@ export function TeamBusinessStages() {
       
       // Calculate rank progression based on current data
       const currentRank = data.currentRank || 'Executive';
-      const teamBV = parseFloat(data.teamBV || '0');
+      const matchedBV = parseFloat(data.matchedBV || '0');  // For income display
+      const totalTeamBV = parseFloat(data.totalTeamBV || '0');  // For rank qualification
       const leftBV = parseFloat(data.leftBV || '0');
       const rightBV = parseFloat(data.rightBV || '0');
       
@@ -78,8 +80,8 @@ export function TeamBusinessStages() {
       
       const nextRankReq = rankRequirements[nextRank as keyof typeof rankRequirements];
       
-      // Calculate progress percentage
-      const bvProgress = Math.min((teamBV / parseFloat(nextRankReq.teamBV || '0')) * 100, 100);
+      // Calculate progress percentage using TOTAL Team BV for rank qualification
+      const bvProgress = Math.min((totalTeamBV / parseFloat(nextRankReq.teamBV || '0')) * 100, 100);
       const leftProgress = Math.min((leftBV / parseFloat(nextRankReq.leftBV || '0')) * 100, 100);
       const rightProgress = Math.min((rightBV / parseFloat(nextRankReq.rightBV || '0')) * 100, 100);
       const recruitsProgress = Math.min((data.totalDirects / nextRankReq.directRecruits) * 100, 100);
@@ -89,7 +91,8 @@ export function TeamBusinessStages() {
       return {
         currentRank,
         nextRank,
-        teamBV: data.teamBV || '0.00',
+        matchedBV: data.matchedBV || '0.00',  // For income display
+        totalTeamBV: data.totalTeamBV || '0.00',  // For rank qualification
         leftBV: data.leftBV || '0.00',
         rightBV: data.rightBV || '0.00',
         totalDirects: data.totalDirects || 0,
@@ -215,14 +218,21 @@ export function TeamBusinessStages() {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Team BVM (Matched)</span>
-                <span className="text-lg font-bold text-blue-600">₹{metrics.teamBV}</span>
+                <span className="text-lg font-bold text-blue-600">₹{metrics.matchedBV}</span>
+              </div>
+              <div className="text-xs text-gray-500 mb-2">
+                (For income: min of left & right)
+              </div>
+              <div className="flex justify-between items-center mt-3">
+                <span className="text-sm font-medium">Total Team BV</span>
+                <span className="text-lg font-bold text-purple-600">₹{metrics.totalTeamBV}</span>
               </div>
               <Progress 
-                value={Math.min((parseFloat(metrics.teamBV) / parseFloat(metrics.nextRankRequirements.teamBV)) * 100, 100)} 
+                value={Math.min((parseFloat(metrics.totalTeamBV) / parseFloat(metrics.nextRankRequirements.teamBV)) * 100, 100)} 
                 className="h-2" 
               />
               <p className="text-xs text-gray-500">
-                Target: ₹{metrics.nextRankRequirements.teamBV}
+                (For rank: left + right) Target: ₹{metrics.nextRankRequirements.teamBV}
               </p>
             </div>
 

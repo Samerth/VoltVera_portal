@@ -1150,6 +1150,8 @@ export class DatabaseStorage implements IStorage {
     activeMembers: number;
     currentRank: string;
     teamBV: string;
+    matchedBV: string;
+    totalTeamBV: string;
     leftBV: string;
     rightBV: string;
     totalDirects: number;
@@ -1162,17 +1164,20 @@ export class DatabaseStorage implements IStorage {
       throw new Error(`User not found: ${userId}`);
     }
     
-    // Calculate matched BV (minimum of left and right legs)
+    // Calculate both matched BV and total BV
     const leftBV = parseFloat(user.leftBV || '0');
     const rightBV = parseFloat(user.rightBV || '0');
-    const matchedBV = Math.min(leftBV, rightBV);
+    const matchedBV = Math.min(leftBV, rightBV);  // For income calculations
+    const totalTeamBV = leftBV + rightBV;  // For rank qualification
     
     const result = {
       directRecruits: directMembers.length,
       totalDownline: allDownline.length,
       activeMembers: allDownline.filter(u => u.status === 'active').length,
       currentRank: user.currentRank || 'Executive',
-      teamBV: matchedBV.toFixed(2),  // FIXED: Return matched BV instead of total BV
+      teamBV: matchedBV.toFixed(2),  // Matched BV (for income display)
+      matchedBV: matchedBV.toFixed(2),  // Explicit matched BV field
+      totalTeamBV: totalTeamBV.toFixed(2),  // Total BV (for rank qualification)
       leftBV: user.leftBV || '0.00',
       rightBV: user.rightBV || '0.00',
       totalDirects: user.totalDirects || 0,

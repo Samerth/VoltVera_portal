@@ -106,7 +106,7 @@ export function BVTransactionsReport({
       'Initiator Name': tx.initiatingUserName || 'N/A',
       'Type': tx.transactionType,
       'Direct BV': tx.directBv || '0.00',
-      'Team BV': tx.teamBv || '0.00',
+      'Team BVM': tx.teamBv || '0.00',
       'Left BV Change': `${tx.prevLeftBv} → ${tx.newLeftBv}`,
       'Right BV Change': `${tx.prevRightBv} → ${tx.newRightBv}`,
       'New Match': tx.newMatchAmount,
@@ -308,11 +308,11 @@ export function BVTransactionsReport({
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger className="flex items-center gap-1">
-                          Team BV
+                          Team BVM
                           <HelpCircle className="w-3 h-3" />
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Total BV added to left and right legs (Team BV = Left BV + Right BV)</p>
+                          <p>Matched BV from balanced legs (Team BVM = Min of Left & Right BV)</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>

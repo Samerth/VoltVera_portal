@@ -78,7 +78,7 @@ export function MonthlyBVReport() {
       'Direct BV': record.monthBvDirects || '0.00',
       'Left BV': record.monthBvLeft || '0.00',
       'Right BV': record.monthBvRight || '0.00',
-      'Total Team BV': record.totalMonthBv || '0.00',
+      'Team BVM (Matched)': record.totalMonthBv || '0.00',
       'Car Fund': record.fundEligibility?.carFund ? 'Eligible' : 'Not Eligible',
       'Travel Fund': record.fundEligibility?.travelFund ? 'Eligible' : 'Not Eligible',
       'Leadership Fund': record.fundEligibility?.leadershipFund ? 'Eligible' : 'Not Eligible',
@@ -298,7 +298,7 @@ export function MonthlyBVReport() {
                   <TableHead>Rank</TableHead>
                   <TableHead>Month ID</TableHead>
                   <TableHead>Direct BV</TableHead>
-                  <TableHead>Team BV</TableHead>
+                  <TableHead>Team BVM</TableHead>
                   <TableHead className="text-center">Car Fund</TableHead>
                   <TableHead className="text-center">Travel</TableHead>
                   <TableHead className="text-center">Leadership</TableHead>

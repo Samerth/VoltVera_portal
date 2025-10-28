@@ -196,7 +196,7 @@ export default function BVCalculations() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5" />
-                  Team BV Breakdown
+                  Team BVM Breakdown
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -217,11 +217,11 @@ export default function BVCalculations() {
                 </div>
                 <Separator />
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Team BV (Downline)</span>
+                  <span className="text-sm text-gray-600">Team BVM (Matched BV)</span>
                   <span className="font-medium text-blue-600">{formatBV(lifetime?.teamBv || '0')}</span>
                 </div>
                 <div className="text-xs text-blue-400 -mt-2 mb-2">
-                  (Used for rank qualification and matching income)
+                  (Min of left & right legs - used for rank qualification and differential income)
                 </div>
               </CardContent>
             </Card>

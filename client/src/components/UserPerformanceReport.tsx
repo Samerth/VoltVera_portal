@@ -77,12 +77,12 @@ export function UserPerformanceReport() {
     const headers = [
       'User ID', 'Name', 'Email', 'Rank', 'Status',
       'Direct Income', 'Differential Income', 'Total Income',
-      'Monthly Direct BV', 'Monthly Left BV', 'Monthly Right BV', 'Monthly Team BV',
-      'Lifetime Direct BV', 'Lifetime Left BV', 'Lifetime Right BV', 'Lifetime Team BV',
+      'Monthly Direct BV', 'Monthly Left BV', 'Monthly Right BV', 'Monthly Team BVM',
+      'Lifetime Direct BV', 'Lifetime Left BV', 'Lifetime Right BV', 'Lifetime Team BVM',
       'Lifetime Matching BV', 'Carry Forward Left', 'Carry Forward Right',
       'Current Balance', 'Total Earnings', 'Total Withdrawals',
       'Total Directs', 'Left Directs', 'Right Directs',
-      'Required Team BV', 'Required Directs', 'Eligible for Rank'
+      'Required Team BVM', 'Required Directs', 'Eligible for Rank'
     ];
 
     const csvData = performanceData.map((user: any) => [
@@ -290,8 +290,8 @@ export function UserPerformanceReport() {
                   <TableHead className="text-right">Direct Income</TableHead>
                   <TableHead className="text-right">Diff. Income</TableHead>
                   <TableHead className="text-right">Total Income</TableHead>
-                  <TableHead className="text-right">Monthly Team BV</TableHead>
-                  <TableHead className="text-right">Lifetime Team BV</TableHead>
+                  <TableHead className="text-right">Monthly Team BVM</TableHead>
+                  <TableHead className="text-right">Lifetime Team BVM</TableHead>
                   <TableHead className="text-right">Wallet Balance</TableHead>
                   <TableHead className="text-right">Total Earnings</TableHead>
                   <TableHead className="text-right">Withdrawals</TableHead>
@@ -308,7 +308,7 @@ export function UserPerformanceReport() {
                             <p className="font-semibold mb-2">Promotion Eligibility Status</p>
                             <p className="text-sm mb-2">Shows if user meets requirements for next rank:</p>
                             <ul className="text-xs space-y-1">
-                              <li>🟢 <strong>Eligible:</strong> Meets both Team BV and Direct recruits requirements</li>
+                              <li>🟢 <strong>Eligible:</strong> Meets both Team BVM and Direct recruits requirements</li>
                               <li>🟡 <strong>Partial:</strong> Meets one requirement, needs the other</li>
                               <li>🔴 <strong>Not Eligible:</strong> Needs to meet both requirements</li>
                             </ul>

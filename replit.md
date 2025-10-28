@@ -186,6 +186,22 @@ Fixed critical bugs where `selfBv` (user's own purchases) was being incorrectly 
 - **Business Logic**: Team BV now correctly shows only the matched portion that generates differential income
 - **Example**: If Left=21000 and Right=21000, Team BV now shows 21,000 (matched) instead of 42,000 (total)
 
+## UI Terminology Consistency (October 28, 2025)
+
+### Bug #7: Inconsistent "Team BV" Terminology Across UI ✅ FIXED
+- **Issue**: Multiple places in the UI displayed "Team BV" instead of the more accurate "Team BVM" (Matched BV)
+- **Impact**: Users might confuse total BV (left + right sum) with matched BV (min of left & right)
+- **Locations Updated**:
+  - User Dashboard: `TeamBusinessStages.tsx` - "Total Team BV" → "Team BVM (Matched)"
+  - BV Calculations: `BVCalculations.tsx` - "Team BV Breakdown" → "Team BVM Breakdown"
+  - User Performance Report: `UserPerformanceReport.tsx` - CSV headers and table columns updated
+  - Monthly BV Report: `MonthlyBVReport.tsx` - CSV and table headers updated
+  - Reports Guide: `ReportsGuide.tsx` - Descriptions and tooltips updated
+  - BV Transactions: `BVTransactionsReport.tsx` - Headers and tooltips clarified
+- **Files**: All frontend report components and dashboards
+- **Business Logic**: "Team BVM" clearly indicates matched BV (minimum of left and right legs), avoiding confusion with total BV
+- **Terminology**: Team BVM = Matched BV = min(Left BV, Right BV) - the portion that generates differential income
+
 ## KYC System Bugs (October 20, 2025)
 
 ### 1. KYC Re-upload Status Display Bug ✅ FIXED

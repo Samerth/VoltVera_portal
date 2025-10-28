@@ -214,7 +214,7 @@ export function TeamBusinessStages() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Total Team BV</span>
+                <span className="text-sm font-medium">Team BVM (Matched)</span>
                 <span className="text-lg font-bold text-blue-600">₹{metrics.teamBV}</span>
               </div>
               <Progress 
@@ -271,7 +271,7 @@ export function TeamBusinessStages() {
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <DollarSign className="h-6 w-6 text-blue-600" />
               </div>
-              <h4 className="font-semibold text-blue-900">Team BV</h4>
+              <h4 className="font-semibold text-blue-900">Team BVM</h4>
               <p className="text-2xl font-bold text-blue-600">₹{metrics.nextRankRequirements.teamBV}</p>
             </div>
 

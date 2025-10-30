@@ -43,6 +43,20 @@ export class ProductionBVEngine {
       await this.updateSelfBV(data.userId, bvAmount.toString(), data.purchaseId, data.monthId);
       console.log(`📊 Updated self_bv for ${data.userId}: +${bvAmount}`);
 
+      // Step 1.5: Check if BUYER themselves qualifies for a rank update
+      // This is important because the buyer might have team downline BV that qualifies them for a rank
+      // Without this check, only uplines' ranks get checked, but not the buyer's own rank
+      const buyerLifetimeData = await db.select()
+        .from(lifetimeBvCalculations)
+        .where(eq(lifetimeBvCalculations.userId, data.userId))
+        .limit(1);
+      
+      if (buyerLifetimeData.length > 0) {
+        const buyerMatchedBV = parseFloat(buyerLifetimeData[0].matchingBv || '0');
+        await this.checkAndUpdateRank(data.userId, buyerMatchedBV, user.currentRank || 'Executive');
+        console.log(`✅ Checked buyer's own rank: ${data.userId} (Matched BV: ${buyerMatchedBV})`);
+      }
+
       // Step 2: Direct income to SPONSOR (configurable % of BV)
       if (user.sponsorId) {
         const sponsorDisplayId = await this.normalizeToDisplayId(user.sponsorId);

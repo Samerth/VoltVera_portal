@@ -81,6 +81,36 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Bug Fixes (October 30, 2025)
 
+## Bug #13: Buyer's Own Rank Not Checked During Purchase ✅ FIXED
+- **Issue**: When a user makes a purchase, only their uplines' ranks are checked for upgrades, but the buyer's own rank is never evaluated
+- **Impact**:
+  - If a buyer has team downline BV that qualifies them for a rank, they won't get upgraded when they make a purchase
+  - Only when someone in their upline makes a purchase (triggering BV propagation) would their rank finally get checked
+  - Rank achievement bonuses go to the wrong person's sponsor (the upline who got checked instead of the buyer)
+- **Root Cause**:
+  - In `processPurchase()`, BV propagates UP the tree and each upline's rank is checked
+  - But the buyer themselves is never checked
+  - Missing code to evaluate buyer's own rank after updating their self_bv
+- **Fix Applied**:
+  1. **Backend**: Modified `processPurchase()` in `server/productionBVEngine.ts` (lines 49-61)
+     - Added Step 1.5: Check buyer's own rank after updating self_bv
+     - Fetches buyer's lifetime BV data and checks if their matched BV qualifies them for rank upgrade
+     - If buyer achieves a rank → buyer's SPONSOR receives the rank achievement bonus (correct MLM logic)
+  2. **Code Added**:
+     ```typescript
+     const buyerLifetimeData = await db.select()
+       .from(lifetimeBvCalculations)
+       .where(eq(lifetimeBvCalculations.userId, data.userId))
+       .limit(1);
+     
+     if (buyerLifetimeData.length > 0) {
+       const buyerMatchedBV = parseFloat(buyerLifetimeData[0].matchingBv || '0');
+       await this.checkAndUpdateRank(data.userId, buyerMatchedBV, user.currentRank || 'Executive');
+     }
+     ```
+- **Files**: `server/productionBVEngine.ts`
+- **Business Impact**: Rank bonuses now correctly go to the sponsor of the person who achieved the rank, not to the sponsor of an upline
+
 ## Bug #12: Differential Income Not Accumulating ✅ FIXED
 - **Issue**: Differential income in `lifetime_bv_calculations` table was being overwritten with each transaction instead of accumulating
 - **Impact**: 

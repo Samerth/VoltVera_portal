@@ -20,8 +20,8 @@ import { apiRequest } from "@/lib/queryClient";
 interface TeamBusinessMetrics {
   currentRank: string;
   nextRank: string;
-  matchedBV: string;  // For income display
-  totalTeamBV: string;  // For rank qualification
+  matchedBV: string;  // Min of left & right - used for RANK QUALIFICATION and income
+  totalTeamBV: string;  // Sum of left + right - reference metric only
   leftBV: string;
   rightBV: string;
   totalDirects: number;
@@ -57,8 +57,8 @@ export function TeamBusinessStages() {
       
       // Calculate rank progression based on current data
       const currentRank = data.currentRank || 'Executive';
-      const matchedBV = parseFloat(data.matchedBV || '0');  // For income display
-      const totalTeamBV = parseFloat(data.totalTeamBV || '0');  // For rank qualification
+      const matchedBV = parseFloat(data.matchedBV || '0');  // Min of left & right - USED FOR RANK QUALIFICATION
+      const totalTeamBV = parseFloat(data.totalTeamBV || '0');  // Sum of left + right - reference only
       const leftBV = parseFloat(data.leftBV || '0');
       const rightBV = parseFloat(data.rightBV || '0');
       
@@ -80,8 +80,8 @@ export function TeamBusinessStages() {
       
       const nextRankReq = rankRequirements[nextRank as keyof typeof rankRequirements];
       
-      // Calculate progress percentage using TOTAL Team BV for rank qualification
-      const bvProgress = Math.min((totalTeamBV / parseFloat(nextRankReq.teamBV || '0')) * 100, 100);
+      // Calculate progress percentage using MATCHED BV (min of left & right) for rank qualification
+      const bvProgress = Math.min((matchedBV / parseFloat(nextRankReq.teamBV || '0')) * 100, 100);
       const leftProgress = Math.min((leftBV / parseFloat(nextRankReq.leftBV || '0')) * 100, 100);
       const rightProgress = Math.min((rightBV / parseFloat(nextRankReq.rightBV || '0')) * 100, 100);
       const recruitsProgress = Math.min((data.totalDirects / nextRankReq.directRecruits) * 100, 100);
@@ -91,8 +91,8 @@ export function TeamBusinessStages() {
       return {
         currentRank,
         nextRank,
-        matchedBV: data.matchedBV || '0.00',  // For income display
-        totalTeamBV: data.totalTeamBV || '0.00',  // For rank qualification
+        matchedBV: data.matchedBV || '0.00',  // Min of left & right - for rank qualification and income
+        totalTeamBV: data.totalTeamBV || '0.00',  // Sum of left + right - reference only
         leftBV: data.leftBV || '0.00',
         rightBV: data.rightBV || '0.00',
         totalDirects: data.totalDirects || 0,
@@ -217,22 +217,22 @@ export function TeamBusinessStages() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Team BVM (Matched)</span>
+                <span className="text-sm font-medium">Matched BV (for Rank & Income)</span>
                 <span className="text-lg font-bold text-blue-600">₹{metrics.matchedBV}</span>
               </div>
-              <div className="text-xs text-gray-500 mb-2">
-                (For income: min of left & right)
-              </div>
-              <div className="flex justify-between items-center mt-3">
-                <span className="text-sm font-medium">Total Team BV</span>
-                <span className="text-lg font-bold text-purple-600">₹{metrics.totalTeamBV}</span>
-              </div>
               <Progress 
-                value={Math.min((parseFloat(metrics.totalTeamBV) / parseFloat(metrics.nextRankRequirements.teamBV)) * 100, 100)} 
+                value={Math.min((parseFloat(metrics.matchedBV) / parseFloat(metrics.nextRankRequirements.teamBV)) * 100, 100)} 
                 className="h-2" 
               />
+              <p className="text-xs text-gray-500 mb-2">
+                (Min of left & right legs) Target: ₹{metrics.nextRankRequirements.teamBV}
+              </p>
+              <div className="flex justify-between items-center mt-3">
+                <span className="text-sm font-medium">Total Team BV (Reference)</span>
+                <span className="text-lg font-bold text-purple-600">₹{metrics.totalTeamBV}</span>
+              </div>
               <p className="text-xs text-gray-500">
-                (For rank: left + right) Target: ₹{metrics.nextRankRequirements.teamBV}
+                (Sum of left + right legs)
               </p>
             </div>
 

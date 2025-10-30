@@ -227,9 +227,9 @@ export class ProductionBVEngine {
     const newMatchingBV = Math.min(newLeftBV, newRightBV);
     const newMatch = Math.max(0, newMatchingBV - prevMatchingBV);
 
-    // Check and auto-update rank based on current team BV
-    const teamBV = newLeftBV + newRightBV;
-    const updatedRank = await this.checkAndUpdateRank(userId, teamBV, user.currentRank || 'Executive');
+    // Check and auto-update rank based on MATCHED BV (min of left & right)
+    // This encourages balanced team building in binary MLM structure
+    const updatedRank = await this.checkAndUpdateRank(userId, newMatchingBV, user.currentRank || 'Executive');
 
     // Get rank percentage from rank_configurations table (using potentially updated rank)
     const rankConfig = await db.select()
@@ -317,9 +317,9 @@ export class ProductionBVEngine {
   }
 
   /**
-   * Check if user qualifies for a higher rank based on team BV and auto-update if eligible
+   * Check if user qualifies for a higher rank based on MATCHED BV and auto-update if eligible
    * @param userId - Display ID of the user
-   * @param teamBV - Current team BV (left + right)
+   * @param teamBV - Current MATCHED BV (min of left & right) - encourages balanced team building
    * @param currentRank - User's current rank
    * @returns The user's current or newly updated rank
    */

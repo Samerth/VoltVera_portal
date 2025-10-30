@@ -169,7 +169,7 @@ export default function BVCalculations() {
                   {formatBV(lifetime?.matchingBv || '0')}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {formatBV(lifetime?.leftBv || '0')} + {formatBV(lifetime?.rightBv || '0')}
+                  Min of {formatBV(lifetime?.leftBv || '0')} & {formatBV(lifetime?.rightBv || '0')}
                 </p>
               </CardContent>
             </Card>
@@ -217,10 +217,18 @@ export default function BVCalculations() {
                 </div>
                 <Separator />
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Team BVM (Matched BV)</span>
+                  <span className="text-sm text-gray-600">Total Team BV</span>
                   <span className="font-medium text-blue-600">{formatBV(lifetime?.teamBv || '0')}</span>
                 </div>
                 <div className="text-xs text-blue-400 -mt-2 mb-2">
+                  (Left + Right legs combined - reference metric only)
+                </div>
+                <Separator />
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Matched BV (for Rank & Income)</span>
+                  <span className="font-medium text-green-600">{formatBV(lifetime?.matchingBv || '0')}</span>
+                </div>
+                <div className="text-xs text-green-400 -mt-2 mb-2">
                   (Min of left & right legs - used for rank qualification and differential income)
                 </div>
               </CardContent>

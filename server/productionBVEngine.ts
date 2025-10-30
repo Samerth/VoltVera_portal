@@ -358,6 +358,15 @@ export class ProductionBVEngine {
       // User qualifies for a higher rank - update it
       console.log(`🎖️ Auto-updating rank for ${userId}: ${currentRank} → ${qualifiedRank} (Team BV: ${teamBV})`);
       
+      // Get user's sponsor ID before updating rank
+      const [userRecord] = await db.select({ sponsorId: users.sponsorId })
+        .from(users)
+        .where(eq(users.userId, userId))
+        .limit(1);
+      
+      // Normalize sponsor ID to display ID format (VVxxxx) since it might be stored as UUID
+      const sponsorId = await this.normalizeToDisplayId(userRecord?.sponsorId);
+      
       // Update user's current rank
       await db.update(users)
         .set({ currentRank: qualifiedRank as any, updatedAt: new Date() })
@@ -411,10 +420,13 @@ export class ProductionBVEngine {
         console.log(`🎖️ Rank Achieved: ${achievedRank} - Bonus: ₹${bonus}`);
       }
 
-      // Credit total accumulated bonuses to wallet
-      if (totalBonus > 0) {
-        await this.creditWallet(userId, totalBonus, 'sales_bonus', undefined);
-        console.log(`🎁 Total Rank Achievement Bonuses: ₹${totalBonus} credited to ${userId} for advancing ${ranksAchieved.join(' → ')}`);
+      // Credit total accumulated bonuses to sponsor's wallet (not the user who achieved the rank)
+      if (totalBonus > 0 && sponsorId) {
+        const bonusDescription = `Sponsor bonus for downline ${userId} rank achievement: ${ranksAchieved.join(' → ')}`;
+        await this.creditWallet(sponsorId, totalBonus, 'sales_bonus', undefined, bonusDescription);
+        console.log(`🎁 Rank Achievement Bonus: ₹${totalBonus} credited to sponsor ${sponsorId} for downline ${userId} advancing ${ranksAchieved.join(' → ')}`);
+      } else if (totalBonus > 0 && !sponsorId) {
+        console.log(`⚠️ No sponsor found for ${userId} - rank achievement bonus ₹${totalBonus} not credited`);
       }
 
       return qualifiedRank;
@@ -456,7 +468,7 @@ export class ProductionBVEngine {
     return userId;
   }
 
-  async creditWallet(userId: string, amount: number, type: string, referenceId?: string) {
+  async creditWallet(userId: string, amount: number, type: string, referenceId?: string, customDescription?: string) {
     // Get current wallet balance
     const [wallet] = await db.select().from(walletBalances).where(eq(walletBalances.userId, userId));
     
@@ -507,12 +519,13 @@ export class ProductionBVEngine {
       })
       .where(eq(walletBalances.userId, userId));
 
-    // Create transaction record
+    // Create transaction record with custom description if provided
+    const description = customDescription || `${type} - BV calculation`;
     await db.insert(transactions).values({
       userId: userId,
       type: type as any,
       amount: amount.toString(),
-      description: `${type} - BV calculation`,
+      description: description,
       referenceId: referenceId,
       balanceBefore: currentBalance.toString(),
       balanceAfter: newBalance.toString()

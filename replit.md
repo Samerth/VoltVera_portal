@@ -95,7 +95,7 @@ Preferred communication style: Simple, everyday language.
 - **Files**: `server/storage.ts`, `client/src/pages/AdminDashboard.tsx`
 - **Free Users Logic**: Unchanged - still shows users with package amount = 0 or null
 
-# Recent Bug Fixes (October 28, 2025)
+# Recent Bug Fixes (October 30, 2025)
 
 ## Bug #9: packageAmount Field Out of Sync ✅ FIXED
 - **Issue**: VV0001's `packageAmount` showed 21,000 but should have been 65,000 (matched BV)
@@ -122,6 +122,28 @@ Preferred communication style: Simple, everyday language.
   - `lifetime_bv_calculations` table
   - `bv_transactions` table
   - `monthly_bv` table
+
+## Bug #10: E-Wallet Transfers Incorrectly Counted as Monthly Income ✅ FIXED (Oct 30, 2025)
+- **Issue**: Admin dashboard "Monthly Income" incorrectly included e-wallet fund transfers from admins
+- **Root Cause**: `admin_credit` transaction type was included in monthly income calculation
+- **Impact**: 
+  - Monthly Income displayed ₹111,065 instead of correct ₹11,065
+  - ₹100,000 admin_credit (manual wallet top-up) was counted as earned income
+- **Fix Applied**:
+  1. **Backend**: Updated `getAdminStats()` in `server/storage.ts` (line 889)
+     - Removed `admin_credit` from monthly income transaction type filter
+     - Added comment documenting excluded types
+  2. **Monthly Income Now Includes Only**:
+     - Earned income: sponsor_income, sales_bonus, sales_incentive, consistency_bonus
+     - Fund rewards: car_fund, travel_fund, leadership_fund, house_fund, millionaire_club
+     - Other income: franchise_income, royalty_income
+  3. **Monthly Income Excludes**:
+     - `admin_credit`, `admin_debit` (manual wallet adjustments by admins)
+     - `withdrawal` (fund withdrawals)
+     - `purchase` (product purchases)
+- **Files**: `server/storage.ts`
+- **Verification**: SQL query confirms correct calculation: sponsor_income (₹4,400) + sales_bonus (₹6,665) = ₹11,065
+- **Frontend**: Added auto-refresh (30s interval) and stale time (10s) to admin stats query for real-time updates
 
 ## Bug #8: Dashboard Using Wrong BV Metric for Rank Qualification ✅ FIXED
 - **Issue**: User dashboard compared **Matched BV** against rank requirements that are based on **Total BV** (left + right sum)

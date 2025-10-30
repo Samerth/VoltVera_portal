@@ -872,6 +872,7 @@ export class DatabaseStorage implements IStorage {
     const totalBV = bvRecords.reduce((sum, record) => sum + parseFloat(record.teamBv || '0'), 0);
     
     // Calculate monthly income from actual transactions for current month (excluding admin users)
+    // EXCLUDES: admin_credit, admin_debit (manual wallet adjustments), withdrawal, purchase (deductions)
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     
@@ -882,7 +883,7 @@ export class DatabaseStorage implements IStorage {
         and(
           gte(transactions.createdAt, firstDayOfMonth),
           ne(users.role, 'admin'),
-          sql`${transactions.type} IN ('sponsor_income', 'sales_incentive', 'sales_bonus', 'consistency_bonus', 'franchise_income', 'car_fund', 'travel_fund', 'leadership_fund', 'house_fund', 'millionaire_club', 'royalty_income', 'admin_credit')`
+          sql`${transactions.type} IN ('sponsor_income', 'sales_incentive', 'sales_bonus', 'consistency_bonus', 'franchise_income', 'car_fund', 'travel_fund', 'leadership_fund', 'house_fund', 'millionaire_club', 'royalty_income')`
         )
       );
     

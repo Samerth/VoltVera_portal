@@ -187,6 +187,7 @@ export class ProductionBVEngine {
     const prevRightBV = parseFloat(currentRecord.rightBv || '0');
     const prevMatchingBV = parseFloat(currentRecord.matchingBv || '0');
     const prevDirectsBV = parseFloat(currentRecord.directsBv || '0');
+    const prevDiffIncome = parseFloat(currentRecord.diffIncome || '0');  // Track previous accumulated differential income
 
     // Calculate new BV state
     let newLeftBV = prevLeftBV;
@@ -246,6 +247,8 @@ export class ProductionBVEngine {
 
     // Update lifetime BV calculation record
     const now = new Date();
+    const totalDiffIncome = prevDiffIncome + diffIncome;  // CRITICAL FIX: Accumulate differential income instead of overwriting
+    
     await db.update(lifetimeBvCalculations)
       .set({
         leftBv: newLeftBV.toString(),
@@ -255,7 +258,7 @@ export class ProductionBVEngine {
         newMatch: newMatch.toString(),
         carryForwardLeft: carryForwardLeft.toString(),
         carryForwardRight: carryForwardRight.toString(),
-        diffIncome: diffIncome.toString(),
+        diffIncome: totalDiffIncome.toString(),  // CRITICAL FIX: Store accumulated total differential income
         teamBv: (newLeftBV + newRightBV).toString(),
         updatedAt: now
       })

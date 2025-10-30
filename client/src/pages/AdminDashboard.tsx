@@ -394,9 +394,11 @@ export default function AdminDashboard() {
   }, {}) : {};
 
   // Fetch enhanced admin stats
-  const { data: adminStats } = useQuery<AdminStats>({
+  const { data: adminStats, isLoading: isLoadingAdminStats } = useQuery<AdminStats>({
     queryKey: ["/api/admin/stats"],
     enabled: isAuthenticated && user?.role === 'admin',
+    refetchInterval: 30000, // Refetch every 30 seconds
+    staleTime: 10000, // Data considered fresh for 10 seconds
   });
 
   // Keep legacy stats for compatibility

@@ -872,7 +872,6 @@ export class DatabaseStorage implements IStorage {
     const totalBV = bvRecords.reduce((sum, record) => sum + parseFloat(record.teamBv || '0'), 0);
     
     // Calculate monthly income from actual transactions for current month (excluding admin users)
-    // FIXED: Join using Display ID
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     

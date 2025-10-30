@@ -144,6 +144,23 @@ Preferred communication style: Simple, everyday language.
   - `bv_transactions` table
   - `monthly_bv` table
 
+## Bug #11: Rank Achievement Bonus Still Going to User Despite Feature Update ✅ FIXED (Oct 30, 2025)
+- **Issue**: Despite implementing sponsor bonus logic in `productionBVEngine.ts`, users were still receiving rank achievement bonuses directly
+- **Root Cause**: Duplicate bonus crediting logic in two places:
+  1. ✅ `server/productionBVEngine.ts` (lines 423-430) - Correctly credits sponsor
+  2. ❌ `server/storage.ts` (lines 4186-4189) - Still credited user directly (OLD logic)
+- **Impact**: 
+  - Users received bonuses they shouldn't get (e.g., VV4JUTUX received ₹90,000 for Ruby Star)
+  - BOTH user and sponsor were getting bonuses (double payment issue)
+  - Screenshot evidence showed: "Rank Achievement Bonus - Ruby Star" going to user
+- **Fix Applied**:
+  1. **Backend**: Removed duplicate bonus crediting from `createRankAchievement()` in `server/storage.ts` (lines 4186-4189)
+  2. **Added Documentation Comment**: Clarified that bonus is handled by productionBVEngine.ts
+  3. **Single Source of Truth**: Only `productionBVEngine.ts` credits rank bonuses (to sponsors)
+- **Files**: `server/storage.ts`
+- **Verification**: After fix, rank achievement bonuses should ONLY go to sponsor with description: "Sponsor bonus for downline {userId} rank achievement: {ranks}"
+- **Important Note**: The `productionBVEngine.ts` is the authoritative BV calculation engine - all bonus logic should be centralized there to prevent duplicates
+
 ## Bug #10: E-Wallet Transfers Incorrectly Counted as Monthly Income ✅ FIXED (Oct 30, 2025)
 - **Issue**: Admin dashboard "Monthly Income" incorrectly included e-wallet fund transfers from admins
 - **Root Cause**: `admin_credit` transaction type was included in monthly income calculation

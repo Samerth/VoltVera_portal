@@ -4183,10 +4183,9 @@ export class DatabaseStorage implements IStorage {
       .set({ currentRank: rank })
       .where(eq(users.userId, userId));
 
-    // Credit rank achievement bonus
-    if (bonus > 0) {
-      await this.updateWalletBalance(userId, bonus.toString(), `Rank Achievement Bonus - ${rank}`, 'sales_bonus'); // earlier: 'admin_credit'
-    }
+    // NOTE: Rank achievement bonus is handled by productionBVEngine.ts
+    // The bonus is credited to the SPONSOR (not the user who achieved the rank)
+    // This prevents duplicate bonus crediting
 
     return achievement;
   }

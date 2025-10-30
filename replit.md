@@ -78,3 +78,36 @@ Preferred communication style: Simple, everyday language.
 - **connect-pg-simple**: PostgreSQL session store.
 - **Memoizee**: Function memoization.
 - **SendGrid**: Email services.
+
+# Recent Bug Fixes (October 30, 2025)
+
+## Bug #12: Differential Income Not Accumulating ✅ FIXED
+- **Issue**: Differential income in `lifetime_bv_calculations` table was being overwritten with each transaction instead of accumulating
+- **Impact**: 
+  - Users saw only their LAST transaction's differential income instead of total lifetime earnings
+  - Example: VV0001 showed ₹450 (last transaction only) instead of ₹1,260 (total from 7 transactions)
+  - Screenshot showed 25,00,000 matched BV with ₹4,00,000 differential income which appeared incorrect
+- **Root Cause**: 
+  - Line 258 in `productionBVEngine.ts` was setting `diffIncome: diffIncome.toString()` - overwriting previous total
+  - Should have been accumulating: `prevDiffIncome + diffIncome`
+- **Fix Applied**:
+  1. **Backend**: Modified `processBVMatching()` in `server/productionBVEngine.ts`
+     - Added line 193: Track previous differential income: `const prevDiffIncome = parseFloat(currentRecord.diffIncome || '0');`
+     - Added line 253: Calculate accumulated total: `const totalDiffIncome = prevDiffIncome + diffIncome;`
+     - Updated line 264: Store accumulated total instead of transaction amount: `diffIncome: totalDiffIncome.toString()`
+  2. **Database Sync**: Ran SQL update to fix all existing records:
+     ```sql
+     UPDATE lifetime_bv_calculations
+     SET diff_income = COALESCE((
+       SELECT SUM(diff_income::numeric)
+       FROM bv_transactions
+       WHERE bv_transactions.user_id = lifetime_bv_calculations.user_id
+     ), 0);
+     ```
+     - Updated 9 user records with correct accumulated totals
+- **Verification**:
+  - VV0001: Now shows ₹1,260.00 (sum of 7 transactions) ✅
+  - VV0002: Now shows ₹405.00 (sum of 3 transactions) ✅
+  - All future transactions will correctly accumulate
+- **Files**: `server/productionBVEngine.ts`
+- **Business Impact**: Users now see their true lifetime differential income earnings, which is critical for MLM compensation tracking

@@ -78,9 +78,30 @@ Preferred communication style: Simple, everyday language.
 - **Memoizee**: Function memoization.
 - **SendGrid**: Email services.
 
-# Recent Changes (October 28, 2025)
+# Recent Changes (October 30, 2025)
 
-## Feature Update: Paid Members Logic Changed ✅ UPDATED
+## Feature Update: Rank Achievement Bonus Recipient Changed ✅ UPDATED (Oct 30, 2025)
+- **Change**: Modified rank achievement bonus system to reward sponsors instead of users who achieve ranks
+- **Previous Logic**: 
+  - User achieves rank → User gets the rank + User receives the bonus
+- **New Logic**:
+  - User achieves rank → User gets the rank + **Sponsor receives the bonus**
+- **Rationale**: Incentivizes sponsors to build strong teams by rewarding them when their downline achieves higher ranks
+- **Implementation**:
+  1. **Backend**: Updated `checkAndUpdateRank()` in `server/productionBVEngine.ts` (lines 360-434)
+     - Fetch user's sponsor ID before rank update (lines 365-368)
+     - Normalize sponsor ID to display format using `normalizeToDisplayId()` (line 371) - handles UUID and VVxxxx formats
+     - Credit rank achievement bonus to sponsor's wallet with custom description (lines 427-428)
+     - Description format: "Sponsor bonus for downline ${userId} rank achievement: ${ranksAchieved.join(' → ')}"
+     - Edge case handling: If no sponsor exists, log warning and skip bonus credit (line 430)
+  2. **creditWallet() Enhancement**: Added optional `customDescription` parameter (line 472)
+     - Backward compatible - existing calls use default description
+     - Allows specific transaction descriptions for special cases like rank bonuses
+- **Files**: `server/productionBVEngine.ts`
+- **Transaction Traceability**: Transaction records clearly show sponsor bonus for downline rank achievements
+- **Example**: When user VV0005 achieves Gold Star rank, their sponsor VV0002 receives ₹10,000 with description: "Sponsor bonus for downline VV0005 rank achievement: Bronze Star → Gold Star"
+
+## Feature Update: Paid Members Logic Changed ✅ UPDATED (Oct 28, 2025)
 - **Change**: Modified "Paid Members" section criteria in admin dashboard
 - **Previous Logic**: 
   - Active status + Approved KYC + Complete bank details + **Package Amount > 0**

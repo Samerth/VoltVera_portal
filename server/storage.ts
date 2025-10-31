@@ -3435,7 +3435,10 @@ export class DatabaseStorage implements IStorage {
 
     const wasRejected = currentUser?.kycStatus === 'rejected';
     const isPending = currentUser?.kycStatus === 'pending';
-    console.log(`🔄 Updating KYC document ${id} for user ${currentDoc.userId}. Was rejected: ${wasRejected}, Currently pending: ${isPending}`);
+    // Check if the document being re-uploaded was previously rejected or pending
+    const docWasRejected = currentDoc.status === 'rejected';
+    const docWasPending = currentDoc.status === 'pending';
+    console.log(`🔄 Updating KYC document ${id} for user ${currentDoc.userId}. User was rejected: ${wasRejected}, User is pending: ${isPending}, Doc was rejected: ${docWasRejected}, Doc was pending: ${docWasPending}`);
 
     const updateData: any = {
       status: 'pending' as const, // Reset status to pending when updated
@@ -3495,13 +3498,15 @@ export class DatabaseStorage implements IStorage {
       let overallKYCStatus = 'pending';
       
       // FIX: If user is re-uploading documents (was rejected OR currently pending),
+      // OR if the document being re-uploaded was previously rejected or pending,
       // keep them in pending status to allow multiple document re-uploads
       // without reverting back to rejected status
-      if (wasRejected || isPending) {
+      if (wasRejected || isPending || docWasRejected || docWasPending) {
         overallKYCStatus = 'pending';
-        console.log(`🔄 Re-verification/update request detected for user ${updatedDoc.userId} - keeping status as pending (wasRejected: ${wasRejected}, isPending: ${isPending})`);
+        console.log(`🔄 Re-verification/update request detected for user ${updatedDoc.userId} - keeping status as pending (wasRejected: ${wasRejected}, isPending: ${isPending}, docWasRejected: ${docWasRejected}, docWasPending: ${docWasPending})`);
       } else {
-        // Normal logic for new users or approved users
+        // Normal logic for new users or approved users re-uploading approved documents
+        // (should be rare - usually means updating an approved document)
         if (allUserKYC.some(doc => doc.status === 'rejected')) {
           overallKYCStatus = 'rejected';
         } else if (allUserKYC.length > 0 && allUserKYC.every(doc => doc.status === 'approved')) {
@@ -3540,7 +3545,7 @@ export class DatabaseStorage implements IStorage {
       }
       
       // Create notification for re-verification request
-      if (overallKYCStatus === 'pending' && (wasRejected || isPending)) {
+      if (overallKYCStatus === 'pending' && (wasRejected || isPending || docWasRejected || docWasPending)) {
         const { notifications } = await import('@shared/schema');
         await db.insert(notifications).values({
           userId: updatedDoc.userId,
